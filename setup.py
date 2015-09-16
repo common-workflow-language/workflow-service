@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import setuptools.command.egg_info as egg_info_cmd
+import shutil
+
+from setuptools import setup, find_packages
+
+SETUP_DIR = os.path.dirname(__file__)
+README = os.path.join(SETUP_DIR, 'README')
+
+setup(name='cwl_service',
+      version='1.0',
+      description='Common workflow language runner service',
+      long_description=open(README).read(),
+      author='Common workflow language working group',
+      author_email='common-workflow-language@googlegroups.com',
+      url="https://github.com/common-workflow-language/common-workflow-language",
+      download_url="https://github.com/common-workflow-language/common-workflow-language",
+      license='Apache 2.0',
+      py_modules=["cwl_service"],
+      install_requires=[
+          'cwltool'
+        ],
+      entry_points={
+          'console_scripts': [ "cwl-service=cwl_service:main" ]
+      },
+      zip_safe=True
+)

@@ -1,0 +1,2 @@
+Wrap cwltool to perform multiple executions of a given workflow where input
+objects are provided on stdin and output objects are printed on stdout.
