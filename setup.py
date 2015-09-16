@@ -11,7 +11,7 @@ SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README')
 
 setup(name='cwltool_service',
-      version='1.0',
+      version='1.0.1',
       description='Common workflow language runner service',
       long_description=open(README).read(),
       author='Common workflow language working group',
