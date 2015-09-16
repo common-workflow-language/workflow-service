@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README')
 
-setup(name='cwl_service',
+setup(name='cwltool_service',
       version='1.0',
       description='Common workflow language runner service',
       long_description=open(README).read(),
@@ -19,12 +19,12 @@ setup(name='cwl_service',
       url="https://github.com/common-workflow-language/common-workflow-language",
       download_url="https://github.com/common-workflow-language/common-workflow-language",
       license='Apache 2.0',
-      py_modules=["cwl_service"],
+      py_modules=["cwltool_service"],
       install_requires=[
           'cwltool'
         ],
       entry_points={
-          'console_scripts': [ "cwl-service=cwl_service:main" ]
+          'console_scripts': [ "cwltool-service=cwl_service:main" ]
       },
       zip_safe=True
 )
