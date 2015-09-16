@@ -24,7 +24,7 @@ setup(name='cwltool_service',
           'cwltool'
         ],
       entry_points={
-          'console_scripts': [ "cwltool-service=cwl_service:main" ]
+          'console_scripts': [ "cwltool-service=cwltool_service:main" ]
       },
       zip_safe=True
 )
