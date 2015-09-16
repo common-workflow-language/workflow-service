@@ -35,6 +35,7 @@ def main(args=None):
         if cwltool.main.main(["--outdir="+outdir] + args + [t.name]) != 0:
             return 1
         sys.stdout.write("\n\n")
+        sys.stdout.flush()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
