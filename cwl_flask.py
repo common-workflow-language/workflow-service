@@ -3,21 +3,30 @@ from flask import request
 import os
 import subprocess
 import tempfile
+import json
 
 app = Flask(__name__)
 
-@app.route("/<workflow>", methods=['GET', 'POST', 'PUT'])
-def runjob(workflow):
+@app.route("/<path:workflow>", methods=['GET', 'POST', 'PUT'])
+def handlecwl(workflow):
     try:
+        if ".." in workflow:
+            return "Path cannot contain ..", 400, {"Content-Type": "text/plain"}
+
         if request.method == 'PUT':
-            with open(os.path.join("files", workflow), "w") as f:
+            (dr, fn) = os.path.split(workflow)
+            dr = os.path.join("files", dr)
+            if dr and not os.path.exists(dr):
+                os.makedirs(dr)
+
+            with open(os.path.join(dr, fn), "w") as f:
                 f.write(request.stream.read())
             return "Ok"
 
         wf = os.path.join("files", workflow)
 
         if not os.path.exists(wf):
-            return "Not found", 404
+            return "Not found", 404, {"Content-Type": "text/plain"}
 
         if request.method == 'POST':
             with tempfile.NamedTemporaryFile() as f:
@@ -32,14 +41,23 @@ def runjob(workflow):
                 (stdoutdata, stderrdata) = proc.communicate()
                 proc.wait()
                 if proc.returncode == 0:
-                    return stdoutdata
+                    return stdoutdata, 200, {"Content-Type": "application/json"}
                 else:
-                    return stderrdata, 400
+                    return json.dumps({"cwl:error":stderrdata}), 400, {"Content-Type": "application/json"}
         else:
            with open(wf, "r") as f:
-               return f.read()
+               return f.read(), 200, {"Content-Type": "application/x-common-workflow-language"}
     except Exception as e:
-        return str(e), 500
+        print e
+        return str(e), 500, {"Content-Type": "text/plain"}
+
+@app.route("/")
+def index():
+    try:
+        return json.dumps(["%s/%s" % (r[5:], f2) for r, _, f in os.walk("files") for f2 in f]), 200, {"Content-Type": "application/json"}
+    except Exception as e:
+        print e
+        return str(e), 500, {"Content-Type": "text/plain"}
 
 if __name__ == "__main__":
     if not os.path.exists("files"):
