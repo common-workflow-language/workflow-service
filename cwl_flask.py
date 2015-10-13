@@ -32,7 +32,7 @@ def handlecwl(workflow):
             with tempfile.NamedTemporaryFile() as f:
                 f.write(request.stream.read())
                 f.flush()
-                outdir = tempfile.mkdtemp()
+                outdir = tempfile.mkdtemp(dir=os.path.abspath("output"))
                 proc = subprocess.Popen(["cwl-runner", os.path.abspath(wf), f.name],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -59,7 +59,30 @@ def index():
         print e
         return str(e), 500, {"Content-Type": "text/plain"}
 
+@app.route("/output")
+def outindex():
+    try:
+        return json.dumps(["%s/%s" % (r[7:], f2) for r, _, f in os.walk("output") for f2 in f]), 200, {"Content-Type": "application/json"}
+    except Exception as e:
+        print e
+        return str(e), 500, {"Content-Type": "text/plain"}
+
+@app.route("/output/<path:fn>")
+def outfile(fn):
+    if ".." in fn:
+        return "Path cannot contain ..", 400, {"Content-Type": "text/plain"}
+
+    fn = os.path.join("output", fn)
+
+    if not os.path.exists(fn):
+        return "Not found", 404, {"Content-Type": "text/plain"}
+
+    with open(fn, "r") as f:
+        return f.read(), 200
+
 if __name__ == "__main__":
     if not os.path.exists("files"):
         os.mkdir("files")
+    if not os.path.exists("output"):
+        os.mkdir("output")
     app.run()
