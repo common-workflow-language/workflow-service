@@ -23,7 +23,8 @@ setup(name='cwltool_service',
       install_requires=[
           'cwltool >= 1.0.20151013135545',
           'Flask',
-          'requests'
+          'requests',
+          'yaml'
         ],
       entry_points={
           'console_scripts': [ "cwltool-service=cwltool_service:main" ]
