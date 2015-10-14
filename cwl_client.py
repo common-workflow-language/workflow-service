@@ -34,6 +34,20 @@ def discover_refs(item, base):
     r.extend(search_refs(yaml.load(data), os.path.dirname(item)))
     return r
 
+
+def search_for_files(item):
+    r = []
+    if isinstance(item, dict):
+        if "path" in item:
+            r.append(item["path"])
+        for v in item.values():
+            r.extend(search_for_files(v))
+    elif isinstance(item, list):
+        for a in item:
+            r.extend(search_for_files(a))
+    return r
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -48,8 +62,9 @@ def main():
         print r.text
         return
 
+    (dr, fn) = os.path.split(args.item)
+
     if args.upload:
-        (dr, fn) = os.path.split(args.item)
         plan = discover_refs(fn, dr)
         for p in plan:
             dest = urlparse.urljoin(args.endpoint, p[0][len(dr):].lstrip('/'))
@@ -58,6 +73,13 @@ def main():
     else:
         with open(args.item) as f:
             data = f.read()
+
+        plan = search_for_files(yaml.load(data))
+        for p in plan:
+            dest = urlparse.urljoin(args.endpoint, p)
+            with open(os.path.join(dr, p)) as f:
+                r = requests.put(dest, data=f)
+
         r = requests.post(args.endpoint, data=data)
         print r.text
 

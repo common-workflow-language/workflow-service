@@ -1,2 +1,32 @@
-Wrap cwltool to perform multiple executions of a given workflow where input
-objects are provided on stdin and output objects are printed on stdout.
+This is a proof of concept web service for the Common Workflow Language.  It
+implements the following features:
+
+* Hosting CWL files (upload/download) via HTTP PUT and GET.
+* Hosting data files (upload/download) via HTTP PUT and GET.
+* List files with HTTP GET
+* Accept job order via HTTP POST, execute job, and return output object.
+* Download output files with HTTP GET
+
+Installation:
+
+```
+python setup.py install
+```
+
+Run standalone server:
+
+```
+cwl-server
+```
+
+Upload a CWL file:
+
+```
+cwl-client --upload http://localhost:5000 testdata/revsort.cwl
+```
+
+Run a job:
+
+```
+cwl-client --upload http://localhost:5000 testdata/revsort-job.json
+```

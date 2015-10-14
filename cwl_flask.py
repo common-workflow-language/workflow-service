@@ -4,6 +4,9 @@ import os
 import subprocess
 import tempfile
 import json
+import cwltool.process
+import yaml
+import urlparse
 
 app = Flask(__name__)
 
@@ -29,7 +32,7 @@ def handlecwl(workflow):
             return "Not found", 404, {"Content-Type": "text/plain"}
 
         if request.method == 'POST':
-            with tempfile.NamedTemporaryFile() as f:
+            with tempfile.NamedTemporaryFile(dir="files") as f:
                 f.write(request.stream.read())
                 f.flush()
                 outdir = tempfile.mkdtemp(dir=os.path.abspath("output"))
@@ -41,7 +44,9 @@ def handlecwl(workflow):
                 (stdoutdata, stderrdata) = proc.communicate()
                 proc.wait()
                 if proc.returncode == 0:
-                    return stdoutdata, 200, {"Content-Type": "application/json"}
+                    outobj = yaml.load(stdoutdata)
+                    cwltool.process.adjustFiles(outobj, lambda x: urlparse.urljoin(request.url, x[len(os.getcwd()):]))
+                    return json.dumps(outobj, indent=4), 200, {"Content-Type": "application/json"}
                 else:
                     return json.dumps({"cwl:error":stderrdata}), 400, {"Content-Type": "application/json"}
         else:
