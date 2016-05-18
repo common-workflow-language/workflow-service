@@ -1,93 +1,109 @@
 from flask import Flask
-from flask import request
+from flask import request, redirect
 import os
 import subprocess
 import tempfile
 import json
-import cwltool.process
 import yaml
 import urlparse
+import signal
+import threading
 
 app = Flask(__name__)
 
-@app.route("/<path:workflow>", methods=['GET', 'POST', 'PUT'])
-def handlecwl(workflow):
-    try:
-        if ".." in workflow:
-            return "Path cannot contain ..", 400, {"Content-Type": "text/plain"}
+jobs_lock = threading.Lock()
+jobs = []
 
-        if request.method == 'PUT':
-            (dr, fn) = os.path.split(workflow)
-            dr = os.path.join("files", dr)
-            if dr and not os.path.exists(dr):
-                os.makedirs(dr)
+class Job(threading.Thread):
+    def __init__(self, jobid, path, inputobj):
+        super(Job, self).__init__()
+        self.jobid = jobid
+        self.path = path
+        self.inputobj = inputobj
+        self.updatelock = threading.Lock()
+        self.begin()
 
-            with open(os.path.join(dr, fn), "w") as f:
-                f.write(request.stream.read())
-            return "Ok"
+    def begin(self):
+        with self.updatelock:
+            self.outdir = tempfile.mkdtemp()
+            self.proc = subprocess.Popen(["cwl-runner", self.path, "-"],
+                                         stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE,
+                                         close_fds=True,
+                                         cwd=self.outdir)
+            self.status = {
+                "id": "%sjobs/%i" % (request.url_root, self.jobid),
+                "run": self.path,
+                "state": "Running",
+                "input": self.inputobj,
+                "output": None,
+                "message": ""}
 
-        wf = os.path.join("files", workflow)
-
-        if not os.path.exists(wf):
-            return "Not found", 404, {"Content-Type": "text/plain"}
-
-        if request.method == 'POST':
-            with tempfile.NamedTemporaryFile(dir="files") as f:
-                f.write(request.stream.read())
-                f.flush()
-                outdir = tempfile.mkdtemp(dir=os.path.abspath("output"))
-                proc = subprocess.Popen(["cwl-runner", os.path.abspath(wf), f.name],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        close_fds=True,
-                                        cwd=outdir)
-                (stdoutdata, stderrdata) = proc.communicate()
-                proc.wait()
-                if proc.returncode == 0:
-                    outobj = yaml.load(stdoutdata)
-                    cwltool.process.adjustFiles(outobj, lambda x: urlparse.urljoin(request.url, x[len(os.getcwd()):]))
-                    return json.dumps(outobj, indent=4), 200, {"Content-Type": "application/json"}
-                else:
-                    return json.dumps({"cwl:error":stderrdata}), 400, {"Content-Type": "application/json"}
+    def run(self):
+        self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
+        if self.proc.returncode == 0:
+            outobj = yaml.load(self.stdoutdata)
+            with self.updatelock:
+                self.status["state"] = "Success"
+                self.status["output"] = outobj
         else:
-           with open(wf, "r") as f:
-               return f.read(), 200, {"Content-Type": "application/x-common-workflow-language"}
-    except Exception as e:
-        print e
-        return str(e), 500, {"Content-Type": "text/plain"}
+            with self.updatelock:
+                self.status["state"] = "Failed"
+                self.status["message"] = self.stderrdata
 
-@app.route("/")
-def index():
-    try:
-        return json.dumps(["%s/%s" % (r[5:], f2) for r, _, f in os.walk("files") for f2 in f]), 200, {"Content-Type": "application/json"}
-    except Exception as e:
-        print e
-        return str(e), 500, {"Content-Type": "text/plain"}
+    def getstatus(self):
+        with self.updatelock:
+            return self.status.copy()
 
-@app.route("/output")
-def outindex():
-    try:
-        return json.dumps(["%s/%s" % (r[7:], f2) for r, _, f in os.walk("output") for f2 in f]), 200, {"Content-Type": "application/json"}
-    except Exception as e:
-        print e
-        return str(e), 500, {"Content-Type": "text/plain"}
+    def cancel(self):
+        if self.status["state"] == "Running":
+            self.proc.send_signal(signal.SIGQUIT)
+            with self.updatelock:
+                self.status["state"] = "Canceled"
 
-@app.route("/output/<path:fn>")
-def outfile(fn):
-    if ".." in fn:
-        return "Path cannot contain ..", 400, {"Content-Type": "text/plain"}
+    def pause(self):
+        if self.status["state"] == "Running":
+            self.proc.send_signal(signal.SIGTSTP)
+            with self.updatelock:
+                self.status["state"] = "Paused"
 
-    fn = os.path.join("output", fn)
+    def resume(self):
+        if self.status["state"] == "Paused":
+            self.proc.send_signal(signal.SIGCONT)
+            with self.updatelock:
+                self.status["state"] = "Running"
 
-    if not os.path.exists(fn):
-        return "Not found", 404, {"Content-Type": "text/plain"}
 
-    with open(fn, "r") as f:
-        return f.read(), 200
+@app.route("/run", methods=['POST'])
+def runworkflow():
+    path = request.args["wf"]
+    with jobs_lock:
+        jobid = len(jobs)
+        job = Job(jobid, path, request.stream.read())
+        job.start()
+        jobs.append(job)
+    return redirect("/jobs/%i" % jobid, code=303)
+
+
+@app.route("/jobs/<int:jobid>", methods=['GET', 'POST'])
+def jobcontrol(jobid):
+    with jobs_lock:
+        job = jobs[jobid]
+    if request.method == 'POST':
+        action = request.args.get("action")
+        if action:
+            if action == "cancel":
+                job.cancel()
+            elif action == "pause":
+                job.pause()
+            elif action == "resume":
+                job.resume()
+
+    status = job.getstatus()
+    return json.dumps(status, indent=4), 200, ""
+
 
 if __name__ == "__main__":
-    if not os.path.exists("files"):
-        os.mkdir("files")
-    if not os.path.exists("output"):
-        os.mkdir("output")
+    app.debug = True
     app.run()
