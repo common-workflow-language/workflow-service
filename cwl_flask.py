@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import request, redirect
+from flask import Flask, Response, request, redirect
 import os
 import subprocess
 import tempfile
@@ -8,6 +7,7 @@ import yaml
 import urlparse
 import signal
 import threading
+import time
 
 app = Flask(__name__)
 
@@ -24,21 +24,22 @@ class Job(threading.Thread):
         self.begin()
 
     def begin(self):
+        loghandle, self.logname = tempfile.mkstemp()
         with self.updatelock:
             self.outdir = tempfile.mkdtemp()
             self.proc = subprocess.Popen(["cwl-runner", self.path, "-"],
                                          stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE,
+                                         stderr=loghandle,
                                          close_fds=True,
                                          cwd=self.outdir)
             self.status = {
                 "id": "%sjobs/%i" % (request.url_root, self.jobid),
+                "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
                 "run": self.path,
                 "state": "Running",
-                "input": self.inputobj,
-                "output": None,
-                "message": ""}
+                "input": json.loads(self.inputobj),
+                "output": None}
 
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
@@ -50,7 +51,6 @@ class Job(threading.Thread):
         else:
             with self.updatelock:
                 self.status["state"] = "Failed"
-                self.status["message"] = self.stderrdata
 
     def getstatus(self):
         with self.updatelock:
@@ -104,6 +104,25 @@ def jobcontrol(jobid):
     return json.dumps(status, indent=4), 200, ""
 
 
+def logspooler(job):
+    with open(job.logname, "r") as f:
+        while True:
+            r = f.read(4096)
+            if r:
+                yield r
+            else:
+                with job.updatelock:
+                    if job.status["state"] != "Running":
+                        break
+                time.sleep(1)
+
+@app.route("/jobs/<int:jobid>/log", methods=['GET'])
+def getlog(jobid):
+    with jobs_lock:
+        job = jobs[jobid]
+    return Response(logspooler(job))
+
+
 if __name__ == "__main__":
-    app.debug = True
+    #app.debug = True
     app.run()
