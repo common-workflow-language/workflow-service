@@ -8,6 +8,7 @@ import urlparse
 import signal
 import threading
 import time
+import copy
 
 app = Flask(__name__)
 
@@ -122,6 +123,21 @@ def getlog(jobid):
         job = jobs[jobid]
     return Response(logspooler(job))
 
+@app.route("/jobs", methods=['GET'])
+def getjobs():
+    with jobs_lock:
+        jobscopy = copy.copy(jobs)
+    def spool(jc):
+        yield "["
+        first = True
+        for j in jc:
+            if first:
+                yield json.dumps(j.getstatus(), indent=4)
+                first = False
+            else:
+                yield ", "  + json.dumps(j.getstatus(), indent=4)
+        yield "]"
+    return Response(spool(jobscopy))
 
 if __name__ == "__main__":
     #app.debug = True
