@@ -21,14 +21,12 @@ setup(name='cwltool_service',
       license='Apache 2.0',
       py_modules=["cwltool_stream", "cwl_flask", "cwltool_client"],
       install_requires=[
-          'Flask',
-          'requests',
-          'PyYAML'
+          'connexion',
+          'bravado'
         ],
       entry_points={
-          'console_scripts': [ "cwltool-stream=cwltool_stream:main",
-                               "cwl-server=cwl_flask:main",
-                               "cwl-client=cwl_client:main"]
+          'console_scripts': [ "wes-server=wes_service:main",
+                               "wes-client=wes_client:main"]
       },
       zip_safe=True
 )
