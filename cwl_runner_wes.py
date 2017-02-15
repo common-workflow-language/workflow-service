@@ -5,89 +5,114 @@ import connexion.utils as utils
 import threading
 import tempfile
 import subprocess
+import uuid
+import os
+import json
 
-jobs_lock = threading.Lock()
-jobs = []
+class Workflow(object):
+    def __init__(self, workflow_ID):
+        super(Workflow, self).__init__()
+        self.workflow_ID = workflow_ID
+        self.workdir = os.path.abspath(self.workflow_ID)
 
-class Job(threading.Thread):
-    def __init__(self, jobid, path, inputobj):
-        super(Job, self).__init__()
-        self.jobid = jobid
-        self.path = path
-        self.inputobj = inputobj
-        self.updatelock = threading.Lock()
-        self.begin()
+    def run(self, path, inputobj):
+        outdir = os.path.join(self.workdir, "outdir")
+        with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
+            json.dump(inputtemp, inputobj)
+        with open(os.path.join(self.workdir, "workflow_url"), "w") as f:
+            f.write(path)
+        output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
+        stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-    def begin(self):
-        loghandle, self.logname = tempfile.mkstemp()
-        with self.updatelock:
-            self.outdir = tempfile.mkdtemp()
-            self.inputtemp = tempfile.NamedTemporaryFile()
-            json.dump(self.inputtemp, self.inputobj)
-            self.proc = subprocess.Popen(["cwl-runner", self.path, self.inputtemp.name],
-                                         stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE,
-                                         stderr=loghandle,
-                                         close_fds=True,
-                                         cwd=self.outdir)
-            self.status = {
-                "id": "%sjobs/%i" % (request.url_root, self.jobid),
-                "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
-                "run": self.path,
-                "state": "Running",
-                "input": json.loads(self.inputobj),
-                "output": None}
+        proc = subprocess.Popen(["cwl-runner", path, inputtemp.name],
+                                stdout=output,
+                                stderr=stderr,
+                                close_fds=True,
+                                cwd=outdir)
+        stdout.close()
+        stderr.close()
+        with open(os.path.join(self.workdir, "pid"), "w") as pid:
+            pid.write(str(proc.pid))
 
-    def run(self):
-        self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
-        if self.proc.returncode == 0:
-            outobj = yaml.load(self.stdoutdata)
-            with self.updatelock:
-                self.status["state"] = "Success"
-                self.status["output"] = outobj
+        return self.getstatus()
+
+    def getstate(self):
+        state = "Running"
+        exit_code = -1
+
+        exc = os.path.join(self.workdir, "exit_code")
+        if os.path.exists(exc):
+            with open(exc) as f:
+                exit_code = int(f.read())
+            if exit_code == 0:
+                state = "Complete"
+            else:
+                state = "Failed"
         else:
-            with self.updatelock:
-                self.status["state"] = "Failed"
+            with open(os.path.join(self.workdir, "pid"), "r") as pid:
+                pid = int(pid.read())
+            (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
+            # record exit code
+
+        return (state, exit_code)
 
     def getstatus(self):
-        with self.updatelock:
-            return self.status.copy()
+        state, exit_code = self.getstate()
+
+        with open(os.path.join(self.workdir, "cwl.input.json"), "r") as inputtemp:
+            inputobj = json.load(inputtemp)
+        with open(os.path.join(self.workdir, "workflow_url"), "r") as f:
+            workflow_url = f.read()
+
+        outputobj = None
+        if state == "Complete":
+            with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
+                outputtobj = json.load(outputtemp)
+
+        return {
+            "workflow_ID": self.workflow_ID,
+            "workflow_url": workflow_url,
+            "input": inputobj,
+            "output": outputobj,
+            "state": state
+        }
+
+
+    def getlog(self):
+        state, exit_code = self.getstate()
+
+        return {
+            "workflow_ID": self.workflow_ID,
+            "log": {
+                "cmd": "",
+                "startTime": "",
+                "endTime": "",
+                "stdout": "",
+                "stderr": "",
+                "exitCode": exit_code
+            }
+        }
 
     def cancel(self):
-        if self.status["state"] == "Running":
-            self.proc.send_signal(signal.SIGQUIT)
-            with self.updatelock:
-                self.status["state"] = "Canceled"
-
-    def pause(self):
-        if self.status["state"] == "Running":
-            self.proc.send_signal(signal.SIGTSTP)
-            with self.updatelock:
-                self.status["state"] = "Paused"
-
-    def resume(self):
-        if self.status["state"] == "Paused":
-            self.proc.send_signal(signal.SIGCONT)
-            with self.updatelock:
-                self.status["state"] = "Running"
-
+        pass
 
 def GetWorkflowStatus(workflow_ID):
-    return {"workflow_ID": workflow_ID}
+    job = Workflow(workflow_ID)
+    job.getstatus()
 
-def GetWorkflowLog():
-    pass
+def GetWorkflowLog(workflow_ID):
+    job = Workflow(workflow_ID)
+    job.getlog()
 
-def CancelJob():
-    pass
+def CancelWorkflow(workflow_ID):
+    job = Workflow(workflow_ID)
+    job.cancel()
 
 def RunWorkflow(body):
-    with jobs_lock:
-        jobid = len(jobs)
-        job = Job(jobid, body["workflow_url"], body["inputs"])
-        job.start()
-        jobs.append(job)
-    return {"workflow_ID": str(jobid)}
+    workflow_ID = uuid.uuid4().hex
+    job = Workflow(workflow_ID)
+    job.run(body["workflow_url"], body["input"])
+    return job.getstatus()
 
 def main():
     app = connexion.App(__name__, specification_dir='swagger/')
