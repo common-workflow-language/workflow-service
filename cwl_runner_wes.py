@@ -16,20 +16,24 @@ class Workflow(object):
         self.workdir = os.path.abspath(self.workflow_ID)
 
     def run(self, path, inputobj):
+        path = os.path.abspath(path)
+        os.mkdir(self.workdir)
         outdir = os.path.join(self.workdir, "outdir")
+        os.mkdir(outdir)
         with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
-            json.dump(inputtemp, inputobj)
+            json.dump(inputobj, inputtemp)
         with open(os.path.join(self.workdir, "workflow_url"), "w") as f:
             f.write(path)
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-        proc = subprocess.Popen(["cwl-runner", path, inputtemp.name],
+        #proc = subprocess.Popen(["cwl-runner", path, inputtemp.name],
+        proc = subprocess.Popen(["cwltool", path, inputtemp.name],
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
                                 cwd=outdir)
-        stdout.close()
+        output.close()
         stderr.close()
         with open(os.path.join(self.workdir, "pid"), "w") as pid:
             pid.write(str(proc.pid))
@@ -44,15 +48,20 @@ class Workflow(object):
         if os.path.exists(exc):
             with open(exc) as f:
                 exit_code = int(f.read())
-            if exit_code == 0:
-                state = "Complete"
-            else:
-                state = "Failed"
         else:
             with open(os.path.join(self.workdir, "pid"), "r") as pid:
                 pid = int(pid.read())
             (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
-            # record exit code
+            if _pid != 0:
+                exit_code = exit_status >> 8
+                with open(exc, "w") as f:
+                    f.write(str(exit_code))
+                os.unlink(os.path.join(self.workdir, "pid"))
+
+        if exit_code == 0:
+            state = "Complete"
+        elif exit_code != -1:
+            state = "Failed"
 
         return (state, exit_code)
 
@@ -67,7 +76,7 @@ class Workflow(object):
         outputobj = None
         if state == "Complete":
             with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
-                outputtobj = json.load(outputtemp)
+                outputobj = json.load(outputtemp)
 
         return {
             "workflow_ID": self.workflow_ID,
@@ -81,6 +90,9 @@ class Workflow(object):
     def getlog(self):
         state, exit_code = self.getstate()
 
+        with open(os.path.join(self.workdir, "stderr"), "r") as f:
+            stderr = f.read()
+
         return {
             "workflow_ID": self.workflow_ID,
             "log": {
@@ -88,7 +100,7 @@ class Workflow(object):
                 "startTime": "",
                 "endTime": "",
                 "stdout": "",
-                "stderr": "",
+                "stderr": stderr,
                 "exitCode": exit_code
             }
         }
@@ -98,15 +110,16 @@ class Workflow(object):
 
 def GetWorkflowStatus(workflow_ID):
     job = Workflow(workflow_ID)
-    job.getstatus()
+    return job.getstatus()
 
 def GetWorkflowLog(workflow_ID):
     job = Workflow(workflow_ID)
-    job.getlog()
+    return job.getlog()
 
 def CancelWorkflow(workflow_ID):
     job = Workflow(workflow_ID)
     job.cancel()
+    return job.getstatus()
 
 def RunWorkflow(body):
     workflow_ID = uuid.uuid4().hex
