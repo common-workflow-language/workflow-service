@@ -168,7 +168,7 @@
       "type": "object",
       "properties": {
         "workflow_ID": {
-          "$ref": "#/definitions/ga4gh_workflow_execWorkflowRunID"
+            "type": "string"
         },
         "log": {
           "$ref": "#/definitions/ga4gh_task_execJobLog"

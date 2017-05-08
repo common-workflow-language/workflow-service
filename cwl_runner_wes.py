@@ -27,8 +27,7 @@ class Workflow(object):
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-        #proc = subprocess.Popen(["cwl-runner", path, inputtemp.name],
-        proc = subprocess.Popen(["cwltool", path, inputtemp.name],
+        proc = subprocess.Popen(["cwl-runner", path, inputtemp.name],
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
@@ -73,7 +72,7 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "workflow_url"), "r") as f:
             workflow_url = f.read()
 
-        outputobj = None
+        outputobj = {}
         if state == "Complete":
             with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
                 outputobj = json.load(outputtemp)
@@ -96,7 +95,7 @@ class Workflow(object):
         return {
             "workflow_ID": self.workflow_ID,
             "log": {
-                "cmd": "",
+                "cmd": [""],
                 "startTime": "",
                 "endTime": "",
                 "stdout": "",
