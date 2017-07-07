@@ -19,7 +19,7 @@ def main(argv=sys.argv[1:]):
 
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
     parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_TOKEN"))
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
     parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
@@ -36,7 +36,7 @@ def main(argv=sys.argv[1:]):
     args = parser.parse_args(argv)
 
     if args.version:
-        pkg = pkg_resources.require("cwltool_service")
+        pkg = pkg_resources.require("wes_service")
         print u"%s %s" % (sys.argv[0], pkg[0].version)
         exit(0)
 
