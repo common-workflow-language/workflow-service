@@ -42,8 +42,10 @@ def ListWorkflows(body=None):
 
     api = get_api()
 
-    requests = api.container_requests().list(filters=[["requesting_container_uuid", "=", None]]).execute()
-    containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]]).execute()
+    requests = api.container_requests().list(filters=[["requesting_container_uuid", "=", None]],
+                                             select=["uuid", "command", "container_uuid"]).execute()
+    containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]],
+                                       select=["uuid", "state"]).execute()
 
     uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers["items"]}
 
@@ -60,14 +62,16 @@ def RunWorkflow(body):
         return
 
     env = {
+        "PATH": os.environ["PATH"],
         "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
         "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
         "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false")
     }
     with tempfile.NamedTemporaryFile() as inputtemp:
-        json.dump(request["workflow_params"], inputtemp)
-        workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait",
-                                               request.get("workflow_url"), inputtemp.name], env=env)
+        json.dump(body["workflow_params"], inputtemp)
+        inputtemp.flush()
+        workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait", "--api=containers",
+                                               body.get("workflow_url"), inputtemp.name], env=env).strip()
     return {"workflow_id": workflow_id}
 
 def visit(d, op):
@@ -102,7 +106,7 @@ def GetWorkflowLog(workflow_id):
             with c.open("stderr.txt") as f:
                 stderr = f.read()
 
-    return {
+    r = {
         "workflow_id": request["uuid"],
         "request": {},
         "state": statemap[container["state"]],
@@ -111,19 +115,24 @@ def GetWorkflowLog(workflow_id):
             "startTime": "",
             "endTime": "",
             "stdout": "",
-            "stderr": stderr,
-            "exitCode": container["exit_code"]
+            "stderr": stderr
         },
         "task_logs": [],
         "outputs": outputobj
     }
+    if container["exit_code"] is not None:
+        r["workflow_log"]["exitCode"] = container["exit_code"]
+    return r
 
 
 def CancelJob(workflow_id):
-    job = Workflow(workflow_id)
-    job.cancel()
-    return {"workflow_id": workflow_id}
+    api = get_api()
+    request = api.container_requests().update(body={"priority": 0}).execute()
+    return {"workflow_id": request["uuid"]}
 
 def GetWorkflowStatus(workflow_id):
-    job = Workflow(workflow_id)
-    return job.getstatus()
+    api = get_api()
+    request = api.container_requests().get(uuid=workflow_id).execute()
+    container = api.containers().get(uuid=request["container_uuid"]).execute()
+    return {"workflow_id": request["uuid"],
+            "state": statemap[container["state"]]}

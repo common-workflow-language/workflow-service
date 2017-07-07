@@ -57,7 +57,7 @@ def main(argv=sys.argv[1:]):
         input = json.load(f)
 
     workflow_url = args.workflow_url
-    if not workflow_url.startswith("/") or ":" in workflow_url:
+    if not workflow_url.startswith("/") and ":" not in workflow_url:
         workflow_url = os.path.abspath(workflow_url)
 
     if args.quiet:
@@ -74,7 +74,7 @@ def main(argv=sys.argv[1:]):
     logging.info("Workflow id is %s", r["workflow_id"])
 
     r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
-    while r["state"] == "Running":
+    while r["state"] in ("Queued", "Initializing", "Running"):
         time.sleep(1)
         r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
 
