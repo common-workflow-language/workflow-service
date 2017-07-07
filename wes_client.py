@@ -9,18 +9,20 @@ import sys
 import os
 import argparse
 import logging
+import urlparse
 
 def main(argv=sys.argv[1:]):
 
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
     parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
     parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_TOKEN"))
-    parser.add_argument("--proto", type=str, default="https")
+    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
     exgroup.add_argument("--get", type=str, default=None)
+    exgroup.add_argument("--log", type=str, default=None)
     exgroup.add_argument("--list", action="store_true", default=False)
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
@@ -28,8 +30,10 @@ def main(argv=sys.argv[1:]):
     args = parser.parse_args(argv)
 
     http_client = RequestsClient()
+    split = urlparse.urlsplit("%s://%s/" % (args.proto, args.host))
+
     http_client.set_api_key(
-        args.host, args.auth,
+        split.hostname, args.auth,
         param_name='Authorization', param_in='header')
     client = SwaggerClient.from_url("%s://%s/swagger.json" % (args.proto, args.host),
                                     http_client=http_client, config={'use_models': False})
@@ -37,6 +41,11 @@ def main(argv=sys.argv[1:]):
     if args.list:
         l = client.WorkflowExecutionService.ListWorkflows()
         json.dump(l.result(), sys.stdout, indent=4)
+        return 0
+
+    if args.log:
+        l = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.log)
+        sys.stdout.write(l.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:

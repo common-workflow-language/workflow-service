@@ -30,5 +30,10 @@ setup(name='cwltool_service',
           'console_scripts': [ "wes-server=wes_service:main",
                                "wes-client=wes_client:main"]
       },
+      extras_require={
+          "arvados": [
+              "arvados-cwl-runner"
+          ]
+      },
       zip_safe=True
 )

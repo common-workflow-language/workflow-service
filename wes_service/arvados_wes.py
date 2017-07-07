@@ -1,4 +1,27 @@
 import arvados
+import arvados.collection
+import os
+import connexion
+import json
+import subprocess
+import tempfile
+
+def get_api():
+    return arvados.api_from_config(version="v1", apiconfig={
+        "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
+        "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
+        "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false"),
+    })
+
+
+statemap = {
+    "Queued": "Queued",
+    "Locked": "Initializing",
+    "Running": "Running",
+    "Complete": "Complete",
+    "Cancelled": "Canceled"
+}
+
 
 def GetServiceInfo():
     return {
@@ -12,31 +35,89 @@ def GetServiceInfo():
         "key_values": {}
     }
 
-def ListWorkflows(body):
+def ListWorkflows(body=None):
     # body["page_size"]
     # body["page_token"]
     # body["key_value_search"]
 
-    wf = []
-    for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
-        if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
-            wf.append(Workflow(l))
+    api = get_api()
+
+    requests = api.container_requests().list(filters=[["requesting_container_uuid", "=", None]]).execute()
+    containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]]).execute()
+
+    uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers["items"]}
+
     return {
-        "workflows": [{"workflow_id": w.workflow_id, "state": w.getstate()} for w in wf],
+        "workflows": [{"workflow_id": cr["uuid"],
+                       "state": uuidmap[cr["container_uuid"]]}
+                      for cr in requests["items"]
+                      if cr["command"][0] == "arvados-cwl-runner"],
         "next_page_token": ""
     }
 
 def RunWorkflow(body):
     if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
         return
-    workflow_id = uuid.uuid4().hex
-    job = Workflow(workflow_id)
-    job.run(body)
+
+    env = {
+        "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
+        "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
+        "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false")
+    }
+    with tempfile.NamedTemporaryFile() as inputtemp:
+        json.dump(request["workflow_params"], inputtemp)
+        workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait",
+                                               request.get("workflow_url"), inputtemp.name], env=env)
     return {"workflow_id": workflow_id}
 
+def visit(d, op):
+    op(d)
+    if isinstance(d, list):
+        for i in d:
+            visit(i, op)
+    elif isinstance(d, dict):
+        for i in d.itervalues():
+            visit(i, op)
+
 def GetWorkflowLog(workflow_id):
-    job = Workflow(workflow_id)
-    return job.getlog()
+    api = get_api()
+
+    request = api.container_requests().get(uuid=workflow_id).execute()
+    container = api.containers().get(uuid=request["container_uuid"]).execute()
+
+    outputobj = {}
+    if request["output_uuid"]:
+        c = arvados.collection.CollectionReader(request["output_uuid"])
+        with c.open("cwl.output.json") as f:
+            outputobj = json.load(f)
+            def keepref(d):
+                if isinstance(d, dict) and "location" in d:
+                    d["location"] = "keep:%s/%s" % (c.portable_data_hash(), d["location"])
+            visit(outputobj, keepref)
+
+    stderr = ""
+    if request["log_uuid"]:
+        c = arvados.collection.CollectionReader(request["log_uuid"])
+        if "stderr.txt" in c:
+            with c.open("stderr.txt") as f:
+                stderr = f.read()
+
+    return {
+        "workflow_id": request["uuid"],
+        "request": {},
+        "state": statemap[container["state"]],
+        "workflow_log": {
+            "cmd": [""],
+            "startTime": "",
+            "endTime": "",
+            "stdout": "",
+            "stderr": stderr,
+            "exitCode": container["exit_code"]
+        },
+        "task_logs": [],
+        "outputs": outputobj
+    }
+
 
 def CancelJob(workflow_id):
     job = Workflow(workflow_id)
