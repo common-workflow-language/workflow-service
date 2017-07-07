@@ -10,6 +10,8 @@ import os
 import json
 import urllib
 
+from pkg_resources import resource_stream
+
 class Workflow(object):
     def __init__(self, workflow_id):
         super(Workflow, self).__init__()
@@ -92,6 +94,7 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "stderr"), "r") as f:
             stderr = f.read()
 
+        outputobj = {}
         if state == "Complete":
             with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
                 outputobj = json.load(outputtemp)
@@ -163,11 +166,12 @@ def GetWorkflowStatus(workflow_id):
     return job.getstatus()
 
 def main():
-    app = connexion.App(__name__, specification_dir='swagger/')
+    app = connexion.App(__name__)
     def rs(x):
         return utils.get_function_from_name("wes_service." + x)
 
-    app.add_api('proto/workflow_execution.swagger.json', resolver=Resolver(rs))
+    res = resource_stream(__name__, 'swagger/proto/workflow_execution.swagger.json')
+    app.add_api(json.load(res), resolver=Resolver(rs))
 
     app.run(port=8080)
 

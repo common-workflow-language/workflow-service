@@ -19,7 +19,9 @@ setup(name='cwltool_service',
       url="https://github.com/common-workflow-language/cwltool-service",
       download_url="https://github.com/common-workflow-language/cwltool-service",
       license='Apache 2.0',
-      py_modules=["cwl_runner_wes"],
+      packages=["wes_service"],
+      package_data={'wes_service': ['swagger/proto/workflow_execution.swagger.json']},
+      include_package_data=True,
       install_requires=[
           'connexion',
           'bravado'

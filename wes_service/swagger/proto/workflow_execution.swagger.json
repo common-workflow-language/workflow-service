@@ -1,5 +1,6 @@
 {
-  "swagger": "2.0",
+    "swagger": "2.0",
+    "basePath": "/",
   "info": {
     "title": "workflow_execution.proto",
     "version": "version not set"
