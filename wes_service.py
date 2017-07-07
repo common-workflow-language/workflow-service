@@ -25,7 +25,7 @@ class Workflow(object):
             json.dump(request, f)
 
         with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
-            inputtemp.write(request["workflow_params"])
+            json.dump(request["workflow_params"], inputtemp)
 
         if request.get("workflow_descriptor"):
             with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
@@ -109,7 +109,7 @@ class Workflow(object):
                 "exitCode": exit_code
             },
             "task_logs": [],
-            "outputs": []
+            "outputs": outputobj
         }
 
     def cancel(self):
@@ -165,7 +165,7 @@ def GetWorkflowStatus(workflow_id):
 def main():
     app = connexion.App(__name__, specification_dir='swagger/')
     def rs(x):
-        return utils.get_function_from_name("cwl_runner_wes." + x)
+        return utils.get_function_from_name("wes_service." + x)
 
     app.add_api('proto/workflow_execution.swagger.json', resolver=Resolver(rs))
 
