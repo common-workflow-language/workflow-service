@@ -6,6 +6,7 @@ import os
 import json
 import urllib
 import sys
+from wes_service.util import visit
 
 class Workflow(object):
     def __init__(self, workflow_id):

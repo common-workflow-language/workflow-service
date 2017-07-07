@@ -74,14 +74,6 @@ def RunWorkflow(body):
                                                body.get("workflow_url"), inputtemp.name], env=env).strip()
     return {"workflow_id": workflow_id}
 
-def visit(d, op):
-    op(d)
-    if isinstance(d, list):
-        for i in d:
-            visit(i, op)
-    elif isinstance(d, dict):
-        for i in d.itervalues():
-            visit(i, op)
 
 def GetWorkflowLog(workflow_id):
     api = get_api()

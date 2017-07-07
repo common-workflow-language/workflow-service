@@ -10,6 +10,10 @@ import os
 import argparse
 import logging
 import urlparse
+import pkg_resources  # part of setuptools
+from wes_service.util import visit
+import urllib
+import ruamel.yaml as yaml
 
 def main(argv=sys.argv[1:]):
 
@@ -18,16 +22,23 @@ def main(argv=sys.argv[1:]):
     parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_TOKEN"))
     parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
+    parser.add_argument("--outdir", type=str)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
     exgroup.add_argument("--get", type=str, default=None)
     exgroup.add_argument("--log", type=str, default=None)
     exgroup.add_argument("--list", action="store_true", default=False)
+    exgroup.add_argument("--version", action="store_true", default=False)
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)
     args = parser.parse_args(argv)
+
+    if args.version:
+        pkg = pkg_resources.require("cwltool_service")
+        print u"%s %s" % (sys.argv[0], pkg[0].version)
+        exit(0)
 
     http_client = RequestsClient()
     split = urlparse.urlsplit("%s://%s/" % (args.proto, args.host))
@@ -54,7 +65,13 @@ def main(argv=sys.argv[1:]):
         return 0
 
     with open(args.job_order) as f:
-        input = json.load(f)
+        input = yaml.safe_load(f)
+        basedir = os.path.dirname(args.job_order)
+        def fixpaths(d):
+            if isinstance(d, dict) and "location" in d:
+                if not ":" in d["location"]:
+                    d["location"] = urllib.pathname2url(os.path.normpath(os.path.join(os.getcwd(), basedir, d["location"])))
+        visit(input, fixpaths)
 
     workflow_url = args.workflow_url
     if not workflow_url.startswith("/") and ":" not in workflow_url:
