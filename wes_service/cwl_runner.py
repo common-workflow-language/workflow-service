@@ -6,7 +6,7 @@ import os
 import json
 import urllib
 import sys
-from wes_service.util import visit
+from wes_service.util import visit, WESBackend
 
 class Workflow(object):
     def __init__(self, workflow_id):
@@ -14,7 +14,7 @@ class Workflow(object):
         self.workflow_id = workflow_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.workflow_id)
 
-    def run(self, request):
+    def run(self, request, opts):
         os.makedirs(self.workdir)
         outdir = os.path.join(self.workdir, "outdir")
         os.mkdir(outdir)
@@ -35,7 +35,10 @@ class Workflow(object):
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-        proc = subprocess.Popen(["cwl-runner", workflow_url, inputtemp.name],
+        runner = opts.getopt("runner", "cwl-runner")
+        extra = opts.getoptlist("extra")
+
+        proc = subprocess.Popen([runner]+extra+[workflow_url, inputtemp.name],
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
@@ -117,49 +120,54 @@ class Workflow(object):
     def cancel(self):
         pass
 
-def GetServiceInfo():
-    return {
-        "workflow_type_versions": {
-            "CWL": ["v1.0"]
-        },
-        "supported_wes_versions": "0.1.0",
-        "supported_filesystem_protocols": ["file"],
-        "engine_versions": "cwl-runner",
-        "system_state_counts": {},
-        "key_values": {}
-    }
 
-def ListWorkflows(body=None):
-    # body["page_size"]
-    # body["page_token"]
-    # body["key_value_search"]
+class CWLRunnerBackend(WESBackend):
+    def GetServiceInfo(self):
+        return {
+            "workflow_type_versions": {
+                "CWL": ["v1.0"]
+            },
+            "supported_wes_versions": "0.1.0",
+            "supported_filesystem_protocols": ["file"],
+            "engine_versions": "cwl-runner",
+            "system_state_counts": {},
+            "key_values": {}
+        }
 
-    wf = []
-    for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
-        if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
-            wf.append(Workflow(l))
-    return {
-        "workflows": [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf],
-        "next_page_token": ""
-    }
+    def ListWorkflows(self ,body=None):
+        # body["page_size"]
+        # body["page_token"]
+        # body["key_value_search"]
 
-def RunWorkflow(body):
-    if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
-        return
-    workflow_id = uuid.uuid4().hex
-    job = Workflow(workflow_id)
-    job.run(body)
-    return {"workflow_id": workflow_id}
+        wf = []
+        for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
+            if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
+                wf.append(Workflow(l))
+        return {
+            "workflows": [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf],
+            "next_page_token": ""
+        }
 
-def GetWorkflowLog(workflow_id):
-    job = Workflow(workflow_id)
-    return job.getlog()
+    def RunWorkflow(self, body):
+        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
+            return
+        workflow_id = uuid.uuid4().hex
+        job = Workflow(workflow_id)
+        job.run(body, self)
+        return {"workflow_id": workflow_id}
 
-def CancelJob(workflow_id):
-    job = Workflow(workflow_id)
-    job.cancel()
-    return {"workflow_id": workflow_id}
+    def GetWorkflowLog(self, workflow_id):
+        job = Workflow(workflow_id)
+        return job.getlog()
 
-def GetWorkflowStatus(workflow_id):
-    job = Workflow(workflow_id)
-    return job.getstatus()
+    def CancelJob(self, workflow_id):
+        job = Workflow(workflow_id)
+        job.cancel()
+        return {"workflow_id": workflow_id}
+
+    def GetWorkflowStatus(self, workflow_id):
+        job = Workflow(workflow_id)
+        return job.getstatus()
+
+def create_backend(opts):
+    return CWLRunnerBackend(opts)
