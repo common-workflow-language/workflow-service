@@ -10,8 +10,8 @@ from setuptools import setup, find_packages
 SETUP_DIR = os.path.dirname(__file__)
 README = os.path.join(SETUP_DIR, 'README.md')
 
-setup(name='wes_service',
-      version='2.0',
+setup(name='wes-service',
+      version='2.1',
       description='GA4GH Workflow Execution Service reference implementation',
       long_description=open(README).read(),
       author='GA4GH Containers and Workflows task team',

@@ -31,6 +31,10 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--list", action="store_true", default=False)
     exgroup.add_argument("--version", action="store_true", default=False)
 
+    exgroup = parser.add_mutually_exclusive_group()
+    exgroup.add_argument("--wait", action="store_true", default=True, dest="wait")
+    exgroup.add_argument("--no-wait", action="store_false", default=True, dest="wait")
+
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)
     args = parser.parse_args(argv)
@@ -88,7 +92,11 @@ def main(argv=sys.argv[1:]):
         "workflow_type": "CWL",
         "workflow_type_version": "v1.0"}).result()
 
-    logging.info("Workflow id is %s", r["workflow_id"])
+    if args.wait:
+        logging.info("Workflow id is %s", r["workflow_id"])
+    else:
+        sys.stdout.write(r["workflow_id"]+"\n")
+        exit(0)
 
     r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
     while r["state"] in ("Queued", "Initializing", "Running"):
@@ -100,6 +108,8 @@ def main(argv=sys.argv[1:]):
     s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
     logging.info(s["workflow_log"]["stderr"])
 
+    if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
+        del s["outputs"]["fields"]
     json.dump(s["outputs"], sys.stdout, indent=4)
 
     if r["state"] == "Complete":

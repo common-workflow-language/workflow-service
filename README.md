@@ -1,54 +1,85 @@
-This is a proof of concept web service for the Common Workflow Language.  It
-works with any `cwl-runner` that supports the CWL standard command line interface:
-http://www.commonwl.org/draft-3/CommandLineTool.html#Executing_CWL_documents_as_scripts
+# Workflow as a Service
 
-Theory of operation:
+This provides client and server implementations of the [GA4GH Workflow
+Execution Service](https://github.com/ga4gh/workflow-execution-schemas) API for
+the Common Workflow Language.
 
-* Accept job order via HTTP POST, create job and redirect to job URL
-* Client can poll for job status
-* Client can get streaming logs (stderr of `cwl-runner`)
+It provides an (Arvados)[https://github.com/curoverse/arvados] backend.  It
+also works with any `cwl-runner` that supports the CWL standard command line
+interface: http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_documents_as_scripts
 
 Installation:
 
 ```
-python setup.py install
+pip install wes-service
 ```
 
-Run standalone server:
+Run a standalone server with default `cwl-runner` backend:
 
 ```
-cwl-server
+$ wes-server
 ```
 
-Run a job, get status, get log:
+Submit a workflow to run:
 
 ```
-$ echo '{"message": "It works"}' | curl -L -X POST -d@- http://localhost:5000/run?wf=https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl
-{
-    "state": "Running",
-    "run": "https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl",
-    "log": "http://localhost:5000/jobs/0/log",
-    "input": {
-        "message": "It works"
-    },
-    "output": null,
-    "id": "http://localhost:5000/jobs/0"
-}
-$ curl http://localhost:5000/jobs/0
-{
-    "state": "Success",
-    "run": "https://raw.githubusercontent.com/common-workflow-language/common-workflow-language/master/draft-3/examples/1st-tool.cwl",
-    "log": "http://localhost:5000/jobs/0/log",
-    "input": {
-        "message": "It works"
-    },
-    "output": {},
-    "id": "http://localhost:5000/jobs/0"
-}
-$ curl http://localhost:5000/jobs/0/log
-cwl-runner 1.0.20160518201549
-[job 1st-tool.cwl] /tmp/tmpKcoc_I$ echo \
-    'It works'
-It works
-Final process status is success
+$ wes-client --host=localhost:8080 myworkflow.cwl myjob.json
+```
+
+List workflows:
+
+```
+$ wes-client --list
+```
+
+Get workflow status:
+
+```
+$ wes-client --get <workflow-id>
+```
+
+Get stderr log from workflow:
+
+```
+$ wes-client --log <workflow-id>
+```
+
+# Server Options
+
+## Run a standalone server with Arvados backend:
+
+```
+$ wes-server --backend=wes_service.arvados_wes
+```
+
+## Use a different executable with cwl_runner backend
+
+```
+$ wes-server --backend=wes_service.cwl_runner --opt runner=cwltoil
+```
+
+## Pass parameters to cwl-runner
+
+```
+$ wes-server --backend=wes_service.cwl_runner --opt extra=--workDir=/
+```
+
+# Client environment options
+
+Set service endpoint:
+
+```
+$ export WES_API_HOST=localhost:8080
+```
+
+Set the value to pass in the `Authorization` header:
+
+```
+$ export WES_API_AUTH=my_api_token
+```
+
+Set the protocol (one of http, https)
+
+```
+$ export WES_API_PROTO=http
 ```
