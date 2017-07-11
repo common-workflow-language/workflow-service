@@ -4,7 +4,7 @@ This provides client and server implementations of the [GA4GH Workflow
 Execution Service](https://github.com/ga4gh/workflow-execution-schemas) API for
 the Common Workflow Language.
 
-It provides an (Arvados)[https://github.com/curoverse/arvados] backend.  It
+It provides an [Arvados](https://github.com/curoverse/arvados) backend.  It
 also works with any `cwl-runner` that supports the CWL standard command line
 interface: http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_documents_as_scripts
 
