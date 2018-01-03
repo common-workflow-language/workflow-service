@@ -22,8 +22,10 @@ $ wes-server
 
 Submit a workflow to run:
 
+Note! All inputs files must be accessible from the filesystem.
+
 ```
-$ wes-client --host=localhost:8080 myworkflow.cwl myjob.json
+$ wes-client --host=localhost:8080 testdata/md5sum.cwl testdata/md5sum.cwl.json
 ```
 
 List workflows:
