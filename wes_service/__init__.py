@@ -26,8 +26,8 @@ def main(argv=sys.argv[1:]):
     def rs(x):
         return getattr(backend, x)
 
-    res = resource_stream(__name__, 'swagger/proto/workflow_execution.swagger.json')
-    app.add_api(json.load(res), resolver=Resolver(rs))
+    res = resource_stream(__name__, 'openapi/workflow_execution_service.swagger.yaml')
+    app.add_api('openapi/workflow_execution_service.swagger.yaml', resolver=Resolver(rs))
 
     app.run(port=args.port)
 

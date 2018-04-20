@@ -15,7 +15,7 @@ with open("README.pypi.rst") as readmeFile:
     long_description = readmeFile.read()
 
 setup(name='wes-service',
-      version='2.1',
+      version='2.2',
       description='GA4GH Workflow Execution Service reference implementation',
       long_description=long_description,
       author='GA4GH Containers and Workflows task team',
@@ -24,7 +24,7 @@ setup(name='wes-service',
       download_url="https://github.com/common-workflow-language/cwltool-service",
       license='Apache 2.0',
       packages=["wes_service", "wes_client"],
-      package_data={'wes_service': ['swagger/proto/workflow_execution.swagger.json']},
+      package_data={'wes_service': ['openapi/workflow_execution_service.swagger.yaml']},
       include_package_data=True,
       install_requires=[
           'connexion',
