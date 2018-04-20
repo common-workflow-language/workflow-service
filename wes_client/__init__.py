@@ -50,7 +50,7 @@ def main(argv=sys.argv[1:]):
     http_client.set_api_key(
         split.hostname, args.auth,
         param_name='Authorization', param_in='header')
-    client = SwaggerClient.from_url("%s://%s/swagger.json" % (args.proto, args.host),
+    client = SwaggerClient.from_url("%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host),
                                     http_client=http_client, config={'use_models': False})
 
     if args.list:
