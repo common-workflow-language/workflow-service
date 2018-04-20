@@ -99,7 +99,7 @@ def main(argv=sys.argv[1:]):
         exit(0)
 
     r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
-    while r["state"] in ("Queued", "Initializing", "Running"):
+    while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(1)
         r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
 
