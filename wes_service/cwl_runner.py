@@ -107,11 +107,11 @@ class Workflow(object):
             "state": state,
             "workflow_log": {
                 "cmd": [""],
-                "startTime": "",
-                "endTime": "",
+                "start_time": "",
+                "end_time": "",
                 "stdout": "",
                 "stderr": stderr,
-                "exitCode": exit_code
+                "exit_code": exit_code
             },
             "task_logs": [],
             "outputs": outputobj
@@ -127,7 +127,7 @@ class CWLRunnerBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": ["v1.0"]
             },
-            "supported_wes_versions": "0.1.0",
+            "supported_wes_versions": "0.2.0",
             "supported_filesystem_protocols": ["file"],
             "engine_versions": "cwl-runner",
             "system_state_counts": {},
