@@ -51,7 +51,7 @@ class Workflow(object):
         return self.getstatus()
 
     def getstate(self):
-        state = "Running"
+        state = "RUNNING"
         exit_code = -1
 
         exc = os.path.join(self.workdir, "exit_code")
@@ -73,9 +73,9 @@ class Workflow(object):
                 exit_code = 255
 
         if exit_code == 0:
-            state = "Complete"
+            state = "COMPLETE"
         elif exit_code != -1:
-            state = "Error"
+            state = "ERROR"
 
         return (state, exit_code)
 
@@ -97,7 +97,7 @@ class Workflow(object):
             stderr = f.read()
 
         outputobj = {}
-        if state == "Complete":
+        if state == "COMPLETE":
             with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
                 outputobj = json.load(outputtemp)
 
