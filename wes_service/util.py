@@ -10,7 +10,7 @@ def visit(d, op):
 class WESBackend(object):
     def __init__(self, opts):
         self.pairs = []
-        for o in opts:
+        for o in opts if opts else []:
             k, v = o.split("=", 1)
             self.pairs.append((k, v))
 
