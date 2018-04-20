@@ -75,7 +75,7 @@ class Workflow(object):
         if exit_code == 0:
             state = "COMPLETE"
         elif exit_code != -1:
-            state = "ERROR"
+            state = "EXECUTOR_ERROR"
 
         return (state, exit_code)
 
