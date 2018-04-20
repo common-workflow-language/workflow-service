@@ -26,8 +26,6 @@ $ wes-server
 
 Note! All inputs files must be accessible from the filesystem.
 
-Note! All inputs files must be accessible from the filesystem.
-
 ```
 $ wes-client --host=localhost:8080 testdata/md5sum.cwl testdata/md5sum.cwl.json
 ```
