@@ -16,7 +16,7 @@ paths:
       summary: |-
         Get information about Workflow Execution Service.  May include information related (but
         not limited to) the workflow descriptor formats, versions supported, the WES API versions supported, and information about general the service availability.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: GetServiceInfo
       responses:
         '200':
@@ -48,7 +48,7 @@ paths:
         There is no guarantee of live updates as the user traverses the pages, the behavior should be
         decided (and documented) by each implementation.
         To monitor a given execution, use GetWorkflowStatus or GetWorkflowLog.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: ListWorkflows
       responses:
         '200':
@@ -109,7 +109,7 @@ paths:
         be accomplished by given the credentials associated with a WES service access to a
         particular bucket.  The details are important for a production system and user on-boarding
         but outside the scope of this spec.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: RunWorkflow
       responses:
         '200':
@@ -143,7 +143,7 @@ paths:
   '/workflows/{workflow_id}':
     get:
       summary: Get detailed info about a running workflow.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: GetWorkflowLog
       responses:
         '200':
@@ -175,7 +175,7 @@ paths:
         - WorkflowExecutionService
     delete:
       summary: Cancel a running workflow.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: CancelJob
       responses:
         '200':
@@ -208,7 +208,7 @@ paths:
   '/workflows/{workflow_id}/status':
     get:
       summary: Get quick status info about a running workflow.
-      x-swagger-router-controller: ga4gh.wes.server
+
       operationId: GetWorkflowStatus
       responses:
         '200':
