@@ -8,11 +8,13 @@ It provides an [Arvados](https://github.com/curoverse/arvados) backend.  It
 also works with any `cwl-runner` that supports the CWL standard command line
 interface: http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_documents_as_scripts
 
-Installation:
+## Installation:
 
 ```
 pip install wes-service
 ```
+
+## Usage
 
 Run a standalone server with default `cwl-runner` backend:
 
@@ -20,7 +22,7 @@ Run a standalone server with default `cwl-runner` backend:
 $ wes-server
 ```
 
-Submit a workflow to run:
+### Submit a workflow to run:
 
 Note! All inputs files must be accessible from the filesystem.
 
@@ -28,45 +30,49 @@ Note! All inputs files must be accessible from the filesystem.
 $ wes-client --host=localhost:8080 testdata/md5sum.cwl testdata/md5sum.cwl.json
 ```
 
-List workflows:
+### List workflows
 
 ```
-$ wes-client --list
+$ wes-client --proto http --host=locahost:8080 --list
 ```
 
-Get workflow status:
+### Get workflow status
 
 ```
-$ wes-client --get <workflow-id>
+$ wes-client --proto http --host=locahost:8080 --get <workflow-id>
 ```
 
-Get stderr log from workflow:
+### Get stderr log from workflow:
 
 ```
-$ wes-client --log <workflow-id>
+$ wes-client --proto http --host=locahost:8080 --log <workflow-id>
 ```
 
-# Server Options
+## Server Configuration
 
-## Run a standalone server with Arvados backend:
+### Run a standalone server with Arvados backend:
 
 ```
 $ wes-server --backend=wes_service.arvados_wes
 ```
 
-## Use a different executable with cwl_runner backend
+### Use a different executable with cwl_runner backend
 
 ```
 $ wes-server --backend=wes_service.cwl_runner --opt runner=cwltoil
 ```
 
-## Pass parameters to cwl-runner
+### Pass parameters to cwl-runner
 
 ```
 $ wes-server --backend=wes_service.cwl_runner --opt extra=--workDir=/
 ```
 
-# Client environment options
+## Client Configuration
+
+These options will be read in as defaults when running the client from the
+command line. The default protocol is https, to support secure communications,
+but the server starts using http, to ease development.
 
 Set service endpoint:
 
@@ -85,3 +91,6 @@ Set the protocol (one of http, https)
 ```
 $ export WES_API_PROTO=http
 ```
+
+Then, when you call `wes-client` these defaults will be used in place of the
+flags, `--host`, `--auth`, and `proto` respectively.
