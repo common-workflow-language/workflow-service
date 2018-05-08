@@ -127,7 +127,7 @@ class CWLRunnerBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": ["v1.0"]
             },
-            "supported_wes_versions": "0.2.0",
+            "supported_wes_versions": "0.3.0",
             "supported_filesystem_protocols": ["file"],
             "engine_versions": "cwl-runner",
             "system_state_counts": {},
