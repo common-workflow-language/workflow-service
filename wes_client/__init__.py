@@ -59,20 +59,20 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={'use_models': False})
 
     if args.list:
-        l = client.WorkflowExecutionService.ListWorkflows()
-        json.dump(l.result(), sys.stdout, indent=4)
+        response = client.WorkflowExecutionService.ListWorkflows()
+        json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.log:
-        l = client.WorkflowExecutionService.GetWorkflowLog(
+        response = client.WorkflowExecutionService.GetWorkflowLog(
             workflow_id=args.log)
-        sys.stdout.write(l.result()["workflow_log"]["stderr"])
+        sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        l = client.WorkflowExecutionService.GetWorkflowLog(
+        response = client.WorkflowExecutionService.GetWorkflowLog(
             workflow_id=args.get)
-        json.dump(l.result(), sys.stdout, indent=4)
+        json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     with open(args.job_order) as f:

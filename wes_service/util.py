@@ -22,8 +22,8 @@ class WESBackend(object):
         return default
 
     def getoptlist(self, p):
-        l = []
+        optlist = []
         for k, v in self.pairs:
             if k == p:
-                l.append(v)
-        return l
+                optlist.append(v)
+        return optlist
