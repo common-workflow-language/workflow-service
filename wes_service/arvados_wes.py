@@ -12,7 +12,7 @@ def get_api():
     return arvados.api_from_config(version="v1", apiconfig={
         "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
         "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
-        "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false"),
+        "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false"),  # NOQA
     })
 
 
@@ -41,12 +41,13 @@ class ArvadosBackend(WESBackend):
     def ListWorkflows(self):
         api = get_api()
 
-        requests = api.container_requests().list(filters=[["requesting_container_uuid", "=", None]],
-                                                 select=["uuid", "command", "container_uuid"]).execute()
-        containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]],
+        requests = api.container_requests().list(
+            filters=[["requesting_container_uuid", "=", None]],
+            select=["uuid", "command", "container_uuid"]).execute()
+        containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]],  # NOQA
                                            select=["uuid", "state"]).execute()
 
-        uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers["items"]}
+        uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers["items"]}  # NOQA
 
         return {
             "workflows": [{"workflow_id": cr["uuid"],
@@ -57,27 +58,27 @@ class ArvadosBackend(WESBackend):
         }
 
     def RunWorkflow(self, body):
-        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
+        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
 
         env = {
             "PATH": os.environ["PATH"],
             "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
             "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
-            "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false")
+            "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false")  # NOQA
         }
         with tempfile.NamedTemporaryFile() as inputtemp:
             json.dump(body["workflow_params"], inputtemp)
             inputtemp.flush()
-            workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait", "--api=containers",
-                                                   body.get("workflow_url"), inputtemp.name], env=env).strip()
+            workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait", "--api=containers",  # NOQA
+                                                   body.get("workflow_url"), inputtemp.name], env=env).strip()  # NOQA
         return {"workflow_id": workflow_id}
 
     def GetWorkflowLog(self, workflow_id):
         api = get_api()
 
         request = api.container_requests().get(uuid=workflow_id).execute()
-        container = api.containers().get(uuid=request["container_uuid"]).execute()
+        container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
 
         outputobj = {}
         if request["output_uuid"]:
@@ -87,7 +88,7 @@ class ArvadosBackend(WESBackend):
 
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
-                        d["location"] = "keep:%s/%s" % (c.portable_data_hash(), d["location"])
+                        d["location"] = "keep:%s/%s" % (c.portable_data_hash(), d["location"])  # NOQA
 
                 visit(outputobj, keepref)
 
@@ -116,15 +117,15 @@ class ArvadosBackend(WESBackend):
             r["workflow_log"]["exitCode"] = container["exit_code"]
         return r
 
-    def CancelJob(self, workflow_id):  #  NOQA
+    def CancelJob(self, workflow_id):  # NOQA
         api = get_api()
-        request = api.container_requests().update(body={"priority": 0}).execute()
+        request = api.container_requests().update(body={"priority": 0}).execute()  # NOQA
         return {"workflow_id": request["uuid"]}
 
     def GetWorkflowStatus(self, workflow_id):
         api = get_api()
         request = api.container_requests().get(uuid=workflow_id).execute()
-        container = api.containers().get(uuid=request["container_uuid"]).execute()
+        container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
         return {"workflow_id": request["uuid"],
                 "state": statemap[container["state"]]}
 

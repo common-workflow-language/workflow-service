@@ -41,8 +41,8 @@ class Workflow(object):
 
         runner = opts.getopt("runner", "cwl-runner")
         extra = opts.getoptlist("extra")
-
-        proc = subprocess.Popen([runner] + extra + [workflow_url, inputtemp.name],
+        command_args = [runner] + extra + [workflow_url, inputtemp.name]
+        proc = subprocess.Popen(command_args,
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
@@ -102,7 +102,8 @@ class Workflow(object):
 
         outputobj = {}
         if state == "COMPLETE":
-            with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
+            output_path = os.path.join(self.workdir, "cwl.output.json")
+            with open(output_path, "r") as outputtemp:
                 outputobj = json.load(outputtemp)
 
         return {
@@ -144,13 +145,17 @@ class CWLRunnerBackend(WESBackend):
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
                 wf.append(Workflow(l))
+
+        workflows = [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {
-            "workflows": [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf],
+            "workflows": workflows,
             "next_page_token": ""
         }
 
     def RunWorkflow(self, body):
-        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
+        # FIXME Add error responses #16
+        if body["workflow_type"] != "CWL" or \
+                        body["workflow_type_version"] != "v1.0":
             return
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)
