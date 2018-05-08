@@ -26,6 +26,7 @@ class Workflow(object):
             json.dump(request["workflow_params"], inputtemp)
 
         if request.get("workflow_descriptor"):
+            workflow_descriptor = request.get('workflow_descriptor')
             with open(os.path.join(
                     self.workdir, "workflow.cwl"), "w") as f:
                 # FIXME #14 workflow_descriptor isn't defined
