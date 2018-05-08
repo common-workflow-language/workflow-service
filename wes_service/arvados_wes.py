@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 from wes_service.util import visit, WESBackend
 
+
 def get_api():
     return arvados.api_from_config(version="v1", apiconfig={
         "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
@@ -23,6 +24,7 @@ statemap = {
     "Cancelled": "Canceled"
 }
 
+
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
         return {
@@ -36,11 +38,7 @@ class ArvadosBackend(WESBackend):
             "key_values": {}
         }
 
-    def ListWorkflows(self, body=None):
-        # body["page_size"]
-        # body["page_token"]
-        # body["key_value_search"]
-
+    def ListWorkflows(self):
         api = get_api()
 
         requests = api.container_requests().list(filters=[["requesting_container_uuid", "=", None]],
@@ -75,7 +73,6 @@ class ArvadosBackend(WESBackend):
                                                    body.get("workflow_url"), inputtemp.name], env=env).strip()
         return {"workflow_id": workflow_id}
 
-
     def GetWorkflowLog(self, workflow_id):
         api = get_api()
 
@@ -87,9 +84,11 @@ class ArvadosBackend(WESBackend):
             c = arvados.collection.CollectionReader(request["output_uuid"])
             with c.open("cwl.output.json") as f:
                 outputobj = json.load(f)
+
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
                         d["location"] = "keep:%s/%s" % (c.portable_data_hash(), d["location"])
+
                 visit(outputobj, keepref)
 
         stderr = ""
@@ -117,8 +116,7 @@ class ArvadosBackend(WESBackend):
             r["workflow_log"]["exitCode"] = container["exit_code"]
         return r
 
-
-    def CancelJob(self, workflow_id):
+    def CancelJob(self, workflow_id):  #  NOQA
         api = get_api()
         request = api.container_requests().update(body={"priority": 0}).execute()
         return {"workflow_id": request["uuid"]}
@@ -130,5 +128,6 @@ class ArvadosBackend(WESBackend):
         return {"workflow_id": request["uuid"],
                 "state": statemap[container["state"]]}
 
+
 def create_backend(opts):
-    return ArvadosBackend(optdict)
+    return ArvadosBackend(opts)

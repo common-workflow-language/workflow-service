@@ -1,12 +1,11 @@
-import threading
-import tempfile
-import subprocess
-import uuid
-import os
 import json
+import os
+import subprocess
 import urllib
-import sys
-from wes_service.util import visit, WESBackend
+import uuid
+
+from wes_service.util import WESBackend
+
 
 class Workflow(object):
     def __init__(self, workflow_id):
@@ -22,13 +21,17 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
             json.dump(request, f)
 
-        with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
+        with open(os.path.join(
+                self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
         if request.get("workflow_descriptor"):
-            with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
+            with open(os.path.join(
+                    self.workdir, "workflow.cwl"), "w") as f:
+                # FIXME #14 workflow_descriptor isn't defined
                 f.write(workflow_descriptor)
-                workflow_url = urllib.pathname2url(os.path.join(self.workdir, "workflow.cwl"))
+                workflow_url = urllib.pathname2url(
+                    os.path.join(self.workdir, "workflow.cwl"))
         else:
             workflow_url = request.get("workflow_url")
 
@@ -38,7 +41,7 @@ class Workflow(object):
         runner = opts.getopt("runner", "cwl-runner")
         extra = opts.getoptlist("extra")
 
-        proc = subprocess.Popen([runner]+extra+[workflow_url, inputtemp.name],
+        proc = subprocess.Popen([runner] + extra + [workflow_url, inputtemp.name],
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
@@ -68,7 +71,7 @@ class Workflow(object):
                     with open(exc, "w") as f:
                         f.write(str(exit_code))
                     os.unlink(os.path.join(self.workdir, "pid"))
-            except OSError as e:
+            except OSError:
                 os.unlink(os.path.join(self.workdir, "pid"))
                 exit_code = 255
 
@@ -77,7 +80,7 @@ class Workflow(object):
         elif exit_code != -1:
             state = "EXECUTOR_ERROR"
 
-        return (state, exit_code)
+        return state, exit_code
 
     def getstatus(self):
         state, exit_code = self.getstate()
@@ -134,11 +137,8 @@ class CWLRunnerBackend(WESBackend):
             "key_values": {}
         }
 
-    def ListWorkflows(self ,body=None):
-        # body["page_size"]
-        # body["page_token"]
-        # body["key_value_search"]
-
+    def ListWorkflows(self):
+        # FIXME #15 results don't page
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
@@ -168,6 +168,7 @@ class CWLRunnerBackend(WESBackend):
     def GetWorkflowStatus(self, workflow_id):
         job = Workflow(workflow_id)
         return job.getstatus()
+
 
 def create_backend(opts):
     return CWLRunnerBackend(opts)
