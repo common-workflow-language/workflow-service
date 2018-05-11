@@ -31,6 +31,7 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--get", type=str, default=None)
     exgroup.add_argument("--log", type=str, default=None)
     exgroup.add_argument("--list", action="store_true", default=False)
+    exgroup.add_argument("--info", action="store_true", default=False)
     exgroup.add_argument("--version", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
@@ -75,6 +76,11 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
+    if args.info:
+        response = client.WorkflowExecutionService.GetServiceInfo()
+        json.dump(response.result(), sys.stdout, indent=4)
+        return 0
+
     loader = schema_salad.ref_resolver.Loader({
         "location": {"@type": "@id"}
     })
@@ -83,11 +89,18 @@ def main(argv=sys.argv[1:]):
     basedir = os.path.dirname(args.job_order)
 
     def fixpaths(d):
-        if isinstance(d, dict) and "path" in d:
-            local_path = os.path.normpath(
-                os.path.join(os.getcwd(), basedir, d["path"]))
-            del d["path"]
-            d["location"] = urllib.pathname2url(local_path)
+        if isinstance(d, dict):
+            if "path" in d:
+                local_path = os.path.normpath(
+                    os.path.join(os.getcwd(), basedir, d["path"]))
+                del d["path"]
+                d["location"] = urllib.pathname2url(local_path)
+            if d.get("class") == "Directory":
+                loc = d.get("location", "")
+                if loc.startswith("http:") or loc.startswith("https:"):
+                    logging.error("Directory inputs not supported with http references")
+                    exit(33)
+
     visit(input, fixpaths)
 
     workflow_url = args.workflow_url

@@ -30,7 +30,7 @@ class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
         return {
             "workflow_type_versions": {
-                "CWL": ["v1.0"]
+                "CWL": {"workflow_type_version": ["v1.0"]}
             },
             "supported_wes_versions": "0.2.1",
             "supported_filesystem_protocols": ["file", "http", "https", "keep"],
