@@ -4,7 +4,6 @@ from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
 import json
 import time
-import pprint
 import sys
 import os
 import argparse
@@ -15,12 +14,15 @@ from wes_service.util import visit
 import urllib
 import ruamel.yaml as yaml
 
-def main(argv=sys.argv[1:]):
 
+def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
-    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
+    parser.add_argument(
+        "--host", type=str, default=os.environ.get("WES_API_HOST"))
+    parser.add_argument(
+        "--auth", type=str, default=os.environ.get("WES_API_AUTH"))
+    parser.add_argument(
+        "--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
 
@@ -32,8 +34,10 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--version", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
-    exgroup.add_argument("--wait", action="store_true", default=True, dest="wait")
-    exgroup.add_argument("--no-wait", action="store_false", default=True, dest="wait")
+    exgroup.add_argument(
+        "--wait", action="store_true", default=True, dest="wait")
+    exgroup.add_argument(
+        "--no-wait", action="store_false", default=True, dest="wait")
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)
@@ -50,31 +54,37 @@ def main(argv=sys.argv[1:]):
     http_client.set_api_key(
         split.hostname, args.auth,
         param_name='Authorization', param_in='header')
-    client = SwaggerClient.from_url("%s://%s/swagger.json" % (args.proto, args.host),
-                                    http_client=http_client, config={'use_models': False})
+    client = SwaggerClient.from_url(
+        "%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host),
+        http_client=http_client, config={'use_models': False})
 
     if args.list:
-        l = client.WorkflowExecutionService.ListWorkflows()
-        json.dump(l.result(), sys.stdout, indent=4)
+        response = client.WorkflowExecutionService.ListWorkflows()
+        json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.log:
-        l = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.log)
-        sys.stdout.write(l.result()["workflow_log"]["stderr"])
+        response = client.WorkflowExecutionService.GetWorkflowLog(
+            workflow_id=args.log)
+        sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        l = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.get)
-        json.dump(l.result(), sys.stdout, indent=4)
+        response = client.WorkflowExecutionService.GetWorkflowLog(
+            workflow_id=args.get)
+        json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     with open(args.job_order) as f:
         input = yaml.safe_load(f)
         basedir = os.path.dirname(args.job_order)
+
         def fixpaths(d):
             if isinstance(d, dict) and "location" in d:
-                if not ":" in d["location"]:
-                    d["location"] = urllib.pathname2url(os.path.normpath(os.path.join(os.getcwd(), basedir, d["location"])))
+                if ":" not in d["location"]:
+                    local_path = os.path.normpath(
+                        os.path.join(os.getcwd(), basedir, d["location"]))
+                    d["location"] = urllib.pathname2url(local_path)
         visit(input, fixpaths)
 
     workflow_url = args.workflow_url
@@ -98,14 +108,17 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["workflow_id"]+"\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
-    while r["state"] in ("Queued", "Initializing", "Running"):
+    r = client.WorkflowExecutionService.GetWorkflowStatus(
+        workflow_id=r["workflow_id"]).result()
+    while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(1)
-        r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
+        r = client.WorkflowExecutionService.GetWorkflowStatus(
+            workflow_id=r["workflow_id"]).result()
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
+    s = client.WorkflowExecutionService.GetWorkflowLog(
+        workflow_id=r["workflow_id"]).result()
     logging.info(s["workflow_log"]["stderr"])
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
@@ -116,6 +129,7 @@ def main(argv=sys.argv[1:]):
         return 0
     else:
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

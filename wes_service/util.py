@@ -7,6 +7,7 @@ def visit(d, op):
         for i in d.itervalues():
             visit(i, op)
 
+
 class WESBackend(object):
     def __init__(self, opts):
         self.pairs = []
@@ -15,14 +16,14 @@ class WESBackend(object):
             self.pairs.append((k, v))
 
     def getopt(self, p, default=None):
-        for k,v in self.pairs:
+        for k, v in self.pairs:
             if k == p:
                 return v
         return default
 
     def getoptlist(self, p):
-        l = []
+        optlist = []
         for k, v in self.pairs:
             if k == p:
-                l.append(v)
-        return l
+                optlist.append(v)
+        return optlist

@@ -1,12 +1,11 @@
-import threading
-import tempfile
-import subprocess
-import uuid
-import os
 import json
+import os
+import subprocess
 import urllib
-import sys
-from wes_service.util import visit, WESBackend
+import uuid
+
+from wes_service.util import WESBackend
+
 
 class Workflow(object):
     def __init__(self, workflow_id):
@@ -22,13 +21,18 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
             json.dump(request, f)
 
-        with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
+        with open(os.path.join(
+                self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
         if request.get("workflow_descriptor"):
-            with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
+            workflow_descriptor = request.get('workflow_descriptor')
+            with open(os.path.join(
+                    self.workdir, "workflow.cwl"), "w") as f:
+                # FIXME #14 workflow_descriptor isn't defined
                 f.write(workflow_descriptor)
-                workflow_url = urllib.pathname2url(os.path.join(self.workdir, "workflow.cwl"))
+                workflow_url = urllib.pathname2url(
+                    os.path.join(self.workdir, "workflow.cwl"))
         else:
             workflow_url = request.get("workflow_url")
 
@@ -37,8 +41,8 @@ class Workflow(object):
 
         runner = opts.getopt("runner", "cwl-runner")
         extra = opts.getoptlist("extra")
-
-        proc = subprocess.Popen([runner]+extra+[workflow_url, inputtemp.name],
+        command_args = [runner] + extra + [workflow_url, inputtemp.name]
+        proc = subprocess.Popen(command_args,
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
@@ -51,7 +55,7 @@ class Workflow(object):
         return self.getstatus()
 
     def getstate(self):
-        state = "Running"
+        state = "RUNNING"
         exit_code = -1
 
         exc = os.path.join(self.workdir, "exit_code")
@@ -68,16 +72,16 @@ class Workflow(object):
                     with open(exc, "w") as f:
                         f.write(str(exit_code))
                     os.unlink(os.path.join(self.workdir, "pid"))
-            except OSError as e:
+            except OSError:
                 os.unlink(os.path.join(self.workdir, "pid"))
                 exit_code = 255
 
         if exit_code == 0:
-            state = "Complete"
+            state = "COMPLETE"
         elif exit_code != -1:
-            state = "Error"
+            state = "EXECUTOR_ERROR"
 
-        return (state, exit_code)
+        return state, exit_code
 
     def getstatus(self):
         state, exit_code = self.getstate()
@@ -97,8 +101,9 @@ class Workflow(object):
             stderr = f.read()
 
         outputobj = {}
-        if state == "Complete":
-            with open(os.path.join(self.workdir, "cwl.output.json"), "r") as outputtemp:
+        if state == "COMPLETE":
+            output_path = os.path.join(self.workdir, "cwl.output.json")
+            with open(output_path, "r") as outputtemp:
                 outputobj = json.load(outputtemp)
 
         return {
@@ -107,11 +112,11 @@ class Workflow(object):
             "state": state,
             "workflow_log": {
                 "cmd": [""],
-                "startTime": "",
-                "endTime": "",
+                "start_time": "",
+                "end_time": "",
                 "stdout": "",
                 "stderr": stderr,
-                "exitCode": exit_code
+                "exit_code": exit_code
             },
             "task_logs": [],
             "outputs": outputobj
@@ -127,29 +132,30 @@ class CWLRunnerBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": ["v1.0"]
             },
-            "supported_wes_versions": "0.1.0",
+            "supported_wes_versions": "0.3.0",
             "supported_filesystem_protocols": ["file"],
             "engine_versions": "cwl-runner",
             "system_state_counts": {},
             "key_values": {}
         }
 
-    def ListWorkflows(self ,body=None):
-        # body["page_size"]
-        # body["page_token"]
-        # body["key_value_search"]
-
+    def ListWorkflows(self):
+        # FIXME #15 results don't page
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
                 wf.append(Workflow(l))
+
+        workflows = [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {
-            "workflows": [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf],
+            "workflows": workflows,
             "next_page_token": ""
         }
 
     def RunWorkflow(self, body):
-        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":
+        # FIXME Add error responses #16
+        if body["workflow_type"] != "CWL" or \
+                        body["workflow_type_version"] != "v1.0":
             return
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)
@@ -168,6 +174,7 @@ class CWLRunnerBackend(WESBackend):
     def GetWorkflowStatus(self, workflow_id):
         job = Workflow(workflow_id)
         return job.getstatus()
+
 
 def create_backend(opts):
     return CWLRunnerBackend(opts)

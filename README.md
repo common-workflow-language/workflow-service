@@ -59,7 +59,8 @@ $ wes-server --backend=wes_service.arvados_wes
 ### Use a different executable with cwl_runner backend
 
 ```
-$ wes-server --backend=wes_service.cwl_runner --opt runner=cwltoil
+$ pip install toil
+$ wes-server --backend=wes_service.cwl_runner --opt runner=cwltoil --opt extra=--logLevel=CRITICAL
 ```
 
 ### Pass parameters to cwl-runner
