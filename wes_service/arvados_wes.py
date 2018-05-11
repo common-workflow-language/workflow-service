@@ -1,4 +1,5 @@
 import arvados
+import arvados.util
 import arvados.collection
 import os
 import connexion
@@ -17,11 +18,11 @@ def get_api():
 
 
 statemap = {
-    "Queued": "Queued",
-    "Locked": "Initializing",
-    "Running": "Running",
-    "Complete": "Complete",
-    "Cancelled": "Canceled"
+    "Queued": "QUEUED",
+    "Locked": "INITIALIZING",
+    "Running": "RUNNING",
+    "Complete": "COMPLETE",
+    "Cancelled": "CANCELED"
 }
 
 
@@ -31,8 +32,8 @@ class ArvadosBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": ["v1.0"]
             },
-            "supported_wes_versions": "0.1.0",
-            "supported_filesystem_protocols": ["file"],
+            "supported_wes_versions": "0.2.1",
+            "supported_filesystem_protocols": ["file", "http", "https", "keep"],
             "engine_versions": "cwl-runner",
             "system_state_counts": {},
             "key_values": {}
@@ -41,19 +42,21 @@ class ArvadosBackend(WESBackend):
     def ListWorkflows(self):
         api = get_api()
 
-        requests = api.container_requests().list(
-            filters=[["requesting_container_uuid", "=", None]],
-            select=["uuid", "command", "container_uuid"]).execute()
-        containers = api.containers().list(filters=[["uuid", "in", [w["container_uuid"] for w in requests["items"]]]],  # NOQA
-                                           select=["uuid", "state"]).execute()
+        requests = arvados.util.list_all(api.container_requests().list,
+                                         filters=[["requesting_container_uuid", "=", None],
+                                                  ["container_uuid", "!=", None]],
+                                         select=["uuid", "command", "container_uuid"])
+        containers = arvados.util.list_all(api.containers().list,
+                                           filters=[["uuid", "in", [w["container_uuid"] for w in requests]]],
+                                           select=["uuid", "state"])
 
-        uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers["items"]}  # NOQA
+        uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers}
 
         return {
             "workflows": [{"workflow_id": cr["uuid"],
-                           "state": uuidmap[cr["container_uuid"]]}
-                          for cr in requests["items"]
-                          if cr["command"][0] == "arvados-cwl-runner"],
+                           "state": uuidmap.get(cr["container_uuid"])}
+                          for cr in requests
+                          if cr["command"] and cr["command"][0] == "arvados-cwl-runner"],
             "next_page_token": ""
         }
 
@@ -114,7 +117,7 @@ class ArvadosBackend(WESBackend):
             "outputs": outputobj
         }
         if container["exit_code"] is not None:
-            r["workflow_log"]["exitCode"] = container["exit_code"]
+            r["workflow_log"]["exit_code"] = container["exit_code"]
         return r
 
     def CancelJob(self, workflow_id):  # NOQA

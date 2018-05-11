@@ -80,6 +80,11 @@ def main(argv=sys.argv[1:]):
         basedir = os.path.dirname(args.job_order)
 
         def fixpaths(d):
+            if isinstance(d, dict) and "path" in d:
+                local_path = os.path.normpath(
+                    os.path.join(os.getcwd(), basedir, d["path"]))
+                del d["path"]
+                d["location"] = urllib.pathname2url(local_path)
             if isinstance(d, dict) and "location" in d:
                 if ":" not in d["location"]:
                     local_path = os.path.normpath(

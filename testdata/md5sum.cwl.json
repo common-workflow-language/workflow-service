@@ -1,10 +1,6 @@
 {
   "input_file": {
         "class": "File",
-        "path": "../../testdata/md5sum.input"
-    },
-    "output_file": {
-        "class": "File",
-        "path": "/tmp/md5sum.txt"
+        "path": "md5sum.input"
     }
 }
