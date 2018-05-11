@@ -30,7 +30,8 @@ setup(name='wes-service',
           'connexion',
           'bravado',
           'ruamel.yaml >= 0.12.4, < 0.15',
-          'cwlref-runner'
+          'cwlref-runner',
+          'schema-salad'
         ],
       entry_points={
           'console_scripts': [ "wes-server=wes_service:main",

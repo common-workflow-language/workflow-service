@@ -13,7 +13,7 @@ import pkg_resources  # part of setuptools
 from wes_service.util import visit
 import urllib
 import ruamel.yaml as yaml
-
+import schema_salad.ref_resolver
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
@@ -75,22 +75,20 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
-    with open(args.job_order) as f:
-        input = yaml.safe_load(f)
-        basedir = os.path.dirname(args.job_order)
+    loader = schema_salad.ref_resolver.Loader({
+        "location": {"@type": "@id"}
+    })
+    input, _ = loader.resolve_ref(args.job_order)
 
-        def fixpaths(d):
-            if isinstance(d, dict) and "path" in d:
-                local_path = os.path.normpath(
-                    os.path.join(os.getcwd(), basedir, d["path"]))
-                del d["path"]
-                d["location"] = urllib.pathname2url(local_path)
-            if isinstance(d, dict) and "location" in d:
-                if ":" not in d["location"]:
-                    local_path = os.path.normpath(
-                        os.path.join(os.getcwd(), basedir, d["location"]))
-                    d["location"] = urllib.pathname2url(local_path)
-        visit(input, fixpaths)
+    basedir = os.path.dirname(args.job_order)
+
+    def fixpaths(d):
+        if isinstance(d, dict) and "path" in d:
+            local_path = os.path.normpath(
+                os.path.join(os.getcwd(), basedir, d["path"]))
+            del d["path"]
+            d["location"] = urllib.pathname2url(local_path)
+    visit(input, fixpaths)
 
     workflow_url = args.workflow_url
     if not workflow_url.startswith("/") and ":" not in workflow_url:
@@ -130,7 +128,7 @@ def main(argv=sys.argv[1:]):
         del s["outputs"]["fields"]
     json.dump(s["outputs"], sys.stdout, indent=4)
 
-    if r["state"] == "Complete":
+    if r["state"] == "COMPLETE":
         return 0
     else:
         return 1
