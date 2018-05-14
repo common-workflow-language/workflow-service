@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
-#python setup.py sdist
-docker build --build-arg version=2.2 -t commonworkflowlanguage/workflow-service .
+python setup.py sdist
+docker build --build-arg version=2.3 -t commonworkflowlanguage/workflow-service .
 docker run -ti \
        -v$PWD/config.yml:/var/www/wes-server/config.yml \
        -v/etc/ssl/certs/ssl-cert-snakeoil.pem:/etc/ssl/certs/ssl-cert-wes.pem \
