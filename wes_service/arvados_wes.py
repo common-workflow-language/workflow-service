@@ -85,7 +85,7 @@ class ArvadosBackend(WESBackend):
 
         outputobj = {}
         if request["output_uuid"]:
-            c = arvados.collection.CollectionReader(request["output_uuid"])
+            c = arvados.collection.CollectionReader(request["output_uuid"], api_client=api)
             with c.open("cwl.output.json") as f:
                 outputobj = json.load(f)
 
@@ -97,7 +97,7 @@ class ArvadosBackend(WESBackend):
 
         stderr = ""
         if request["log_uuid"]:
-            c = arvados.collection.CollectionReader(request["log_uuid"])
+            c = arvados.collection.CollectionReader(request["log_uuid"], api_client=api)
             if "stderr.txt" in c:
                 with c.open("stderr.txt") as f:
                     stderr = f.read()
