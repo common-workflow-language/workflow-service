@@ -39,11 +39,7 @@ RUN cd /root && tar xzf wes-service-${version}.tar.gz && \
 
 COPY passenger_wsgi.py /var/www/wes-server/passenger_wsgi.py
 
-EXPOSE 443
-
 WORKDIR /var/www/wes-server/
 RUN chown www-data:www-data -R /var/www && adduser www-data docker
 
-CMD ["passenger", "start", "--environment=production", "--user=www-data", "--port=443", "--ssl", \
-    "--ssl-certificate=/etc/ssl/certs/ssl-cert-wes.pem", \
-    "--ssl-certificate-key=/etc/ssl/private/ssl-cert-wes.key"]
+CMD ["passenger", "start", "--environment=production", "--user=www-data"]
