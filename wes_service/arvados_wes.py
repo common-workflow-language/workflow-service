@@ -1,11 +1,13 @@
 import arvados
 import arvados.util
 import arvados.collection
+import arvados.errors
 import os
 import connexion
 import json
 import subprocess
 import tempfile
+import functools
 from wes_service.util import visit, WESBackend
 
 
@@ -26,6 +28,20 @@ statemap = {
 }
 
 
+def catch_exceptions(orig_func):
+    """Catch uncaught exceptions and turn them into http errors"""
+
+    @functools.wraps(orig_func)
+    def catch_exceptions_wrapper(self, *args, **kwargs):
+        try:
+            return orig_func(self, *args, **kwargs)
+        except arvados.errors.ApiError as e:
+            return {"msg": e._get_reason(), "status_code": e.resp.status}, int(e.resp.status)
+        except subprocess.CalledProcessError as e:
+            return {"msg": str(e), "status_code": 500}, 500
+
+    return catch_exceptions_wrapper
+
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
         return {
@@ -39,6 +55,7 @@ class ArvadosBackend(WESBackend):
             "key_values": {}
         }
 
+    @catch_exceptions
     def ListWorkflows(self):
         api = get_api()
 
@@ -60,6 +77,7 @@ class ArvadosBackend(WESBackend):
             "next_page_token": ""
         }
 
+    @catch_exceptions
     def RunWorkflow(self, body):
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
@@ -77,6 +95,7 @@ class ArvadosBackend(WESBackend):
                                                    body.get("workflow_url"), inputtemp.name], env=env).strip()  # NOQA
         return {"workflow_id": workflow_id}
 
+    @catch_exceptions
     def GetWorkflowLog(self, workflow_id):
         api = get_api()
 
@@ -120,11 +139,13 @@ class ArvadosBackend(WESBackend):
             r["workflow_log"]["exit_code"] = container["exit_code"]
         return r
 
+    @catch_exceptions
     def CancelJob(self, workflow_id):  # NOQA
         api = get_api()
         request = api.container_requests().update(body={"priority": 0}).execute()  # NOQA
         return {"workflow_id": request["uuid"]}
 
+    @catch_exceptions
     def GetWorkflowStatus(self, workflow_id):
         api = get_api()
         request = api.container_requests().get(uuid=workflow_id).execute()
