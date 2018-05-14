@@ -110,7 +110,7 @@ class ArvadosBackend(WESBackend):
 
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
-                        d["location"] = "keep:%s/%s" % (c.portable_data_hash(), d["location"])  # NOQA
+                        d["location"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], c.portable_data_hash(), d["location"])  # NOQA
 
                 visit(outputobj, keepref)
 
