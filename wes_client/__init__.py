@@ -82,7 +82,8 @@ def main(argv=sys.argv[1:]):
         return 0
 
     loader = schema_salad.ref_resolver.Loader({
-        "location": {"@type": "@id"}
+        "location": {"@type": "@id"},
+        "path": {"@type": "@id"}
     })
     input, _ = loader.resolve_ref(args.job_order)
 
@@ -91,10 +92,13 @@ def main(argv=sys.argv[1:]):
     def fixpaths(d):
         if isinstance(d, dict):
             if "path" in d:
-                local_path = os.path.normpath(
-                    os.path.join(os.getcwd(), basedir, d["path"]))
+                if ":" not in d["path"]:
+                    local_path = os.path.normpath(
+                        os.path.join(os.getcwd(), basedir, d["path"]))
+                    d["location"] = urllib.pathname2url(local_path)
+                else:
+                    d["location"] = d["path"]
                 del d["path"]
-                d["location"] = urllib.pathname2url(local_path)
             if d.get("class") == "Directory":
                 loc = d.get("location", "")
                 if loc.startswith("http:") or loc.startswith("https:"):
