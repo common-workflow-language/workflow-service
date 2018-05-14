@@ -42,5 +42,5 @@ setup(name='wes-service',
               "arvados-cwl-runner"
           ]
       },
-      zip_safe=True
+      zip_safe=False
 )

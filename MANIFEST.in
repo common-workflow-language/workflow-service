@@ -1,0 +1,2 @@
+include README.pypi.rst
+include wes_service/openapi/workflow_execution_service.swagger.yaml
