@@ -23,16 +23,14 @@ RUN mkdir -p /etc/apt/sources.list.d && \
     apt-get -yq --no-install-recommends install docker-engine=17.05.0~ce-0~debian-stretch && \
     apt-get clean
 
-ARG version
 ARG arvversion
-
-COPY dist/wes-service-${version}.tar.gz /root
 COPY dist/arvados-cwl-runner-${arvversion}.tar.gz /root
-
 RUN cd /root && tar xzf arvados-cwl-runner-${arvversion}.tar.gz && \
     cd arvados-cwl-runner-${arvversion} && \
     pip install .
 
+ARG version
+COPY dist/wes-service-${version}.tar.gz /root
 RUN cd /root && tar xzf wes-service-${version}.tar.gz && \
     cd wes-service-${version} && \
     pip install .[arvados]
