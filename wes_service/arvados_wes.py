@@ -8,6 +8,9 @@ import json
 import subprocess
 import tempfile
 import functools
+import threading
+import logging
+
 from wes_service.util import visit, WESBackend
 
 
@@ -36,6 +39,7 @@ def catch_exceptions(orig_func):
         try:
             return orig_func(self, *args, **kwargs)
         except arvados.errors.ApiError as e:
+            logging.exception("Failure")
             return {"msg": e._get_reason(), "status_code": e.resp.status}, int(e.resp.status)
         except subprocess.CalledProcessError as e:
             return {"msg": str(e), "status_code": 500}, 500
@@ -77,6 +81,22 @@ class ArvadosBackend(WESBackend):
             "next_page_token": ""
         }
 
+    def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params, env):
+        try:
+            with tempfile.NamedTemporaryFile() as inputtemp:
+                json.dump(workflow_params, inputtemp)
+                inputtemp.flush()
+                workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid, # NOQA
+                                                       "--submit", "--no-wait", "--api=containers",     # NOQA
+                                                       workflow_url, inputtemp.name], env=env).strip()  # NOQA
+        except subprocess.CalledProcessError as e:
+            api = arvados.api_from_config(version="v1", apiconfig={
+                "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
+                "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
+                "ARVADOS_API_HOST_INSECURE": env["ARVADOS_API_HOST_INSECURE"]  # NOQA
+            })
+            request = api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()  # NOQA
+
     @catch_exceptions
     def RunWorkflow(self, body):
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
@@ -88,19 +108,29 @@ class ArvadosBackend(WESBackend):
             "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
             "ARVADOS_API_HOST_INSECURE": os.environ.get("ARVADOS_API_HOST_INSECURE", "false")  # NOQA
         }
-        with tempfile.NamedTemporaryFile() as inputtemp:
-            json.dump(body["workflow_params"], inputtemp)
-            inputtemp.flush()
-            workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit", "--no-wait", "--api=containers",  # NOQA
-                                                   body.get("workflow_url"), inputtemp.name], env=env).strip()  # NOQA
-        return {"workflow_id": workflow_id}
+
+        api = get_api()
+
+        cr = api.container_requests().create(body={"container_request":
+                                                   {"command": [""],
+                                                    "container_image": "n/a",
+                                                    "state": "Uncommitted",
+                                                    "output_path": "n/a",
+                                                    "priority": 500}}).execute()
+
+        threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"], body.get("workflow_url"), body["workflow_params"], env)).start()
+
+        return {"workflow_id": cr["uuid"]}
 
     @catch_exceptions
     def GetWorkflowLog(self, workflow_id):
         api = get_api()
 
         request = api.container_requests().get(uuid=workflow_id).execute()
-        container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
+        if request["container_uuid"]:
+            container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
+        else:
+            container = {"state": "Queued", "exit_code": None}
 
         outputobj = {}
         if request["output_uuid"]:
@@ -142,14 +172,19 @@ class ArvadosBackend(WESBackend):
     @catch_exceptions
     def CancelJob(self, workflow_id):  # NOQA
         api = get_api()
-        request = api.container_requests().update(body={"priority": 0}).execute()  # NOQA
+        request = api.container_requests().update(uuid=workflow_id, body={"priority": 0}).execute()  # NOQA
         return {"workflow_id": request["uuid"]}
 
     @catch_exceptions
     def GetWorkflowStatus(self, workflow_id):
         api = get_api()
         request = api.container_requests().get(uuid=workflow_id).execute()
-        container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
+        if request["container_uuid"]:
+            container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
+        elif request["priority"] == 0:
+            container = {"state": "Cancelled"}
+        else:
+            container = {"state": "Queued"}
         return {"workflow_id": request["uuid"],
                 "state": statemap[container["state"]]}
 
