@@ -13,8 +13,12 @@ import logging
 
 from wes_service.util import visit, WESBackend
 
+class MissingAuthorization(Exception):
+    pass
 
 def get_api():
+    if not connexion.request.headers.get('Authorization'):
+        raise MissingAuthorization()
     return arvados.api_from_config(version="v1", apiconfig={
         "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
         "ARVADOS_API_TOKEN": connexion.request.headers['Authorization'],
@@ -43,6 +47,8 @@ def catch_exceptions(orig_func):
             return {"msg": e._get_reason(), "status_code": e.resp.status}, int(e.resp.status)
         except subprocess.CalledProcessError as e:
             return {"msg": str(e), "status_code": 500}, 500
+        except MissingAuthorization:
+            return {"msg": "'Authorization' header is missing or empty, expecting Arvados API token", "status_code": 401}, 401
 
     return catch_exceptions_wrapper
 
@@ -110,6 +116,9 @@ class ArvadosBackend(WESBackend):
     def RunWorkflow(self, body):
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
+
+        if not connexion.request.headers.get('Authorization'):
+            raise MissingAuthorization()
 
         env = {
             "PATH": os.environ["PATH"],
