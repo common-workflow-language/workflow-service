@@ -139,7 +139,7 @@ def main(argv=sys.argv[1:]):
 
     s = client.WorkflowExecutionService.GetWorkflowLog(
         workflow_id=r["workflow_id"]).result()
-    logging.info(s["workflow_log"]["stderr"])
+    logging.info("Workflow log:\n"+s["workflow_log"]["stderr"])
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]

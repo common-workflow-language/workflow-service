@@ -82,20 +82,29 @@ class ArvadosBackend(WESBackend):
         }
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params, env):
+        api = arvados.api_from_config(version="v1", apiconfig={
+            "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
+            "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
+            "ARVADOS_API_HOST_INSECURE": env["ARVADOS_API_HOST_INSECURE"]  # NOQA
+        })
+
         try:
             with tempfile.NamedTemporaryFile() as inputtemp:
                 json.dump(workflow_params, inputtemp)
                 inputtemp.flush()
-                workflow_id = subprocess.check_output(["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid, # NOQA
+                proc = subprocess.Popen(["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid, # NOQA
                                                        "--submit", "--no-wait", "--api=containers",     # NOQA
-                                                       workflow_url, inputtemp.name], env=env).strip()  # NOQA
+                                                       workflow_url, inputtemp.name], env=env,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # NOQA
+                (stdoutdata, stderrdata) = proc.communicate()
+                if proc.returncode != 0:
+                    api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
+                                                                        "properties": {"arvados-cwl-runner-log": stderrdata}}).execute()
+                else:
+                    api.container_requests().update(uuid=cr_uuid, body={"properties": {"arvados-cwl-runner-log": stderrdata}}).execute()
         except subprocess.CalledProcessError as e:
-            api = arvados.api_from_config(version="v1", apiconfig={
-                "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
-                "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
-                "ARVADOS_API_HOST_INSECURE": env["ARVADOS_API_HOST_INSECURE"]  # NOQA
-            })
-            request = api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()  # NOQA
+            api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
+                                                                "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
 
     @catch_exceptions
     def RunWorkflow(self, body):
@@ -132,6 +141,8 @@ class ArvadosBackend(WESBackend):
         else:
             container = {"state": "Queued", "exit_code": None}
 
+        stderr = request["properties"].get("arvados-cwl-runner-log", "")
+
         outputobj = {}
         if request["output_uuid"]:
             c = arvados.collection.CollectionReader(request["output_uuid"], api_client=api)
@@ -144,12 +155,11 @@ class ArvadosBackend(WESBackend):
 
                 visit(outputobj, keepref)
 
-        stderr = ""
         if request["log_uuid"]:
             c = arvados.collection.CollectionReader(request["log_uuid"], api_client=api)
             if "stderr.txt" in c:
                 with c.open("stderr.txt") as f:
-                    stderr = f.read()
+                    stderr += f.read()
 
         r = {
             "workflow_id": request["uuid"],
