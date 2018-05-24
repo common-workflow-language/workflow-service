@@ -87,7 +87,7 @@ class ArvadosBackend(WESBackend):
             "next_page_token": ""
         }
 
-    def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params, env):
+    def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params, env, workflow_descriptor_file):
         api = arvados.api_from_config(version="v1", apiconfig={
             "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
             "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
@@ -98,10 +98,12 @@ class ArvadosBackend(WESBackend):
             with tempfile.NamedTemporaryFile() as inputtemp:
                 json.dump(workflow_params, inputtemp)
                 inputtemp.flush()
+                # TODO: run submission process in a container to prevent
+                # a-c-r submission processes from seeing each other.
                 proc = subprocess.Popen(["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid, # NOQA
-                                                       "--submit", "--no-wait", "--api=containers",     # NOQA
-                                                       workflow_url, inputtemp.name], env=env,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # NOQA
+                                         "--submit", "--no-wait", "--api=containers",     # NOQA
+                                         workflow_url, inputtemp.name], env=env,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # NOQA
                 (stdoutdata, stderrdata) = proc.communicate()
                 if proc.returncode != 0:
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
@@ -111,6 +113,9 @@ class ArvadosBackend(WESBackend):
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
                                                                 "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
+        finally:
+            if workflow_descriptor_file is not None:
+                workflow_descriptor_file.close()
 
     @catch_exceptions
     def RunWorkflow(self, body):
@@ -136,7 +141,19 @@ class ArvadosBackend(WESBackend):
                                                     "output_path": "n/a",
                                                     "priority": 500}}).execute()
 
-        threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"], body.get("workflow_url"), body["workflow_params"], env)).start()
+        workflow_url = body.get("workflow_url")
+        workflow_descriptor_file = None
+        if body.get("workflow_descriptor"):
+            workflow_descriptor_file = tempfile.NamedTemporaryFile()
+            workflow_descriptor_file.write(body.get('workflow_descriptor'))
+            workflow_descriptor_file.flush()
+            workflow_url = workflow_descriptor_file.name
+
+        threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"],
+                                                              workflow_url,
+                                                              body["workflow_params"],
+                                                              env,
+                                                              workflow_descriptor_file)).start()
 
         return {"workflow_id": cr["uuid"]}
 
