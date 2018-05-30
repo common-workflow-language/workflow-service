@@ -99,28 +99,40 @@ def main(argv=sys.argv[1:]):
                 else:
                     d["location"] = d["path"]
                 del d["path"]
+            loc = d.get("location", "")
             if d.get("class") == "Directory":
-                loc = d.get("location", "")
                 if loc.startswith("http:") or loc.startswith("https:"):
                     logging.error("Directory inputs not supported with http references")
                     exit(33)
+            if not (loc.startswith("http:") or loc.startswith("https:")
+                    or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
+                logging.error("Upload local files not supported, must use http: or https: references.")
+                exit(33)
 
     visit(input, fixpaths)
 
     workflow_url = args.workflow_url
     if not workflow_url.startswith("/") and ":" not in workflow_url:
-        workflow_url = os.path.abspath(workflow_url)
+        workflow_url = "file://" + os.path.abspath(workflow_url)
 
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    r = client.WorkflowExecutionService.RunWorkflow(body={
-        "workflow_url": workflow_url,
+    body = {
         "workflow_params": input,
         "workflow_type": "CWL",
-        "workflow_type_version": "v1.0"}).result()
+        "workflow_type_version": "v1.0"
+    }
+
+    if workflow_url.startswith("file://"):
+        with open(workflow_url[7:], "r") as f:
+            body["workflow_descriptor"] = f.read()
+    else:
+        body["workflow_url"] = workflow_url
+
+    r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
 
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])
@@ -139,7 +151,7 @@ def main(argv=sys.argv[1:]):
 
     s = client.WorkflowExecutionService.GetWorkflowLog(
         workflow_id=r["workflow_id"]).result()
-    logging.info(s["workflow_log"]["stderr"])
+    logging.info("Workflow log:\n"+s["workflow_log"]["stderr"])
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]
