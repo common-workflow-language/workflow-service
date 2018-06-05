@@ -29,7 +29,7 @@ def setup(args=None):
 
     app = connexion.App(__name__)
     backend = utils.get_function_from_name(
-        args.backend + ".create_backend")(args.opt)
+        args.backend + ".create_backend")(app, args.opt)
 
     def rs(x):
         return getattr(backend, x)

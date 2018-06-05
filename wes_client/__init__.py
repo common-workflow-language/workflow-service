@@ -14,6 +14,7 @@ from wes_service.util import visit
 import urllib
 import ruamel.yaml as yaml
 import schema_salad.ref_resolver
+import requests
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
@@ -25,6 +26,7 @@ def main(argv=sys.argv[1:]):
         "--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
+    parser.add_argument("--page", type=str, default=None)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
@@ -60,7 +62,7 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={'use_models': False})
 
     if args.list:
-        response = client.WorkflowExecutionService.ListWorkflows()
+        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -143,7 +145,7 @@ def main(argv=sys.argv[1:]):
     r = client.WorkflowExecutionService.GetWorkflowStatus(
         workflow_id=r["workflow_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
-        time.sleep(1)
+        time.sleep(8)
         r = client.WorkflowExecutionService.GetWorkflowStatus(
             workflow_id=r["workflow_id"]).result()
 
@@ -151,7 +153,9 @@ def main(argv=sys.argv[1:]):
 
     s = client.WorkflowExecutionService.GetWorkflowLog(
         workflow_id=r["workflow_id"]).result()
-    logging.info("Workflow log:\n"+s["workflow_log"]["stderr"])
+    logging.info("%s", s["workflow_log"]["stderr"])
+    logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
+    logging.info("Workflow log:\n"+logs)
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]
