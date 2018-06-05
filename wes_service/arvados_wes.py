@@ -76,7 +76,7 @@ class ArvadosBackend(WESBackend):
         }
 
     @catch_exceptions
-    def ListWorkflows(self, page_size=None, page_token=None):
+    def ListWorkflows(self, page_size=None, page_token=None, tag_search=None, state_search=None):
         api = get_api()
 
         paging = []

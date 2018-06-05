@@ -27,6 +27,7 @@ def main(argv=sys.argv[1:]):
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
     parser.add_argument("--page", type=str, default=None)
+    parser.add_argument("--page-size", type=int, default=None)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
@@ -62,7 +63,7 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={'use_models': False})
 
     if args.list:
-        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page)
+        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page, page_size=args.page_size)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
