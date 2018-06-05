@@ -137,6 +137,8 @@ def main(argv=sys.argv[1:]):
         dirpath = rootdir
         #for dirpath, dirnames, filenames in os.walk(rootdir):
         for f in os.listdir(rootdir):
+            if f.startswith("."):
+                continue
             fn = os.path.join(dirpath, f)
             if os.path.isfile(fn):
                 files[fn[len(rootdir)+1:]] = open(fn, "rb")

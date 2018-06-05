@@ -10,6 +10,7 @@ import tempfile
 import functools
 import threading
 import logging
+import shutil
 
 from wes_service.util import visit, WESBackend
 from werkzeug.utils import secure_filename
@@ -107,7 +108,8 @@ class ArvadosBackend(WESBackend):
         }
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
-                          env, workflow_descriptor_file, project_uuid):
+                          env, workflow_descriptor_file, project_uuid,
+                          tempdir):
         api = arvados.api_from_config(version="v1", apiconfig={
             "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
             "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
@@ -131,7 +133,9 @@ class ArvadosBackend(WESBackend):
                 cmd.append(inputtemp.name)
 
                 proc = subprocess.Popen(cmd, env=env,
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # NOQA
+                                        cwd=tempdir,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
                 (stdoutdata, stderrdata) = proc.communicate()
                 if proc.returncode != 0:
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
@@ -139,6 +143,8 @@ class ArvadosBackend(WESBackend):
                 api.logs().create(body={"log": {"object_uuid": cr_uuid,
                                            "event_type": "stderr",
                                            "properties": {"text": stderrdata}}}).execute()
+                if tempdir:
+                    shutil.rmtree(tempdir)
 
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
@@ -156,10 +162,10 @@ class ArvadosBackend(WESBackend):
         with open(os.path.join(tempdir, "body"), "r") as f:
             body = json.load(f)
         body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
-        return (json.dumps(self.RunWorkflow(body)), 200, {'Content-Type': 'application/json'})
+        return (json.dumps(self.RunWorkflow(body, tempdir)), 200, {'Content-Type': 'application/json'})
 
     @catch_exceptions
-    def RunWorkflow(self, body):
+    def RunWorkflow(self, body, tempdir=None):
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
 
@@ -201,7 +207,8 @@ class ArvadosBackend(WESBackend):
                                                               body["workflow_params"],
                                                               env,
                                                               workflow_descriptor_file,
-                                                              project_uuid)).start()
+                                                              project_uuid,
+                                                              tempdir)).start()
 
         return {"workflow_id": cr["uuid"]}
 
