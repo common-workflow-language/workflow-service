@@ -12,6 +12,8 @@ import threading
 import logging
 
 from wes_service.util import visit, WESBackend
+from werkzeug.utils import secure_filename
+from flask import Response
 
 class MissingAuthorization(Exception):
     pass
@@ -144,6 +146,17 @@ class ArvadosBackend(WESBackend):
         finally:
             if workflow_descriptor_file is not None:
                 workflow_descriptor_file.close()
+
+    @catch_exceptions
+    def xRunWorkflow(self):
+        tempdir = tempfile.mkdtemp()
+        for k,v in connexion.request.files.items():
+            filename = secure_filename(v.filename)
+            v.save(os.path.join(tempdir, filename))
+        with open(os.path.join(tempdir, "body"), "r") as f:
+            body = json.load(f)
+        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
+        return (json.dumps(self.RunWorkflow(body)), 200, {'Content-Type': 'application/json'})
 
     @catch_exceptions
     def RunWorkflow(self, body):
@@ -290,5 +303,7 @@ def dynamic_logs(workflow_id, logstream):
     return "".join(reversed(l1)) + "".join(reversed(l2))
 
 def create_backend(app, opts):
+    ab = ArvadosBackend(opts)
     app.app.route('/ga4gh/wes/v1/workflows/<workflow_id>/x-dynamic-logs/<logstream>')(dynamic_logs)
-    return ArvadosBackend(opts)
+    app.app.route('/ga4gh/wes/v1/x-workflows', methods=["POST"])(ab.xRunWorkflow)
+    return ab

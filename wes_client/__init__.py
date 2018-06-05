@@ -107,10 +107,10 @@ def main(argv=sys.argv[1:]):
                 if loc.startswith("http:") or loc.startswith("https:"):
                     logging.error("Directory inputs not supported with http references")
                     exit(33)
-            if not (loc.startswith("http:") or loc.startswith("https:")
-                    or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
-                logging.error("Upload local files not supported, must use http: or https: references.")
-                exit(33)
+            # if not (loc.startswith("http:") or loc.startswith("https:")
+            #         or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
+            #     logging.error("Upload local files not supported, must use http: or https: references.")
+            #     exit(33)
 
     visit(input, fixpaths)
 
@@ -129,13 +129,29 @@ def main(argv=sys.argv[1:]):
         "workflow_type_version": "v1.0"
     }
 
+    files = {}
     if workflow_url.startswith("file://"):
-        with open(workflow_url[7:], "r") as f:
-            body["workflow_descriptor"] = f.read()
+        # with open(workflow_url[7:], "rb") as f:
+        #     body["workflow_descriptor"] = f.read()
+        rootdir = os.path.dirname(workflow_url[7:])
+        dirpath = rootdir
+        #for dirpath, dirnames, filenames in os.walk(rootdir):
+        for f in os.listdir(rootdir):
+            fn = os.path.join(dirpath, f)
+            if os.path.isfile(fn):
+                files[fn[len(rootdir)+1:]] = open(fn, "rb")
+        body["workflow_url"] = os.path.basename(workflow_url[7:])
     else:
         body["workflow_url"] = workflow_url
 
-    r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
+    #r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
+
+    files["body"] = json.dumps(body)
+
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/x-workflows" % (args.proto, args.host),
+                                          files=files,
+                                          headers={"Authorization": args.auth})
+    r = json.loads(postresult.text)
 
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])
