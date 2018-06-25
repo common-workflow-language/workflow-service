@@ -123,13 +123,12 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    body = {
-        "workflow_params": input,
-        "workflow_type": "CWL",
-        "workflow_type_version": "v1.0"
-    }
+    parts = [
+        ("workflow_params", json.dumps(input)),
+        ("workflow_type", "CWL"),
+        ("workflow_type_version", "v1.0")
+    ]
 
-    files = {}
     if workflow_url.startswith("file://"):
         # with open(workflow_url[7:], "rb") as f:
         #     body["workflow_descriptor"] = f.read()
@@ -141,19 +140,20 @@ def main(argv=sys.argv[1:]):
                 continue
             fn = os.path.join(dirpath, f)
             if os.path.isfile(fn):
-                files[fn[len(rootdir)+1:]] = open(fn, "rb")
-        body["workflow_url"] = os.path.basename(workflow_url[7:])
+                parts.append(('workflow_descriptor', (fn[len(rootdir)+1:], open(fn, "rb"))))
+        parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
     else:
-        body["workflow_url"] = workflow_url
+        parts.append(("workflow_url", workflow_url))
 
-    #r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
-
-    files["body"] = json.dumps(body)
-
-    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/x-workflows" % (args.proto, args.host),
-                                          files=files,
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/workflows" % (args.proto, args.host),
+                                          files=parts,
                                           headers={"Authorization": args.auth})
+
     r = json.loads(postresult.text)
+
+    if postresult.status_code != 200:
+        logging.error("%s", r)
+        exit(1)
 
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])

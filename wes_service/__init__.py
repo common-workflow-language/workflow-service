@@ -32,7 +32,7 @@ def setup(args=None):
         args.backend + ".create_backend")(app, args.opt)
 
     def rs(x):
-        return getattr(backend, x)
+        return getattr(backend, x.split('.')[-1])
 
     app.add_api(
         'openapi/workflow_execution_service.swagger.yaml',

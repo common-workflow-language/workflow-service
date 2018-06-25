@@ -154,18 +154,20 @@ class ArvadosBackend(WESBackend):
                 workflow_descriptor_file.close()
 
     @catch_exceptions
-    def xRunWorkflow(self):
+    def RunWorkflow(self, workflow_params, workflow_type, workflow_type_version, workflow_url, workflow_descriptor, workflow_engine_parameters=None, tags=None):
         tempdir = tempfile.mkdtemp()
-        for k,v in connexion.request.files.items():
-            filename = secure_filename(v.filename)
-            v.save(os.path.join(tempdir, filename))
-        with open(os.path.join(tempdir, "body"), "r") as f:
-            body = json.load(f)
+        body = {}
+        for k, ls in connexion.request.files.iterlists():
+            for v in ls:
+                if k == "workflow_descriptor":
+                    filename = secure_filename(v.filename)
+                    v.save(os.path.join(tempdir, filename))
+                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                    body[k] = json.loads(v.read())
+                else:
+                    body[k] = v.read()
         body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
-        return (json.dumps(self.RunWorkflow(body, tempdir)), 200, {'Content-Type': 'application/json'})
 
-    @catch_exceptions
-    def RunWorkflow(self, body, tempdir=None):
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
 
@@ -227,6 +229,7 @@ class ArvadosBackend(WESBackend):
             container = {"state": "Queued", "exit_code": None, "log": None}
             tasks = []
             containers_map = {}
+            task_reqs = []
 
         outputobj = {}
         if request["output_uuid"]:
@@ -249,7 +252,7 @@ class ArvadosBackend(WESBackend):
                                 "exit_code": None,
                                 "log": ""}
             r = {
-                "name": cr["name"],
+                "name": cr["name"] or "",
                 "cmd": cr["command"],
                 "start_time": containerlog["started_at"] or "",
                 "end_time": containerlog["finished_at"] or "",
@@ -270,7 +273,7 @@ class ArvadosBackend(WESBackend):
             "workflow_id": request["uuid"],
             "request": {
                 "workflow_url": "",
-                "workflow_params": request["mounts"]["/var/lib/cwl/cwl.input.json"]["content"]
+                "workflow_params": request["mounts"].get("/var/lib/cwl/cwl.input.json", {}).get("content", {})
             },
             "state": statemap[container["state"]],
             "workflow_log": log_object(request),
@@ -307,10 +310,11 @@ def dynamic_logs(workflow_id, logstream):
     if cr["container_uuid"]:
         l2 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
                              order="created_at desc", limit=100).execute()["items"]]
+    else:
+        l2 = []
     return "".join(reversed(l1)) + "".join(reversed(l2))
 
 def create_backend(app, opts):
     ab = ArvadosBackend(opts)
     app.app.route('/ga4gh/wes/v1/workflows/<workflow_id>/x-dynamic-logs/<logstream>')(dynamic_logs)
-    app.app.route('/ga4gh/wes/v1/x-workflows', methods=["POST"])(ab.xRunWorkflow)
     return ab
