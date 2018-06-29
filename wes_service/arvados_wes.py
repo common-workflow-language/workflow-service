@@ -154,7 +154,8 @@ class ArvadosBackend(WESBackend):
                 workflow_descriptor_file.close()
 
     @catch_exceptions
-    def RunWorkflow(self, workflow_params, workflow_type, workflow_type_version, workflow_url, workflow_descriptor, workflow_engine_parameters=None, tags=None):
+    def RunWorkflow(self, workflow_params, workflow_type, workflow_type_version,
+                    workflow_url, workflow_descriptor, workflow_engine_parameters=None, tags=None):
         tempdir = tempfile.mkdtemp()
         body = {}
         for k, ls in connexion.request.files.iterlists():
