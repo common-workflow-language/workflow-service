@@ -74,9 +74,10 @@ class Workflow(object):
 
     def getstate(self):
         """
-        Returns RUNNING (exit code -1)
-                COMPLETE (), or EXECUTOR_ERROR + an exit code.
-        :return:
+        Returns RUNNING, -1
+                COMPLETE, 0
+                or
+                EXECUTOR_ERROR, 255
         """
         state = "RUNNING"
         exit_code = -1
