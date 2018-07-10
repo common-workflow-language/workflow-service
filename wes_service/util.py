@@ -1,5 +1,6 @@
 from six import itervalues
 
+
 def visit(d, op):
     """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
     op(d)
