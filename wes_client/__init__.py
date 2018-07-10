@@ -17,12 +17,9 @@ import schema_salad.ref_resolver
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument(
-        "--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument(
-        "--auth", type=str, default=os.environ.get("WES_API_AUTH"))
-    parser.add_argument(
-        "--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
+    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
+    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
 
@@ -35,10 +32,8 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--version", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
-    exgroup.add_argument(
-        "--wait", action="store_true", default=True, dest="wait")
-    exgroup.add_argument(
-        "--no-wait", action="store_false", default=True, dest="wait")
+    exgroup.add_argument("--wait", action="store_true", default=True, dest="wait")
+    exgroup.add_argument("--no-wait", action="store_false", default=True, dest="wait")
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)

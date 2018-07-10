@@ -28,8 +28,7 @@ def setup(args=None):
         logging.info("  %s: %s", n, getattr(args, n))
 
     app = connexion.App(__name__)
-    backend = utils.get_function_from_name(
-        args.backend + ".create_backend")(args.opt)
+    backend = utils.get_function_from_name(args.backend + ".create_backend")(args.opt)
 
     def rs(x):
         return getattr(backend, x)
@@ -43,8 +42,7 @@ def setup(args=None):
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument(
-        "--backend", type=str, default="wes_service.cwl_runner")
+    parser.add_argument("--backend", type=str, default="wes_service.cwl_runner")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--opt", type=str, action="append")
     parser.add_argument("--debug", action="store_true", default=False)
