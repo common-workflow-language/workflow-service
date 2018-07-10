@@ -1,28 +1,24 @@
 #!/usr/bin/env python
-
-from bravado.client import SwaggerClient
-from bravado.requests_client import RequestsClient
+import urlparse
+import pkg_resources  # part of setuptools
+import urllib
 import json
 import time
 import sys
 import os
 import argparse
 import logging
-import urlparse
-import pkg_resources  # part of setuptools
-from wes_service.util import visit
-import urllib
-import ruamel.yaml as yaml
 import schema_salad.ref_resolver
+from wes_service.util import visit
+from bravado.client import SwaggerClient
+from bravado.requests_client import RequestsClient
+
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument(
-        "--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument(
-        "--auth", type=str, default=os.environ.get("WES_API_AUTH"))
-    parser.add_argument(
-        "--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
+    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
+    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
 
@@ -35,10 +31,8 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--version", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
-    exgroup.add_argument(
-        "--wait", action="store_true", default=True, dest="wait")
-    exgroup.add_argument(
-        "--no-wait", action="store_false", default=True, dest="wait")
+    exgroup.add_argument("--wait", action="store_true", default=True, dest="wait")
+    exgroup.add_argument("--no-wait", action="store_false", default=True, dest="wait")
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)
@@ -46,7 +40,7 @@ def main(argv=sys.argv[1:]):
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
-        print u"%s %s" % (sys.argv[0], pkg[0].version)
+        print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
     http_client = RequestsClient()
