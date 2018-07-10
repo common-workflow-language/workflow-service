@@ -95,15 +95,6 @@ def main(argv=sys.argv[1:]):
                 else:
                     d["location"] = d["path"]
                 del d["path"]
-            loc = d.get("location", "")
-            if d.get("class") == "Directory":
-                if loc.startswith("http:") or loc.startswith("https:"):
-                    logging.error("Directory inputs not supported with http references")
-                    exit(33)
-            if not (loc.startswith("http:") or loc.startswith("https:")
-                    or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
-                logging.error("Upload local files not supported, must use http: or https: references.")
-                exit(33)
 
     visit(input, fixpaths)
 
