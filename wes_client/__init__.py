@@ -15,17 +15,21 @@ from bravado.requests_client import RequestsClient
 
 
 def main(argv=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
-    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
+    parser = argparse.ArgumentParser(description="Workflow Execution Service")
+    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"),
+                        help="Example: '--host=localhost:8080'.  Defaults to WES_API_HOST.")
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"), help="Defaults to WES_API_AUTH.")
+    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"),
+                        help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
-    exgroup.add_argument("--get", type=str, default=None)
-    exgroup.add_argument("--log", type=str, default=None)
+    exgroup.add_argument("--get", type=str, default=None,
+                         help="Specify a <workflow-id>.  Example: '--get=<workflow-id>'")
+    exgroup.add_argument("--log", type=str, default=None,
+                         help="Specify a <workflow-id>.  Example: '--log=<workflow-id>'")
     exgroup.add_argument("--list", action="store_true", default=False)
     exgroup.add_argument("--info", action="store_true", default=False)
     exgroup.add_argument("--version", action="store_true", default=False)
@@ -48,10 +52,10 @@ def main(argv=sys.argv[1:]):
 
     http_client.set_api_key(
         split.hostname, args.auth,
-        param_name='Authorization', param_in='header')
+        param_name="Authorization", param_in="header")
     client = SwaggerClient.from_url(
         "%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host),
-        http_client=http_client, config={'use_models': False})
+        http_client=http_client, config={"use_models": False})
 
     if args.list:
         response = client.WorkflowExecutionService.ListWorkflows()
@@ -59,14 +63,12 @@ def main(argv=sys.argv[1:]):
         return 0
 
     if args.log:
-        response = client.WorkflowExecutionService.GetWorkflowLog(
-            workflow_id=args.log)
+        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.log)
         sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.WorkflowExecutionService.GetWorkflowLog(
-            workflow_id=args.get)
+        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.get)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -131,7 +133,7 @@ def main(argv=sys.argv[1:]):
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])
     else:
-        sys.stdout.write(r["workflow_id"]+"\n")
+        sys.stdout.write(r["workflow_id"] + "\n")
         exit(0)
 
     r = client.WorkflowExecutionService.GetWorkflowStatus(
@@ -143,8 +145,7 @@ def main(argv=sys.argv[1:]):
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetWorkflowLog(
-        workflow_id=r["workflow_id"]).result()
+    s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
     logging.info("Workflow log:\n"+s["workflow_log"]["stderr"])
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
