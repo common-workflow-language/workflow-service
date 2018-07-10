@@ -58,7 +58,7 @@ class Workflow(object):
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
         runner = opts.getopt("runner", default="cwl-runner")
-        extra = opts.getoptlist("extra") # if the user specified none, returns []
+        extra = opts.getoptlist("extra")  # if the user specified none, returns []
         command_args = [runner] + extra + [workflow_url, input_json]
         proc = subprocess.Popen(command_args,
                                 stdout=output,
