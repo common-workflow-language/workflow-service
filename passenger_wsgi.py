@@ -1,3 +1,3 @@
-import wes_service
+from wes_service.wes_service_main import setup
 
-application = wes_service.setup()
+application = setup()

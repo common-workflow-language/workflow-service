@@ -1,0 +1,3 @@
+/home/quokka/Desktop/toil/fork-wes/new/workflow-service/toil/venv/bin/cwl-runner 1.0.20180518123035
+Input object failed validation:
+../cwl.input.json:1:77: [Errno 2] No such file or directory: '/home/ubuntu/mock_wes/workflow-service/testdata/md5sum.input'
