@@ -11,7 +11,7 @@ class ClientTest(unittest.TestCase):
     """A set of test cases for the wes-client."""
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
-        self.wes_server_process = subprocess.Popen('python {} --debug'.format(os.path.abspath('../wes_service/wes_service_main.py')), shell=True)
+        self.wes_server_process = subprocess.Popen('python {} --debug'.format(os.path.abspath('wes_service/wes_service_main.py')), shell=True)
         time.sleep(5)
 
     def tearDown(self):
