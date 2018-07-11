@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import pkg_resources  # part of setuptools
 import sys
 import ruamel.yaml
 import os
@@ -49,7 +50,13 @@ def main(argv=sys.argv[1:]):
                         help="Example: '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL' "
                              "or '--opt extra=--workDir=/'.  Accepts multiple values.")
     parser.add_argument("--debug", action="store_true", default=False)
+    parser.add_argument("--version", action="store_true", default=False)
     args = parser.parse_args(argv)
+
+    if args.version:
+        pkg = pkg_resources.require("wes_service")
+        print(u"%s %s" % (sys.argv[0], pkg[0].version))
+        exit(0)
 
     app = setup(args)
 
