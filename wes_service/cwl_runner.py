@@ -180,8 +180,7 @@ class CWLRunnerBackend(WESBackend):
 
     def RunWorkflow(self, body):
         # FIXME Add error responses #16
-        if body["workflow_type"] != "CWL" or \
-           body["workflow_type_version"] != "v1.0":
+        if body["workflow_type"] == "CWL" and body["workflow_type_version"] != "v1.0":
             return
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)

@@ -9,7 +9,7 @@ import os
 import argparse
 import logging
 import schema_salad.ref_resolver
-from wes_service.util import visit
+from wes_service.util import apply_fn_2_all
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
 
@@ -81,31 +81,22 @@ def main(argv=sys.argv[1:]):
         "location": {"@type": "@id"},
         "path": {"@type": "@id"}
     })
-    input, _ = loader.resolve_ref(args.job_order)
+    input_dict, _ = loader.resolve_ref(args.job_order)
 
     basedir = os.path.dirname(args.job_order)
 
     def fixpaths(d):
+        """Make sure all paths have a schema."""
         if isinstance(d, dict):
             if "path" in d:
                 if ":" not in d["path"]:
-                    local_path = os.path.normpath(
-                        os.path.join(os.getcwd(), basedir, d["path"]))
+                    local_path = os.path.normpath(os.path.join(os.getcwd(), basedir, d["path"]))
                     d["location"] = urllib.pathname2url(local_path)
                 else:
                     d["location"] = d["path"]
                 del d["path"]
-            loc = d.get("location", "")
-            if d.get("class") == "Directory":
-                if loc.startswith("http:") or loc.startswith("https:"):
-                    logging.error("Directory inputs not supported with http references")
-                    exit(33)
-            if not (loc.startswith("http:") or loc.startswith("https:")
-                    or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
-                logging.error("Upload local files not supported, must use http: or https: references.")
-                exit(33)
 
-    visit(input, fixpaths)
+    apply_fn_2_all(input_dict, fixpaths)
 
     workflow_url = args.workflow_url
     if not workflow_url.startswith("/") and ":" not in workflow_url:
@@ -117,7 +108,7 @@ def main(argv=sys.argv[1:]):
         logging.basicConfig(level=logging.INFO)
 
     body = {
-        "workflow_params": input,
+        "workflow_params": input_dict,
         "workflow_type": "CWL",
         "workflow_type_version": "v1.0"
     }
@@ -136,12 +127,10 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["workflow_id"] + "\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetWorkflowStatus(
-        workflow_id=r["workflow_id"]).result()
+    r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(1)
-        r = client.WorkflowExecutionService.GetWorkflowStatus(
-            workflow_id=r["workflow_id"]).result()
+        r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
 
     logging.info("State is %s", r["state"])
 

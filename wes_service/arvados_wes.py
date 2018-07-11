@@ -11,7 +11,7 @@ import functools
 import threading
 import logging
 
-from wes_service.util import visit, WESBackend
+from wes_service.util import apply_fn_2_all, WESBackend
 
 
 class MissingAuthorization(Exception):
@@ -182,7 +182,7 @@ class ArvadosBackend(WESBackend):
                     if isinstance(d, dict) and "location" in d:
                         d["location"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], c.portable_data_hash(), d["location"])  # NOQA
 
-                visit(outputobj, keepref)
+                apply_fn_2_all(outputobj, keepref)
 
         if request["log_uuid"]:
             c = arvados.collection.CollectionReader(request["log_uuid"], api_client=api)
