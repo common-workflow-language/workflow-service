@@ -14,7 +14,6 @@ import logging
 from wes_service.util import apply_fn_2_all, WESBackend
 
 
-
 class MissingAuthorization(Exception):
     pass
 
