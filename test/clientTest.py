@@ -5,6 +5,7 @@ import time
 import os
 import subprocess
 import signal
+import requests
 
 
 class ClientTest(unittest.TestCase):
@@ -21,14 +22,12 @@ class ClientTest(unittest.TestCase):
             for pid in get_server_pids():
                 try:
                     os.kill(int(pid), signal.SIGKILL)
-                    os.kill(int(pid), signal.SIGTERM)
                     time.sleep(3)
                 except OSError as e:
                     print(e)
         unittest.TestCase.tearDown(self)
 
     def test_md5sum_response(self):
-        import requests
         endpoint = "http://localhost:8080/ga4gh/wes/v1/workflows"
         descriptor = "https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl"
         params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'}, 'input_file': {'path': '/home/ubuntu/mock_wes/workflow-service/testdata/md5sum.input', 'class': 'File'}}
