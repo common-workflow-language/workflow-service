@@ -6,3 +6,4 @@ bravado
 ruamel.yaml>=0.12.4,<0.15
 cwlref-runner
 schema-salad
+subprocess32==3.5.2
