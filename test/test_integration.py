@@ -31,7 +31,8 @@ class ClientTest(unittest.TestCase):
 
     def test_dockstore_md5sum(self):
         """Fetch the md5sum cwl from dockstore, run it on the wes-service server, and check for the correct output."""
-        output_filepath = run_md5sum(cwl_input='https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl')
+        cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
+        output_filepath = run_md5sum(cwl_input=cwl_dockstore_url)
 
         self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
         shutil.rmtree('workflows')
