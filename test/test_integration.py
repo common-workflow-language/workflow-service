@@ -36,10 +36,6 @@ class ClientTest(unittest.TestCase):
         response = requests.post(endpoint, json=body).json()
         self.assertNotEqual(response['workflow_id'], None, msg='response["workflow_id"] returned a value of None instead of an ID.')
         self.assertTrue(isinstance(response['workflow_id'], basestring), msg='response["workflow_id"] returned a non-string value: ' + str(response["workflow_id"]))
-        counter = 0
-        while not os.path.exists(output):
-            time.sleep(3)
-            print('Not found.')
 
 
 def get_server_pids():
