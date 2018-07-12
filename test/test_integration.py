@@ -8,7 +8,7 @@ import requests
 import shutil
 
 
-class ClientTest(unittest.TestCase):
+class IntegrationTest(unittest.TestCase):
     """A baseclass that's inherited for use with different cwl backends."""
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
@@ -45,7 +45,7 @@ class ClientTest(unittest.TestCase):
 
 
 def run_md5sum(cwl_input):
-    """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
+    """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
     endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
     params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'}, 'input_file': {'path': '../../testdata/md5sum.input', 'class': 'File'}}
     body = {'workflow_url': cwl_input, 'workflow_params': params, 'workflow_type': 'CWL', 'workflow_type_version': 'v1.0'}
@@ -76,7 +76,7 @@ def check_for_file(filepath, seconds=20):
             if wait_counter > seconds:
                 return False
 
-class CwltoolTest(ClientTest):
+class CwltoolTest(IntegrationTest):
     """Test using cwltool."""
     def setUp(self):
         """
@@ -87,7 +87,7 @@ class CwltoolTest(ClientTest):
                                                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)
 
-class ToilTest(ClientTest):
+class ToilTest(IntegrationTest):
     """Test using Toil."""
     def setUp(self):
         """
@@ -95,13 +95,13 @@ class ToilTest(ClientTest):
         Use toil as the wes-service server 'backend'.
         """
         self.wes_server_process = subprocess.Popen('python {} '
-                                                   '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL --debug'
+                                                   '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL'
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)
 
 # Prevent pytest/unittest's discovery from attempting to discover the base test class.
-del ClientTest
+del IntegrationTest
 
 
 if __name__ == '__main__':
