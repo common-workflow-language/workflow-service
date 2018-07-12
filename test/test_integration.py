@@ -9,12 +9,10 @@ import shutil
 
 
 class ClientTest(unittest.TestCase):
-    """A set of test cases for the wes-client."""
+    """A baseclass that's inherited for use with different cwl backends."""
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
-        self.wes_server_process = subprocess.Popen('python {}'.format(os.path.abspath('wes_service/wes_service_main.py')),
-                                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(5)
+        raise NotImplementedError
 
     def tearDown(self):
         """Kill the wes-service server."""
@@ -77,6 +75,33 @@ def check_for_file(filepath, seconds=20):
                 return True
             if wait_counter > seconds:
                 return False
+
+class CwltoolTest(ClientTest):
+    """Test using cwltool."""
+    def setUp(self):
+        """
+        Start a (local) wes-service server to make requests against.
+        Use cwltool as the wes-service server 'backend'.
+        """
+        self.wes_server_process = subprocess.Popen('python {}'.format(os.path.abspath('wes_service/wes_service_main.py')),
+                                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
+
+class ToilTest(ClientTest):
+    """Test using Toil."""
+    def setUp(self):
+        """
+        Start a (local) wes-service server to make requests against.
+        Use toil as the wes-service server 'backend'.
+        """
+        self.wes_server_process = subprocess.Popen('python {} '
+                                                   '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL --debug'
+                                                   ''.format(os.path.abspath('wes_service/wes_service_main.py')),
+                                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
+
+# Prevent pytest/unittest's discovery from attempting to discover the base test class.
+del ClientTest
 
 
 if __name__ == '__main__':

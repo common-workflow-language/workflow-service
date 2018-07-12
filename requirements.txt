@@ -1,6 +1,7 @@
 flake8
 future
 pytest
+toil[all]==3.16.0
 connexion==1.4.2
 bravado==10.1.0
 ruamel.yaml>=0.12.4,<0.15
