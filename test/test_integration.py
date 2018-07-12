@@ -38,7 +38,8 @@ class ClientTest(unittest.TestCase):
 
     def test_local_md5sum(self):
         """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
-        output_filepath = run_md5sum(cwl_input='file:///home/quokka/Desktop/deletewes/workflow-service/testdata/md5sum.cwl')
+        cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
+        output_filepath = run_md5sum(cwl_input='file://' + cwl_local_path)
 
         self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
         shutil.rmtree('workflows')
