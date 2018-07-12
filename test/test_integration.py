@@ -1,11 +1,11 @@
 from __future__ import absolute_import
-from past.builtins import basestring
 import unittest
 import time
 import os
 import subprocess32 as subprocess
 import signal
 import requests
+import shutil
 
 
 class ClientTest(unittest.TestCase):
@@ -26,17 +26,21 @@ class ClientTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
+
         unittest.TestCase.tearDown(self)
 
     def test_md5sum_response(self):
-        output = '/tmp/md5sum.txt'
+        """Fetch the md5sum cwl from dockstore, run it on the wes-service server, and check for the correct output."""
         endpoint = "http://localhost:8080/ga4gh/wes/v1/workflows"
         descriptor = "https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl"
-        params = {'output_file': {'path': output, 'class': 'File'}, 'input_file': {'path': '/home/ubuntu/mock_wes/workflow-service/testdata/md5sum.input', 'class': 'File'}}
+        params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'}, 'input_file': {'path': '../../testdata/md5sum.input', 'class': 'File'}}
         body = {"workflow_url":descriptor, "workflow_params": params, "workflow_type": "CWL", "workflow_type_version": "v1.0"}
         response = requests.post(endpoint, json=body).json()
-        self.assertNotEqual(response['workflow_id'], None, msg='response["workflow_id"] returned a value of None instead of an ID.')
-        self.assertTrue(isinstance(response['workflow_id'], basestring), msg='response["workflow_id"] returned a non-string value: ' + str(response["workflow_id"]))
+        output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
+        output_file = os.path.join(output_dir, 'md5sum.txt')
+
+        self.assertTrue(check_for_file(output_file), 'Output file was not found: ' + output_file)
+        shutil.rmtree('workflows')
 
 
 def get_server_pids():
@@ -45,6 +49,22 @@ def get_server_pids():
     except subprocess.CalledProcessError:
         return None
     return pids
+
+
+def check_for_file(filepath, seconds=20):
+    """Return True if a file exists within a certain amount of time."""
+    if os.path.exists(filepath):
+        return True
+    else:
+        wait_counter = 0
+        while not os.path.exists(filepath):
+            time.sleep(1)
+            wait_counter += 1
+            if os.path.exists(filepath):
+                return True
+            if wait_counter > seconds:
+                return False
+
 
 if __name__ == "__main__":
     unittest.main()  # run all tests
