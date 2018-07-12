@@ -28,12 +28,19 @@ class ClientTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
 
     def test_md5sum_response(self):
+        output = '/tmp/md5sum.txt'
         endpoint = "http://localhost:8080/ga4gh/wes/v1/workflows"
         descriptor = "https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl"
-        params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'}, 'input_file': {'path': '/home/ubuntu/mock_wes/workflow-service/testdata/md5sum.input', 'class': 'File'}}
+        params = {'output_file': {'path': output, 'class': 'File'}, 'input_file': {'path': '/home/ubuntu/mock_wes/workflow-service/testdata/md5sum.input', 'class': 'File'}}
         body = {"workflow_url":descriptor, "workflow_params": params, "workflow_type": "CWL", "workflow_type_version": "v1.0"}
         response = requests.post(endpoint, json=body).json()
-        assert response['workflow_id'] != None and isinstance(response['workflow_id'], basestring)
+        self.assertNotEqual(response['workflow_id'], None, msg='response["workflow_id"] returned a value of None instead of an ID.')
+        self.assertTrue(isinstance(response['workflow_id'], basestring), msg='response["workflow_id"] returned a non-string value: ' + str(response["workflow_id"]))
+        counter = 0
+        while not os.path.exists(output):
+            time.sleep(3)
+            print('Not found.')
+
 
 def get_server_pids():
     try:
