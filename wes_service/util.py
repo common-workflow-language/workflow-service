@@ -15,7 +15,7 @@ def apply_fn_2_all(d, op):
 class WESBackend(object):
     """Stores and retrieves options.  Intended to be inherited."""
     def __init__(self, opts):
-        """Parse and store options as self.pairs."""
+        """Parse and store options as a list of tuples."""
         self.pairs = []
         for o in opts if opts else []:
             k, v = o.split("=", 1)

@@ -29,12 +29,12 @@ class ClientTest(unittest.TestCase):
 
         unittest.TestCase.tearDown(self)
 
-    def test_md5sum_response(self):
+    def test_dockstore_md5sum(self):
         """Fetch the md5sum cwl from dockstore, run it on the wes-service server, and check for the correct output."""
-        endpoint = "http://localhost:8080/ga4gh/wes/v1/workflows"
-        descriptor = "https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl"
+        endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
+        cwl_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
         params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'}, 'input_file': {'path': '../../testdata/md5sum.input', 'class': 'File'}}
-        body = {"workflow_url":descriptor, "workflow_params": params, "workflow_type": "CWL", "workflow_type_version": "v1.0"}
+        body = {'workflow_url': cwl_url, 'workflow_params': params, 'workflow_type': 'CWL', 'workflow_type_version': 'v1.0'}
         response = requests.post(endpoint, json=body).json()
         output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
         output_file = os.path.join(output_dir, 'md5sum.txt')
@@ -66,5 +66,5 @@ def check_for_file(filepath, seconds=20):
                 return False
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()  # run all tests

@@ -7,7 +7,7 @@ before_install:
 - pip install -r dev-requirements.txt
 script:
 - flake8 wes_service wes_client
-- python test/test_integration.py
+- pytest
 deploy:
   provider: pypi
   on:
