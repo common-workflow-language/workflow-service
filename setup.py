@@ -30,8 +30,8 @@ setup(name='wes-service',
           'schema-salad'
                         ],
       entry_points={
-          'console_scripts': ["wes-server=wes_service:main",
-                              "wes-client=wes_client:main"]
+          'console_scripts': ["wes-server=wes_service.wes_service_main:main",
+                              "wes-client=wes_client.wes_client_main:main"]
                     },
       extras_require={
           "arvados": ["arvados-cwl-runner"
