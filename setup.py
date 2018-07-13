@@ -24,7 +24,6 @@ setup(name='wes-service',
       include_package_data=True,
       install_requires=[
           'future',
-          'pytest',
           'connexion==1.4.2',
           'bravado==10.1.0',
           'ruamel.yaml >= 0.12.4, < 0.15',
