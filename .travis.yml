@@ -3,7 +3,7 @@ python:
 - '2.7'
 before_install:
 - sudo apt-get update -qq
-- pip install . --process-dependency-links
+- pip install .[toil] --process-dependency-links
 - pip install -r dev-requirements.txt
 script:
 - flake8 wes_service wes_client
