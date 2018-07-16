@@ -4,12 +4,32 @@ import uuid
 import subprocess
 import urllib
 from multiprocessing import Process
+import functools
 import logging
 
 from wes_service.util import WESBackend
 from wes_service.cwl_runner import Workflow
+from wes_service.arvados_wes import MissingAuthorization
 
 logging.basicConfig(level=logging.INFO)
+
+
+def catch_toil_exceptions(orig_func):
+    """Catch uncaught exceptions and turn them into http errors"""
+
+    @functools.wraps(orig_func)
+    def catch_exceptions_wrapper(self, *args, **kwargs):
+        try:
+            return orig_func(self, *args, **kwargs)
+        except RuntimeError as e:
+            return {"msg": str(e), "status_code": 500}, 500
+        except subprocess.CalledProcessError as e:
+            return {"msg": str(e), "status_code": 500}, 500
+        except MissingAuthorization:
+            return {"msg": "'Authorization' header is missing or empty, "
+                           "expecting Toil Auth token", "status_code": 401}, 401
+
+    return catch_exceptions_wrapper
 
 
 class ToilWorkflow(Workflow):
@@ -38,7 +58,13 @@ class ToilWorkflow(Workflow):
             workflow_url = urllib.pathname2url(wf_filename)
         else:
             workflow_url = request_dict.get('workflow_url')
-        return workflow_url
+
+        input_json = self.write_json(request_dict)
+
+        if wftype == 'py':
+            return [workflow_url]
+        else:
+            return [workflow_url, input_json]
 
     def write_json(self, request_dict):
         input_json = os.path.join(self.workdir, 'input.json')
@@ -55,7 +81,7 @@ class ToilWorkflow(Workflow):
         :return: The pid of the command.
         """
         with open(self.cmdfile, 'w') as f:
-            f.write(cmd)
+            f.write(str(cmd))
         stdout = open(self.outfile, 'w')
         stderr = open(self.errfile, 'w')
         logging.info('Calling: ' + ' '.join(cmd))
@@ -69,18 +95,32 @@ class ToilWorkflow(Workflow):
         return process.pid
 
     def run(self, request_dict, opts):
+        wftype = request_dict['workflow_type'].lower().strip()
+        version = request_dict['workflow_type_version']
+
+        if version != 'v1.0' and wftype in ('cwl', 'wdl'):
+            raise RuntimeError('workflow_type "cwl", "wdl" requires '
+                               '"workflow_type_version" to be "v1.0": ' + str(version))
+        if version != '2.7' and wftype == 'py':
+            raise RuntimeError('workflow_type "py" requires '
+                               '"workflow_type_version" to be "2.7": ' + str(version))
+
+        if wftype in ('cwl', 'wdl'):
+            runner = ['toil-' + wftype + '-runner']
+        elif wftype == 'py':
+            runner = ['python']
+        else:
+            raise RuntimeError('workflow_type is not "cwl", "wdl", or "py": ' + str(wftype))
+
         logging.info('Beginning Toil Workflow ID: ' + str(self.workflow_id))
-        wftype = request_dict['workflow_type'].lower()
 
         with open(self.request_json, 'w') as f:
             json.dump(request_dict, f)
 
         # write cwl/wdl, as appropriate
         input_wf = self.write_workflow(request_dict, wftype=wftype)
-        input_json = self.write_json(request_dict)
 
-        # call the workflow + json with the appropriate toil method
-        cmd = ['toil-' + wftype + '-runner'] + opts.getoptlist('extra') + [input_wf, input_json]
+        cmd = runner + opts.getoptlist('extra') + input_wf
         pid = self.call_cmd(cmd)
 
         with open(self.pidfile, 'w') as f:
@@ -132,7 +172,8 @@ class ToilBackend(WESBackend):
         return {
             'workflow_type_versions': {
                 'CWL': {'workflow_type_version': ['v1.0']},
-                'WDL': {'workflow_type_version': ['v1.0']}
+                'WDL': {'workflow_type_version': ['v1.0']},
+                'py': {'workflow_type_version': ['2.7']}
             },
             'supported_wes_versions': '0.3.0',
             'supported_filesystem_protocols': ['file', 'http', 'https'],
@@ -141,6 +182,7 @@ class ToilBackend(WESBackend):
             'key_values': {}
         }
 
+    @catch_toil_exceptions
     def ListWorkflows(self):
         # FIXME #15 results don't page
         workflows = []
@@ -154,11 +196,8 @@ class ToilBackend(WESBackend):
             'next_page_token': ''
         }
 
+    @catch_toil_exceptions
     def RunWorkflow(self, body):
-        if body['workflow_type_version'] != 'v1.0':
-            return  # raise?
-        if body['workflow_type'] not in ('CWL', 'WDL'):
-            return  # raise?
         workflow_id = uuid.uuid4().hex
         job = ToilWorkflow(workflow_id)
         p = Process(target=job.run, args=(body, self))
@@ -166,16 +205,19 @@ class ToilBackend(WESBackend):
         self.processes[workflow_id] = p
         return {'workflow_id': workflow_id}
 
+    @catch_toil_exceptions
     def GetWorkflowLog(self, workflow_id):
         job = ToilWorkflow(workflow_id)
         return job.getlog()
 
+    @catch_toil_exceptions
     def CancelJob(self, workflow_id):
         # should this block with `p.is_alive()`?
         if workflow_id in self.processes:
             self.processes[workflow_id].terminate()
         return {'workflow_id': workflow_id}
 
+    @catch_toil_exceptions
     def GetWorkflowStatus(self, workflow_id):
         job = ToilWorkflow(workflow_id)
         return job.getstatus()
