@@ -64,17 +64,15 @@ def get_server_pids():
 
 def check_for_file(filepath, seconds=20):
     """Return True if a file exists within a certain amount of time."""
-    if os.path.exists(filepath):
-        return True
-    else:
-        wait_counter = 0
-        while not os.path.exists(filepath):
-            time.sleep(1)
-            wait_counter += 1
-            if os.path.exists(filepath):
-                return True
-            if wait_counter > seconds:
-                return False
+    wait_counter = 0
+    while not os.path.exists(filepath):
+        time.sleep(1)
+        wait_counter += 1
+        if os.path.exists(filepath):
+            return True
+        if wait_counter > seconds:
+            return False
+    return True
 
 
 class CwltoolTest(IntegrationTest):
