@@ -173,8 +173,8 @@ def main(argv=sys.argv[1:]):
     s = client.WorkflowExecutionService.GetWorkflowLog(
         workflow_id=r["workflow_id"]).result()
     logging.info("%s", s["workflow_log"]["stderr"])
-    logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
-    logging.info("Workflow log:\n"+logs)
+    # logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
+    # logging.info("Workflow log:\n"+logs)
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]
