@@ -67,11 +67,11 @@ class LocalFiles(object):
         if isinstance(input, list):
             j = []
             for i in input:
-                j.append(self.pathmap(i))
+                j.append(self.wdl_pathmap(i))
             return j
         elif isinstance(input, dict):
             for k, v in iteritems(input):
-                input[k] = self.pathmap(v)
+                input[k] = self.wdl_pathmap(v)
             return input
 
     def cwl_pathmap(self, json_dict):
