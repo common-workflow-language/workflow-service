@@ -1,3 +1,5 @@
+import shutil
+
 import arvados
 import arvados.util
 import arvados.collection
@@ -10,11 +12,9 @@ import tempfile
 import functools
 import threading
 import logging
-import shutil
 
 from wes_service.util import visit, WESBackend
 from werkzeug.utils import secure_filename
-from flask import Response
 
 
 class MissingAuthorization(Exception):
