@@ -28,10 +28,11 @@ def setup(args=None):
         logging.info("  %s: %s", n, getattr(args, n))
 
     app = connexion.App(__name__)
-    backend = utils.get_function_from_name(args.backend + ".create_backend")(args.opt)
+    backend = utils.get_function_from_name(
+        args.backend + ".create_backend")(app, args.opt)
 
     def rs(x):
-        return getattr(backend, x)
+        return getattr(backend, x.split('.')[-1])
 
     app.add_api(
         'openapi/workflow_execution_service.swagger.yaml',
