@@ -5,8 +5,10 @@ before_install:
 - sudo apt-get update -qq
 - pip install . --process-dependency-links
 - pip install -r dev-requirements.txt
+- pip install toil[all]==3.16.0
 script:
 - flake8 wes_service wes_client
+- pytest
 deploy:
   provider: pypi
   on:

@@ -52,6 +52,9 @@ coverage.xml
 *.mo
 *.pot
 
+# PyTest
+.pytest_cache
+
 # PyCharm
 .idea/
 
