@@ -10,9 +10,11 @@ import argparse
 import logging
 import schema_salad.ref_resolver
 import requests
+from requests.exceptions import MissingSchema
 from wes_service.util import visit
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
+
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
@@ -118,7 +120,7 @@ def main(argv=sys.argv[1:]):
         #     body["workflow_descriptor"] = f.read()
         rootdir = os.path.dirname(workflow_url[7:])
         dirpath = rootdir
-        #for dirpath, dirnames, filenames in os.walk(rootdir):
+        # for dirpath, dirnames, filenames in os.walk(rootdir):
         for f in os.listdir(rootdir):
             if f.startswith("."):
                 continue
@@ -159,7 +161,7 @@ def main(argv=sys.argv[1:]):
         logging.info(str(s["workflow_log"]["stderr"]))
         logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
         logging.info("Workflow log:\n" + logs)
-    except:
+    except MissingSchema:
         logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:

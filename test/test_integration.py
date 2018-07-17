@@ -76,6 +76,7 @@ def check_for_file(filepath, seconds=20):
             if wait_counter > seconds:
                 return False
 
+
 class CwltoolTest(IntegrationTest):
     """Test using cwltool."""
     def setUp(self):
@@ -86,6 +87,7 @@ class CwltoolTest(IntegrationTest):
         self.wes_server_process = subprocess.Popen('python {}'.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)
+
 
 class ToilTest(IntegrationTest):
     """Test using Toil."""
@@ -99,6 +101,7 @@ class ToilTest(IntegrationTest):
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)
+
 
 # Prevent pytest/unittest's discovery from attempting to discover the base test class.
 del IntegrationTest
