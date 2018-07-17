@@ -9,10 +9,10 @@ import os
 import argparse
 import logging
 import schema_salad.ref_resolver
-from wes_service.util import apply_fn_2_all
+import requests
+from wes_service.util import visit
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
-
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
@@ -23,6 +23,8 @@ def main(argv=sys.argv[1:]):
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
+    parser.add_argument("--page", type=str, default=None)
+    parser.add_argument("--page-size", type=int, default=None)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
@@ -58,7 +60,7 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={"use_models": False})
 
     if args.list:
-        response = client.WorkflowExecutionService.ListWorkflows()
+        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page, page_size=args.page_size)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -95,8 +97,7 @@ def main(argv=sys.argv[1:]):
                 else:
                     d["location"] = d["path"]
                 del d["path"]
-
-    apply_fn_2_all(input_dict, fixpaths)
+    visit(input_dict, fixpaths)
 
     workflow_url = args.workflow_url
     if not workflow_url.startswith("/") and ":" not in workflow_url:
@@ -107,19 +108,36 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    body = {
-        "workflow_params": input_dict,
-        "workflow_type": "CWL",
-        "workflow_type_version": "v1.0"
-    }
-
+    parts = [
+        ("workflow_params", json.dumps(input_dict)),
+        ("workflow_type", "CWL"),
+        ("workflow_type_version", "v1.0")
+    ]
     if workflow_url.startswith("file://"):
-        with open(workflow_url[7:], "r") as f:
-            body["workflow_descriptor"] = f.read()
+        # with open(workflow_url[7:], "rb") as f:
+        #     body["workflow_descriptor"] = f.read()
+        rootdir = os.path.dirname(workflow_url[7:])
+        dirpath = rootdir
+        #for dirpath, dirnames, filenames in os.walk(rootdir):
+        for f in os.listdir(rootdir):
+            if f.startswith("."):
+                continue
+            fn = os.path.join(dirpath, f)
+            if os.path.isfile(fn):
+                parts.append(('workflow_descriptor', (fn[len(rootdir)+1:], open(fn, "rb"))))
+        parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
     else:
-        body["workflow_url"] = workflow_url
+        parts.append(("workflow_url", workflow_url))
 
-    r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/workflows" % (args.proto, args.host),
+                                          files=parts,
+                                          headers={"Authorization": args.auth})
+
+    r = json.loads(postresult.text)
+
+    if postresult.status_code != 200:
+        logging.error("%s", r)
+        exit(1)
 
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])
@@ -129,13 +147,20 @@ def main(argv=sys.argv[1:]):
 
     r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
-        time.sleep(1)
+        time.sleep(8)
         r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
 
     logging.info("State is %s", r["state"])
 
     s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
-    logging.info("Workflow log:\n"+s["workflow_log"]["stderr"])
+
+    try:
+        # TODO: Only works with Arvados atm
+        logging.info(str(s["workflow_log"]["stderr"]))
+        logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
+        logging.info("Workflow log:\n" + logs)
+    except:
+        logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]

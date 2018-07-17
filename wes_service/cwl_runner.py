@@ -201,5 +201,5 @@ class CWLRunnerBackend(WESBackend):
         return job.getstatus()
 
 
-def create_backend(opts):
+def create_backend(app, opts):
     return CWLRunnerBackend(opts)
