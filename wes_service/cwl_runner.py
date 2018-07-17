@@ -1,8 +1,12 @@
 import json
 import os
 import subprocess
+import tempfile
 import urllib
 import uuid
+
+import connexion
+from werkzeug.utils import secure_filename
 
 from wes_service.util import WESBackend
 
@@ -19,13 +23,13 @@ class Workflow(object):
         os.mkdir(outdir)
 
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
-            json.dump(request, f)
+            json.dump(request, f)  # Unload body to dictionary
 
         with open(os.path.join(
                 self.workdir, "cwl.input.json"), "w") as inputtemp:
-            json.dump(request["workflow_params"], inputtemp)
+            json.dump(request["workflow_params"], inputtemp)  # Unload json from dictionary into json file
 
-        if request.get("workflow_descriptor"):
+        if request.get("workflow_descriptor"):  # Unload descriptor file from dictionary to file
             workflow_descriptor = request.get('workflow_descriptor')
             with open(os.path.join(
                     self.workdir, "workflow.cwl"), "w") as f:
@@ -34,7 +38,7 @@ class Workflow(object):
                 workflow_url = urllib.pathname2url(
                     os.path.join(self.workdir, "workflow.cwl"))
         else:
-            workflow_url = request.get("workflow_url")
+            workflow_url = request.get("workflow_url")  # If descriptor not in body, pull url.
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
@@ -42,6 +46,7 @@ class Workflow(object):
         runner = opts.getopt("runner", "cwl-runner")
         extra = opts.getoptlist("extra")
         command_args = [runner] + extra + [workflow_url, inputtemp.name]
+        print command_args
         proc = subprocess.Popen(command_args,
                                 stdout=output,
                                 stderr=stderr,
@@ -152,13 +157,27 @@ class CWLRunnerBackend(WESBackend):
             "next_page_token": ""
         }
 
-    def RunWorkflow(self, body):
-        # FIXME Add error responses #16
-        if body["workflow_type"] != "CWL" or \
-                        body["workflow_type_version"] != "v1.0":
+    def RunWorkflow(self):
+        tempdir = tempfile.mkdtemp()
+        body = {}
+        for k, ls in connexion.request.files.iterlists():
+            for v in ls:
+                if k == "workflow_descriptor":
+                    filename = secure_filename(v.filename)
+                    v.save(os.path.join(tempdir, filename))
+                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                    body[k] = json.loads(v.read())
+                else:
+                    body[k] = v.read()
+        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
+
+        if body['workflow_type'] != "CWL" or \
+                body['workflow_type_version'] != "v1.0":
             return
+
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)
+
         job.run(body, self)
         return {"workflow_id": workflow_id}
 
