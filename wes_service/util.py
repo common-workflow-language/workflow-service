@@ -1,15 +1,15 @@
 from six import itervalues
 
 
-def apply_fn_2_all(d, op):
+def visit(d, op):
     """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
     op(d)
     if isinstance(d, list):
         for i in d:
-            apply_fn_2_all(i, op)
+            visit(i, op)
     elif isinstance(d, dict):
         for i in itervalues(d):
-            apply_fn_2_all(i, op)
+            visit(i, op)
 
 
 class WESBackend(object):

@@ -244,7 +244,7 @@ class ArvadosBackend(WESBackend):
                     if isinstance(d, dict) and "location" in d:
                         d["location"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], c.portable_data_hash(), d["location"])  # NOQA
 
-                apply_fn_2_all(outputobj, keepref)
+                visit(outputobj, keepref)
 
         def log_object(cr):
             if cr["container_uuid"]:
