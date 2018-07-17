@@ -10,11 +10,16 @@ import tempfile
 import functools
 import threading
 import logging
+import shutil
 
 from wes_service.util import visit, WESBackend
+from werkzeug.utils import secure_filename
+from flask import Response
+
 
 class MissingAuthorization(Exception):
     pass
+
 
 def get_api():
     if not connexion.request.headers.get('Authorization'):
@@ -54,6 +59,7 @@ def catch_exceptions(orig_func):
             return {"msg": "'Authorization' header is missing or empty, expecting Arvados API token", "status_code": 401}, 401
 
     return catch_exceptions_wrapper
+
 
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
@@ -105,7 +111,8 @@ class ArvadosBackend(WESBackend):
         }
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
-                          env, workflow_descriptor_file, project_uuid):
+                          env, workflow_descriptor_file, project_uuid,
+                          tempdir):
         api = arvados.api_from_config(version="v1", apiconfig={
             "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
             "ARVADOS_API_TOKEN": env['ARVADOS_API_TOKEN'],
@@ -129,7 +136,9 @@ class ArvadosBackend(WESBackend):
                 cmd.append(inputtemp.name)
 
                 proc = subprocess.Popen(cmd, env=env,
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # NOQA
+                                        cwd=tempdir,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
                 (stdoutdata, stderrdata) = proc.communicate()
                 if proc.returncode != 0:
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
@@ -137,6 +146,9 @@ class ArvadosBackend(WESBackend):
                 api.logs().create(body={"log": {"object_uuid": cr_uuid,
                                            "event_type": "stderr",
                                            "properties": {"text": stderrdata}}}).execute()
+
+                if tempdir:
+                    shutil.rmtree(tempdir)
 
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
@@ -146,7 +158,21 @@ class ArvadosBackend(WESBackend):
                 workflow_descriptor_file.close()
 
     @catch_exceptions
-    def RunWorkflow(self, body):
+    def RunWorkflow(self, workflow_params, workflow_type, workflow_type_version,
+                    workflow_url, workflow_descriptor, workflow_engine_parameters=None, tags=None):
+        tempdir = tempfile.mkdtemp()
+        body = {}
+        for k, ls in connexion.request.files.iterlists():
+            for v in ls:
+                if k == "workflow_descriptor":
+                    filename = secure_filename(v.filename)
+                    v.save(os.path.join(tempdir, filename))
+                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                    body[k] = json.loads(v.read())
+                else:
+                    body[k] = v.read()
+        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
+
         if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
             return
 
@@ -188,7 +214,8 @@ class ArvadosBackend(WESBackend):
                                                               body["workflow_params"],
                                                               env,
                                                               workflow_descriptor_file,
-                                                              project_uuid)).start()
+                                                              project_uuid,
+                                                              tempdir)).start()
 
         return {"workflow_id": cr["uuid"]}
 
@@ -207,6 +234,7 @@ class ArvadosBackend(WESBackend):
             container = {"state": "Queued", "exit_code": None, "log": None}
             tasks = []
             containers_map = {}
+            task_reqs = []
 
         outputobj = {}
         if request["output_uuid"]:
@@ -229,7 +257,7 @@ class ArvadosBackend(WESBackend):
                                 "exit_code": None,
                                 "log": ""}
             r = {
-                "name": cr["name"],
+                "name": cr["name"] or "",
                 "cmd": cr["command"],
                 "start_time": containerlog["started_at"] or "",
                 "end_time": containerlog["finished_at"] or "",
@@ -250,7 +278,7 @@ class ArvadosBackend(WESBackend):
             "workflow_id": request["uuid"],
             "request": {
                 "workflow_url": "",
-                "workflow_params": request["mounts"]["/var/lib/cwl/cwl.input.json"]["content"]
+                "workflow_params": request["mounts"].get("/var/lib/cwl/cwl.input.json", {}).get("content", {})
             },
             "state": statemap[container["state"]],
             "workflow_log": log_object(request),
@@ -287,8 +315,12 @@ def dynamic_logs(workflow_id, logstream):
     if cr["container_uuid"]:
         l2 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
                              order="created_at desc", limit=100).execute()["items"]]
+
+    else:
+        l2 = []
     return "".join(reversed(l1)) + "".join(reversed(l2))
 
 def create_backend(app, opts):
+    ab = ArvadosBackend(opts)
     app.app.route('/ga4gh/wes/v1/workflows/<workflow_id>/x-dynamic-logs/<logstream>')(dynamic_logs)
-    return ArvadosBackend(opts)
+    return ab

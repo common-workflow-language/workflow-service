@@ -1,10 +1,8 @@
 from flask import Flask, Response, request, redirect
-import os
 import subprocess
 import tempfile
 import json
 import yaml
-import urlparse
 import signal
 import threading
 import time
@@ -14,6 +12,7 @@ app = Flask(__name__)
 
 jobs_lock = threading.Lock()
 jobs = []
+
 
 class Job(threading.Thread):
     def __init__(self, jobid, path, inputobj):
@@ -117,16 +116,19 @@ def logspooler(job):
                         break
                 time.sleep(1)
 
+
 @app.route("/jobs/<int:jobid>/log", methods=['GET'])
 def getlog(jobid):
     with jobs_lock:
         job = jobs[jobid]
     return Response(logspooler(job))
 
+
 @app.route("/jobs", methods=['GET'])
 def getjobs():
     with jobs_lock:
         jobscopy = copy.copy(jobs)
+
     def spool(jc):
         yield "["
         first = True
@@ -135,10 +137,11 @@ def getjobs():
                 yield json.dumps(j.getstatus(), indent=4)
                 first = False
             else:
-                yield ", "  + json.dumps(j.getstatus(), indent=4)
+                yield ", " + json.dumps(j.getstatus(), indent=4)
         yield "]"
     return Response(spool(jobscopy))
 
+
 if __name__ == "__main__":
-    #app.debug = True
+    # app.debug = True
     app.run()

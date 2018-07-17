@@ -10,12 +10,13 @@ import json
 _logger = logging.getLogger("cwltool")
 _logger.setLevel(logging.ERROR)
 
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
     if len(args) == 0:
-        print "Workflow must be on command line"
+        print("Workflow must be on command line")
         return 1
 
     parser = cwltool.main.arg_parser()
@@ -37,6 +38,7 @@ def main(args=None):
             sys.stdout.write(json.dumps({"cwl:error": err.getvalue()}))
         sys.stdout.write("\n\n")
         sys.stdout.flush()
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

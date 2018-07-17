@@ -1,29 +1,24 @@
 #!/usr/bin/env python
-
-from bravado.client import SwaggerClient
-from bravado.requests_client import RequestsClient
+import urlparse
+import pkg_resources  # part of setuptools
+import urllib
 import json
 import time
 import sys
 import os
 import argparse
 import logging
-import urlparse
-import pkg_resources  # part of setuptools
-from wes_service.util import visit
-import urllib
-import ruamel.yaml as yaml
 import schema_salad.ref_resolver
 import requests
+from wes_service.util import visit
+from bravado.client import SwaggerClient
+from bravado.requests_client import RequestsClient
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument(
-        "--host", type=str, default=os.environ.get("WES_API_HOST"))
-    parser.add_argument(
-        "--auth", type=str, default=os.environ.get("WES_API_AUTH"))
-    parser.add_argument(
-        "--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
+    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"))
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"))
+    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"))
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
     parser.add_argument("--page", type=str, default=None)
@@ -38,10 +33,8 @@ def main(argv=sys.argv[1:]):
     exgroup.add_argument("--version", action="store_true", default=False)
 
     exgroup = parser.add_mutually_exclusive_group()
-    exgroup.add_argument(
-        "--wait", action="store_true", default=True, dest="wait")
-    exgroup.add_argument(
-        "--no-wait", action="store_false", default=True, dest="wait")
+    exgroup.add_argument("--wait", action="store_true", default=True, dest="wait")
+    exgroup.add_argument("--no-wait", action="store_false", default=True, dest="wait")
 
     parser.add_argument("workflow_url", type=str, nargs="?", default=None)
     parser.add_argument("job_order", type=str, nargs="?", default=None)
@@ -49,7 +42,7 @@ def main(argv=sys.argv[1:]):
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
-        print u"%s %s" % (sys.argv[0], pkg[0].version)
+        print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
     http_client = RequestsClient()
@@ -107,10 +100,10 @@ def main(argv=sys.argv[1:]):
                 if loc.startswith("http:") or loc.startswith("https:"):
                     logging.error("Directory inputs not supported with http references")
                     exit(33)
-            if not (loc.startswith("http:") or loc.startswith("https:")
-                    or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
-                logging.error("Upload local files not supported, must use http: or https: references.")
-                exit(33)
+            # if not (loc.startswith("http:") or loc.startswith("https:")
+            #         or args.job_order.startswith("http:") or args.job_order.startswith("https:")):
+            #     logging.error("Upload local files not supported, must use http: or https: references.")
+            #     exit(33)
 
     visit(input, fixpaths)
 
@@ -123,19 +116,37 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    body = {
-        "workflow_params": input,
-        "workflow_type": "CWL",
-        "workflow_type_version": "v1.0"
-    }
+    parts = [
+        ("workflow_params", json.dumps(input)),
+        ("workflow_type", "CWL"),
+        ("workflow_type_version", "v1.0")
+    ]
 
     if workflow_url.startswith("file://"):
-        with open(workflow_url[7:], "r") as f:
-            body["workflow_descriptor"] = f.read()
+        # with open(workflow_url[7:], "rb") as f:
+        #     body["workflow_descriptor"] = f.read()
+        rootdir = os.path.dirname(workflow_url[7:])
+        dirpath = rootdir
+        #for dirpath, dirnames, filenames in os.walk(rootdir):
+        for f in os.listdir(rootdir):
+            if f.startswith("."):
+                continue
+            fn = os.path.join(dirpath, f)
+            if os.path.isfile(fn):
+                parts.append(('workflow_descriptor', (fn[len(rootdir)+1:], open(fn, "rb"))))
+        parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
     else:
-        body["workflow_url"] = workflow_url
+        parts.append(("workflow_url", workflow_url))
 
-    r = client.WorkflowExecutionService.RunWorkflow(body=body).result()
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/workflows" % (args.proto, args.host),
+                                          files=parts,
+                                          headers={"Authorization": args.auth})
+
+    r = json.loads(postresult.text)
+
+    if postresult.status_code != 200:
+        logging.error("%s", r)
+        exit(1)
 
     if args.wait:
         logging.info("Workflow id is %s", r["workflow_id"])

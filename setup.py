@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import sys
-import setuptools.command.egg_info as egg_info_cmd
-import shutil
-
-from setuptools import setup, find_packages
+from setuptools import setup
 
 SETUP_DIR = os.path.dirname(__file__)
 
@@ -32,15 +28,13 @@ setup(name='wes-service',
           'ruamel.yaml >= 0.12.4, < 0.15',
           'cwlref-runner',
           'schema-salad'
-        ],
+                        ],
       entry_points={
-          'console_scripts': [ "wes-server=wes_service:main",
-                               "wes-client=wes_client:main"]
-      },
+          'console_scripts': ["wes-server=wes_service:main",
+                              "wes-client=wes_client:main"]
+                    },
       extras_require={
-          "arvados": [
-              "arvados-cwl-runner"
-          ]
-      },
+          "arvados": ["arvados-cwl-runner"
+                      ]},
       zip_safe=False
-)
+      )
