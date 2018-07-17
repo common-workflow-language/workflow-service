@@ -14,6 +14,26 @@ class Workflow(object):
         self.workdir = os.path.join(os.getcwd(), "workflows", self.workflow_id)
 
     def run(self, request, opts):
+        """
+        Constructs a command to run a cwl/json from requests and opts,
+        runs it, and deposits the outputs in outdir.
+
+        Runner:
+        opts.getopt("runner", default="cwl-runner")
+
+        CWL (url):
+        request["workflow_url"] == a url to a cwl file
+        or
+        request["workflow_descriptor"] == input cwl text (written to a file and a url constructed for that file)
+
+        JSON File:
+        request["workflow_params"] == input json text (to be written to a file)
+
+        :param dict request: A dictionary containing the cwl/json information.
+        :param wes_service.util.WESBackend opts: contains the user's arguments;
+                                                 specifically the runner and runner options
+        :return: {"workflow_id": self.workflow_id, "state": state}
+        """
         os.makedirs(self.workdir)
         outdir = os.path.join(self.workdir, "outdir")
         os.mkdir(outdir)
@@ -21,27 +41,25 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
             json.dump(request, f)
 
-        with open(os.path.join(
-                self.workdir, "cwl.input.json"), "w") as inputtemp:
+        input_json = os.path.join(self.workdir, "cwl.input.json")
+        with open(input_json, "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
         if request.get("workflow_descriptor"):
             workflow_descriptor = request.get('workflow_descriptor')
-            with open(os.path.join(
-                    self.workdir, "workflow.cwl"), "w") as f:
+            with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
                 # FIXME #14 workflow_descriptor isn't defined
                 f.write(workflow_descriptor)
-                workflow_url = urllib.pathname2url(
-                    os.path.join(self.workdir, "workflow.cwl"))
+            workflow_url = urllib.pathname2url(os.path.join(self.workdir, "workflow.cwl"))
         else:
             workflow_url = request.get("workflow_url")
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-        runner = opts.getopt("runner", "cwl-runner")
-        extra = opts.getoptlist("extra")
-        command_args = [runner] + extra + [workflow_url, inputtemp.name]
+        runner = opts.getopt("runner", default="cwl-runner")
+        extra = opts.getoptlist("extra")  # if the user specified none, returns []
+        command_args = [runner] + extra + [workflow_url, input_json]
         proc = subprocess.Popen(command_args,
                                 stdout=output,
                                 stderr=stderr,
@@ -55,25 +73,33 @@ class Workflow(object):
         return self.getstatus()
 
     def getstate(self):
+        """
+        Returns RUNNING, -1
+                COMPLETE, 0
+                or
+                EXECUTOR_ERROR, 255
+        """
         state = "RUNNING"
         exit_code = -1
 
-        exc = os.path.join(self.workdir, "exit_code")
-        if os.path.exists(exc):
-            with open(exc) as f:
+        exitcode_file = os.path.join(self.workdir, "exit_code")
+        pid_file = os.path.join(self.workdir, "pid")
+
+        if os.path.exists(exitcode_file):
+            with open(exitcode_file) as f:
                 exit_code = int(f.read())
-        elif os.path.exists(os.path.join(self.workdir, "pid")):
-            with open(os.path.join(self.workdir, "pid"), "r") as pid:
+        elif os.path.exists(pid_file):
+            with open(pid_file, "r") as pid:
                 pid = int(pid.read())
             try:
                 (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
                 if _pid != 0:
                     exit_code = exit_status >> 8
-                    with open(exc, "w") as f:
+                    with open(exitcode_file, "w") as f:
                         f.write(str(exit_code))
-                    os.unlink(os.path.join(self.workdir, "pid"))
+                    os.unlink(pid_file)
             except OSError:
-                os.unlink(os.path.join(self.workdir, "pid"))
+                os.unlink(pid_file)
                 exit_code = 255
 
         if exit_code == 0:
@@ -154,8 +180,7 @@ class CWLRunnerBackend(WESBackend):
 
     def RunWorkflow(self, body):
         # FIXME Add error responses #16
-        if body["workflow_type"] != "CWL" or \
-                        body["workflow_type_version"] != "v1.0":
+        if body["workflow_type"] == "CWL" and body["workflow_type_version"] != "v1.0":
             return
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)

@@ -23,18 +23,22 @@ setup(name='wes-service',
       package_data={'wes_service': ['openapi/workflow_execution_service.swagger.yaml']},
       include_package_data=True,
       install_requires=[
-          'connexion',
-          'bravado',
+          'future',
+          'connexion==1.4.2',
+          'bravado==10.1.0',
           'ruamel.yaml >= 0.12.4, < 0.15',
-          'cwlref-runner',
-          'schema-salad'
+          'cwlref-runner==1.0',
+          'schema-salad>=2.6, <3',
+          'subprocess32==3.5.2'
                         ],
       entry_points={
-          'console_scripts': ["wes-server=wes_service:main",
-                              "wes-client=wes_client:main"]
+          'console_scripts': ["wes-server=wes_service.wes_service_main:main",
+                              "wes-client=wes_client.wes_client_main:main"]
                     },
       extras_require={
           "arvados": ["arvados-cwl-runner"
-                      ]},
+                      ],
+          "toil": ["toil[all]==3.16.0"
+                   ]},
       zip_safe=False
       )

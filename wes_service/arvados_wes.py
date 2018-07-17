@@ -14,7 +14,6 @@ import shutil
 
 from wes_service.util import visit, WESBackend
 from werkzeug.utils import secure_filename
-from flask import Response
 
 
 class MissingAuthorization(Exception):
@@ -91,7 +90,7 @@ class ArvadosBackend(WESBackend):
 
         requests = api.container_requests().list(
             filters=[["requesting_container_uuid", "=", None],
-                     ["container_uuid", "!=", None]]+paging,
+                     ["container_uuid", "!=", None]] + paging,
             select=["uuid", "command", "container_uuid"],
             order=["uuid"],
             limit=page_size).execute()["items"]
@@ -101,10 +100,10 @@ class ArvadosBackend(WESBackend):
 
         uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers}
 
-        workflow_list =[{"workflow_id": cr["uuid"],
-                         "state": uuidmap.get(cr["container_uuid"])}
-                        for cr in requests
-                        if cr["command"] and cr["command"][0] == "arvados-cwl-runner"]
+        workflow_list = [{"workflow_id": cr["uuid"],
+                          "state": uuidmap.get(cr["container_uuid"])}
+                         for cr in requests
+                         if cr["command"] and cr["command"][0] == "arvados-cwl-runner"]
         return {
             "workflows": workflow_list,
             "next_page_token": workflow_list[-1]["workflow_id"] if workflow_list else ""
@@ -144,8 +143,8 @@ class ArvadosBackend(WESBackend):
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
 
                 api.logs().create(body={"log": {"object_uuid": cr_uuid,
-                                           "event_type": "stderr",
-                                           "properties": {"text": stderrdata}}}).execute()
+                                                "event_type": "stderr",
+                                                "properties": {"text": stderrdata}}}).execute()
                 if tempdir:
                     shutil.rmtree(tempdir)
 
@@ -306,17 +305,25 @@ class ArvadosBackend(WESBackend):
         return {"workflow_id": request["uuid"],
                 "state": statemap[container["state"]]}
 
+
 def dynamic_logs(workflow_id, logstream):
     api = get_api()
     cr = api.container_requests().get(uuid=workflow_id).execute()
-    l1 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", workflow_id], ["event_type", "=", logstream]],
-                         order="created_at desc", limit=100).execute()["items"]]
+    l1 = [t["properties"]["text"]
+          for t in api.logs().list(filters=[["object_uuid", "=", workflow_id],
+                                            ["event_type", "=", logstream]],
+                                   order="created_at desc",
+                                   limit=100).execute()["items"]]
     if cr["container_uuid"]:
-        l2 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
-                             order="created_at desc", limit=100).execute()["items"]]
+        l2 = [t["properties"]["text"]
+              for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]],
+                                                ["event_type", "=", logstream]],
+                                       order="created_at desc",
+                                       limit=100).execute()["items"]]
     else:
         l2 = []
     return "".join(reversed(l1)) + "".join(reversed(l2))
+
 
 def create_backend(app, opts):
     ab = ArvadosBackend(opts)
