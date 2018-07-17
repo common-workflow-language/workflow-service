@@ -119,6 +119,7 @@ class LocalFiles(object):
         self.run_rsync(set(self.filelist))
         return self.json_path + '.new'
 
+
 def catch_toil_exceptions(orig_func):
     """Catch uncaught exceptions and turn them into http errors"""
 
