@@ -14,10 +14,11 @@ import shutil
 
 from wes_service.util import visit, WESBackend
 from werkzeug.utils import secure_filename
-from flask import Response
+
 
 class MissingAuthorization(Exception):
     pass
+
 
 def get_api():
     if not connexion.request.headers.get('Authorization'):
@@ -54,9 +55,11 @@ def catch_exceptions(orig_func):
         except subprocess.CalledProcessError as e:
             return {"msg": str(e), "status_code": 500}, 500
         except MissingAuthorization:
-            return {"msg": "'Authorization' header is missing or empty, expecting Arvados API token", "status_code": 401}, 401
+            return {"msg": "'Authorization' header is missing or empty, expecting Arvados API token",
+                    "status_code": 401}, 401
 
     return catch_exceptions_wrapper
+
 
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
@@ -88,7 +91,7 @@ class ArvadosBackend(WESBackend):
 
         requests = api.container_requests().list(
             filters=[["requesting_container_uuid", "=", None],
-                     ["container_uuid", "!=", None]]+paging,
+                     ["container_uuid", "!=", None]] + paging,
             select=["uuid", "command", "container_uuid"],
             order=["uuid"],
             limit=page_size).execute()["items"]
@@ -98,10 +101,10 @@ class ArvadosBackend(WESBackend):
 
         uuidmap = {c["uuid"]: statemap[c["state"]] for c in containers}
 
-        workflow_list =[{"workflow_id": cr["uuid"],
-                         "state": uuidmap.get(cr["container_uuid"])}
-                        for cr in requests
-                        if cr["command"] and cr["command"][0] == "arvados-cwl-runner"]
+        workflow_list = [{"workflow_id": cr["uuid"],
+                          "state": uuidmap.get(cr["container_uuid"])}
+                         for cr in requests
+                         if cr["command"] and cr["command"][0] == "arvados-cwl-runner"]
         return {
             "workflows": workflow_list,
             "next_page_token": workflow_list[-1]["workflow_id"] if workflow_list else ""
@@ -123,11 +126,11 @@ class ArvadosBackend(WESBackend):
                 # TODO: run submission process in a container to prevent
                 # a-c-r submission processes from seeing each other.
 
-                cmd = ["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid,
+                cmd = ["arvados-cwl-runner", "--submit-request-uuid=" + cr_uuid,
                        "--submit", "--no-wait", "--api=containers"]
 
                 if project_uuid:
-                    cmd.append("--project-uuid="+project_uuid)
+                    cmd.append("--project-uuid=" + project_uuid)
 
                 cmd.append(workflow_url)
                 cmd.append(inputtemp.name)
@@ -141,14 +144,15 @@ class ArvadosBackend(WESBackend):
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
 
                 api.logs().create(body={"log": {"object_uuid": cr_uuid,
-                                           "event_type": "stderr",
-                                           "properties": {"text": stderrdata}}}).execute()
+                                                "event_type": "stderr",
+                                                "properties": {"text": stderrdata}}}).execute()
                 if tempdir:
                     shutil.rmtree(tempdir)
 
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
-                                                                "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
+                                                                "properties": {
+                                                                    "arvados-cwl-runner-log": str(e)}}).execute()
         finally:
             if workflow_descriptor_file is not None:
                 workflow_descriptor_file.close()
@@ -188,12 +192,12 @@ class ArvadosBackend(WESBackend):
 
         api = get_api()
 
-        cr = api.container_requests().create(body={"container_request":
-                                                   {"command": [""],
-                                                    "container_image": "n/a",
-                                                    "state": "Uncommitted",
-                                                    "output_path": "n/a",
-                                                    "priority": 500}}).execute()
+        cr = api.container_requests().create(body={"container_request": {
+                                                        "command": [""],
+                                                        "container_image": "n/a",
+                                                        "state": "Uncommitted",
+                                                        "output_path": "n/a",
+                                                        "priority": 500}}).execute()
 
         workflow_url = body.get("workflow_url")
         workflow_descriptor_file = None
@@ -222,8 +226,10 @@ class ArvadosBackend(WESBackend):
         request = api.container_requests().get(uuid=workflow_id).execute()
         if request["container_uuid"]:
             container = api.containers().get(uuid=request["container_uuid"]).execute()  # NOQA
-            task_reqs = arvados.util.list_all(api.container_requests().list, filters=[["requesting_container_uuid", "=", container["uuid"]]])
-            tasks = arvados.util.list_all(api.containers().list, filters=[["uuid", "in", [tr["container_uuid"] for tr in task_reqs]]])
+            task_reqs = arvados.util.list_all(api.container_requests().list,
+                                              filters=[["requesting_container_uuid", "=", container["uuid"]]])
+            tasks = arvados.util.list_all(api.containers().list,
+                                          filters=[["uuid", "in", [tr["container_uuid"] for tr in task_reqs]]])
             containers_map = {c["uuid"]: c for c in tasks}
             containers_map[container["uuid"]] = container
         else:
@@ -240,7 +246,8 @@ class ArvadosBackend(WESBackend):
 
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
-                        d["location"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], c.portable_data_hash(), d["location"])  # NOQA
+                        d["location"] = "%sc=%s/_/%s" % (
+                            api._resourceDesc["keepWebServiceUrl"], c.portable_data_hash(), d["location"])  # NOQA
 
                 visit(outputobj, keepref)
 
@@ -262,8 +269,10 @@ class ArvadosBackend(WESBackend):
                 "exit_code": containerlog["exit_code"] or 0
             }
             if containerlog["log"]:
-                r["stdout"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stdout.txt")  # NOQA
-                r["stderr"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stderr.txt")  # NOQA
+                r["stdout"] = "%sc=%s/_/%s" % (
+                    api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stdout.txt")  # NOQA
+                r["stderr"] = "%sc=%s/_/%s" % (
+                    api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stderr.txt")  # NOQA
             else:
                 r["stdout"] = "%s/x-dynamic-logs/stdout" % (connexion.request.url)
                 r["stderr"] = "%s/x-dynamic-logs/stderr" % (connexion.request.url)
@@ -303,17 +312,21 @@ class ArvadosBackend(WESBackend):
         return {"workflow_id": request["uuid"],
                 "state": statemap[container["state"]]}
 
+
 def dynamic_logs(workflow_id, logstream):
     api = get_api()
     cr = api.container_requests().get(uuid=workflow_id).execute()
-    l1 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", workflow_id], ["event_type", "=", logstream]],
-                         order="created_at desc", limit=100).execute()["items"]]
+    l1 = [t["properties"]["text"] for t in
+          api.logs().list(filters=[["object_uuid", "=", workflow_id], ["event_type", "=", logstream]],
+                          order="created_at desc", limit=100).execute()["items"]]
     if cr["container_uuid"]:
-        l2 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
-                             order="created_at desc", limit=100).execute()["items"]]
+        l2 = [t["properties"]["text"] for t in
+              api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
+                              order="created_at desc", limit=100).execute()["items"]]
     else:
         l2 = []
     return "".join(reversed(l1)) + "".join(reversed(l2))
+
 
 def create_backend(app, opts):
     ab = ArvadosBackend(opts)
