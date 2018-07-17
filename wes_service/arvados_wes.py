@@ -146,6 +146,7 @@ class ArvadosBackend(WESBackend):
                 api.logs().create(body={"log": {"object_uuid": cr_uuid,
                                            "event_type": "stderr",
                                            "properties": {"text": stderrdata}}}).execute()
+
                 if tempdir:
                     shutil.rmtree(tempdir)
 
@@ -314,6 +315,7 @@ def dynamic_logs(workflow_id, logstream):
     if cr["container_uuid"]:
         l2 = [t["properties"]["text"] for t in api.logs().list(filters=[["object_uuid", "=", cr["container_uuid"]], ["event_type", "=", logstream]],
                              order="created_at desc", limit=100).execute()["items"]]
+
     else:
         l2 = []
     return "".join(reversed(l1)) + "".join(reversed(l2))
