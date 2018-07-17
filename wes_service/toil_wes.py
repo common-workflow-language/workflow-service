@@ -6,6 +6,10 @@ import urllib
 from multiprocessing import Process
 import functools
 import logging
+import sys
+from six import iteritems
+from cwltool.main import load_job_order
+from argparse import Namespace
 
 from wes_service.util import WESBackend
 from wes_service.cwl_runner import Workflow
@@ -13,6 +17,107 @@ from wes_service.arvados_wes import MissingAuthorization
 
 logging.basicConfig(level=logging.INFO)
 
+
+class LocalFiles(object):
+    """
+    Convenience class for (r)syncing local files to a server.
+    """
+    def __init__(self,
+                 input_json,
+                 wftype,
+                 dest='~',
+                 keypath='$HOME/.ssh/westest.pem',
+                 domain='ubuntu@54.193.12.111'):
+        self.json_path = input_json
+        self.keypath = keypath
+        self.domain = domain
+        self.dest = dest
+        self.wftype = wftype
+
+        self.cwl_filemap = {}
+        self.filelist = []
+
+    def run_rsync(self, files):
+        for f in files:
+            cmd = 'rsync -Pav -e "ssh -i {}" {} {}:{}'.format(self.keypath, f, self.domain, self.dest)
+            logging.info(cmd)
+            p = subprocess.Popen(cmd, shell=True)  # shell=True may be insecure?  need advice
+            p.communicate()  # block til finished
+
+    def new_local_path(self, filepath):
+        """Stores the path in a list and returns a path relative to self.dest."""
+        self.filelist.append(filepath)
+        return os.path.join(self.dest, os.path.basename(filepath))
+
+    def wdl_pathmap(self, input):
+        """
+        Very naive gather of all local files included in a wdl json.
+
+        Expects a json-like dictionary as input.
+        These paths are stored as a list for later downloading.
+        """
+        # TODO: Parse and validate wdl to determine type
+        if isinstance(input, basestring):
+            if input.startswith('file://'):
+                return self.new_local_path(input[7:])
+            elif os.path.isfile(input):
+                return self.new_local_path(input)
+            else:
+                return input
+        if isinstance(input, list):
+            j = []
+            for i in input:
+                j.append(self.pathmap(i))
+            return j
+        elif isinstance(input, dict):
+            for k, v in iteritems(input):
+                input[k] = self.pathmap(v)
+            return input
+
+    def cwl_pathmap(self, json_dict):
+        """
+        Gather local files included in a cwl json.
+
+        Expects a json dictionary as input.
+        These paths are stored as a list for later downloading.
+        """
+        assert isinstance(json_dict, dict)
+
+        # use cwltool to parse the json and gather the filepaths
+        options = Namespace(job_order=[self.json_path], basedir=None)
+        json_vars, options.basedir, loader = load_job_order(options, sys.stdin, None, [], options.job_order)
+        for j in json_vars:
+            if isinstance(json_vars[j], dict):
+                if json_vars[j]['class'] == 'File':
+                    if json_vars[j]['path'].startswith('file://'):
+                        self.cwl_filemap[j] = json_vars[j]['path'][7:]
+        # replace all local top level key 'path's with new paths.
+        for k in json_dict:
+            if isinstance(json_dict[k], dict):
+                if 'class' in json_dict[k]:
+                    if json_dict[k]['class'] == 'File':
+                        # assume that if k is not in self.cwl_filemap, it is a File, but not local (file://)
+                        if k in self.cwl_filemap:
+                            json_dict[k]['path'] = self.new_local_path(self.cwl_filemap[k])
+        return json_dict
+
+    def sync2server(self):
+        """
+        1. Opens a json, saves all filepaths within it as a list.
+        2. Rsyncs all of these files to the server.
+        3. Generates a new json for use on the server with server local paths.
+        """
+        with open(self.json_path, 'r') as json_data:
+            json_dict = json.load(json_data)
+            new_json = self.cwl_pathmap(json_dict)
+        with open(self.json_path + '.new', 'w') as f:
+            json.dump(new_json, f)
+
+        logging.info('Importing local files from: ' + str(self.json_path))
+        logging.info('To: {}:{}'.format(self.domain, self.dest))
+        logging.info('New json with updated (server) paths created: ' + str(self.json_path + '.new'))
+        self.run_rsync(set(self.filelist))
+        return self.json_path + '.new'
 
 def catch_toil_exceptions(orig_func):
     """Catch uncaught exceptions and turn them into http errors"""
@@ -48,7 +153,7 @@ class ToilWorkflow(Workflow):
         self.request_json = os.path.join(self.workdir, 'request.json')
 
     def write_workflow(self, request_dict, wftype='cwl'):
-        """Writes a cwl or wdl file as appropriate from the request dictionary."""
+        """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
         wf_filename = os.path.join(self.workdir, 'workflow.' + wftype)
         if request_dict.get('workflow_descriptor'):
             workflow_descriptor = request_dict.get('workflow_descriptor')
