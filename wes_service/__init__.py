@@ -1,14 +1,15 @@
+#!/usr/bin/env python
 import argparse
 import sys
 import ruamel.yaml
 import os
 import logging
-
-logging.basicConfig(level=logging.INFO)
-
 import connexion
 import connexion.utils as utils
 from connexion.resolver import Resolver
+
+logging.basicConfig(level=logging.INFO)
+
 
 def setup(args=None):
     if args is None:
@@ -21,7 +22,6 @@ def setup(args=None):
             config = ruamel.yaml.safe_load(f)
         for c in config:
             setattr(args, c, config[c])
-
 
     logging.info("Using config:")
     for n in args.__dict__:
@@ -43,8 +43,7 @@ def setup(args=None):
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Workflow Execution Service')
-    parser.add_argument(
-        "--backend", type=str, default="wes_service.cwl_runner")
+    parser.add_argument("--backend", type=str, default="wes_service.cwl_runner")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--opt", type=str, action="append")
     parser.add_argument("--debug", action="store_true", default=False)
