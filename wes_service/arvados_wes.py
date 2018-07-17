@@ -16,8 +16,10 @@ from wes_service.util import visit, WESBackend
 from werkzeug.utils import secure_filename
 from flask import Response
 
+
 class MissingAuthorization(Exception):
     pass
+
 
 def get_api():
     if not connexion.request.headers.get('Authorization'):
@@ -57,6 +59,7 @@ def catch_exceptions(orig_func):
             return {"msg": "'Authorization' header is missing or empty, expecting Arvados API token", "status_code": 401}, 401
 
     return catch_exceptions_wrapper
+
 
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self):
