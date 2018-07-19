@@ -49,9 +49,7 @@ class IntegrationTest(unittest.TestCase):
     def test_multipart_upload(self):
         """Pass a local md5sum cwl to the wes-service server, and check for uploaded file in service."""
         cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        output_filepath = run_md5sum(cwl_input='file://' + cwl_local_path)
-
-        _, run_id = output_filepath
+        _, run_id = run_md5sum(cwl_input='file://' + cwl_local_path)
 
         get_response = get_log_request(run_id)["request"]
 
@@ -113,7 +111,7 @@ class CwltoolTest(IntegrationTest):
         """
         self.wes_server_process = subprocess.Popen(
             'python {}'.format(os.path.abspath('wes_service/wes_service_main.py')),
-            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            shell=True)
         time.sleep(5)
 
 
@@ -128,7 +126,7 @@ class ToilTest(IntegrationTest):
         self.wes_server_process = subprocess.Popen('python {} '
                                                    '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL'
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
-                                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                                   shell=True)
         time.sleep(5)
 
 
