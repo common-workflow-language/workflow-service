@@ -10,7 +10,7 @@ import argparse
 import logging
 import schema_salad.ref_resolver
 import requests
-from requests.exceptions import MissingSchema
+from requests.exceptions import InvalidSchema
 from wes_service.util import visit
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
@@ -161,7 +161,7 @@ def main(argv=sys.argv[1:]):
         logging.info(str(s["workflow_log"]["stderr"]))
         logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
         logging.info("Workflow log:\n" + logs)
-    except MissingSchema:
+    except InvalidSchema:
         logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
