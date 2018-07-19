@@ -204,7 +204,6 @@ class CWLRunnerBackend(WESBackend):
         if index > 0:
             body["workflow_url"] = body["workflow_url"][index:]
 
-
         workflow_id = uuid.uuid4().hex
         job = Workflow(workflow_id)
 
