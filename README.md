@@ -95,3 +95,12 @@ $ export WES_API_PROTO=http
 
 Then, when you call `wes-client` these defaults will be used in place of the
 flags, `--host`, `--auth`, and `proto` respectively.
+
+## Development
+If you would like to develop against `workflow-service` make sure you pass the provided test and it is flake8 compliant
+#### Run test
+From path `workflow-service` run 
+
+```
+$ pytest && flake8
+```
