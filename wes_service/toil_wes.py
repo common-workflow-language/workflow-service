@@ -54,6 +54,12 @@ class ToilWorkflow(object):
             command_args = ['toil-cwl-runner'] + extra + [workflow_url, self.input_json]
         elif wftype == 'wdl':
             command_args = ['toil-wdl-runner'] + extra + [workflow_url, self.input_json]
+            assert(os.path.exists(workflow_url), workflow_url)
+            with open(workflow_url, 'r') as f:
+                logging.info(f.read())
+            assert(os.path.exists(self.input_json), self.input_json)
+            with open(self.input_json, 'r') as f:
+                logging.info(f.read())
         elif wftype == 'py':
             command_args = ['python'] + extra + [self.input_wf_filename]
         else:
