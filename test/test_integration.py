@@ -72,14 +72,14 @@ def run_cwl_md5sum(cwl_input):
     return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
 
 
-def run_wdl_md5sum(cwl_input):
+def run_wdl_md5sum(wdl_input):
     """Pass a local md5sum wdl to the wes-service server, and return the path of the output file that was created."""
     endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
     params = '{"ga4ghMd5.inputFile": "' + os.path.abspath('testdata/md5sum.input') + '"}'
     parts = [("workflow_params", params),
              ("workflow_type", "WDL"),
              ("workflow_type_version", "v1.0"),
-             ("workflow_url", cwl_input)]
+             ("workflow_url", wdl_input)]
     response = requests.post(endpoint, files=parts).json()
     output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
     return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
@@ -139,8 +139,8 @@ class ToilTest(IntegrationTest):
 
     def test_wdl_md5sum(self):
         """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
-        cwl_local_path = os.path.abspath('testdata/md5sum.wdl')
-        output_filepath, _ = run_wdl_md5sum(cwl_input=cwl_local_path)
+        wdl_local_path = os.path.abspath('testdata/md5sum.wdl')
+        output_filepath, _ = run_wdl_md5sum(wdl_input=wdl_local_path)
 
         self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
 
