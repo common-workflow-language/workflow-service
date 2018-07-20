@@ -26,8 +26,8 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-
-        shutil.rmtree('workflows')
+        if os.path.exists('workflows'):
+            shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
@@ -67,6 +67,19 @@ def run_cwl_md5sum(cwl_input):
         parts.append(("workflow_url", os.path.basename(cwl_input[7:])))
     else:
         parts.append(("workflow_url", cwl_input))
+    response = requests.post(endpoint, files=parts).json()
+    output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
+    return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
+
+
+def run_wdl_md5sum(cwl_input):
+    """Pass a local md5sum wdl to the wes-service server, and return the path of the output file that was created."""
+    endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
+    params = '{"ga4ghMd5.inputFile": "' + os.path.abspath('testdata/md5sum.input') + '"}'
+    parts = [("workflow_params", params),
+             ("workflow_type", "WDL"),
+             ("workflow_type_version", "v1.0"),
+             ("workflow_url", cwl_input)]
     response = requests.post(endpoint, files=parts).json()
     output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
     return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
@@ -123,6 +136,13 @@ class ToilTest(IntegrationTest):
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True)
         time.sleep(5)
+
+    def test_wdl_md5sum(self):
+        """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
+        cwl_local_path = os.path.abspath('testdata/md5sum.wdl')
+        output_filepath, _ = run_wdl_md5sum(cwl_input=cwl_local_path)
+
+        self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
 
 
 # Prevent pytest/unittest's discovery from attempting to discover the base test class.

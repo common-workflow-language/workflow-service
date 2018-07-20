@@ -55,7 +55,7 @@ class ToilWorkflow(object):
         elif wftype == 'wdl':
             command_args = ['toil-wdl-runner'] + extra + [workflow_url, self.input_json]
         elif wftype == 'py':
-            command_args = ['python'] + extra + [workflow_url]
+            command_args = ['python'] + extra + [self.input_wf_filename]
         else:
             raise RuntimeError('workflow_type is not "cwl", "wdl", or "py": ' + str(wftype))
 
@@ -261,14 +261,14 @@ class ToilBackend(WESBackend):
         for k, ls in connexion.request.files.iterlists():
             for v in ls:
                 if k == "workflow_descriptor":
-                    filename = secure_filename(v.filename)
+                    filename = secure_filename(os.path.basename(v.filename))
                     v.save(os.path.join(tempdir, filename))
+                    body["workflow_url"] = "file:///%s/%s" % (tempdir, filename)
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     body[k] = json.loads(v.read())
                 else:
                     body[k] = v.read()
 
-        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
         index = body["workflow_url"].find("http")
         if index > 0:
             body["workflow_url"] = body["workflow_url"][index:]
