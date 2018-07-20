@@ -12,7 +12,6 @@ import shutil
 
 class IntegrationTest(unittest.TestCase):
     """A baseclass that's inherited for use with different cwl backends."""
-
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
         raise NotImplementedError
@@ -28,41 +27,39 @@ class IntegrationTest(unittest.TestCase):
                 except OSError as e:
                     print(e)
 
+        shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
         """Fetch the md5sum cwl from dockstore, run it on the wes-service server, and check for the correct output."""
         cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
-        output_filepath, _ = run_md5sum(cwl_input=cwl_dockstore_url)
+        output_filepath, _ = run_cwl_md5sum(cwl_input=cwl_dockstore_url)
 
         self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
-        shutil.rmtree('workflows')
 
     def test_local_md5sum(self):
         """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
         cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        output_filepath, _ = run_md5sum(cwl_input='file://' + cwl_local_path)
+        output_filepath, _ = run_cwl_md5sum(cwl_input='file://' + cwl_local_path)
 
         self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
-        shutil.rmtree('workflows')
 
     def test_multipart_upload(self):
         """Pass a local md5sum cwl to the wes-service server, and check for uploaded file in service."""
         cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        _, run_id = run_md5sum(cwl_input='file://' + cwl_local_path)
+        _, run_id = run_cwl_md5sum(cwl_input='file://' + cwl_local_path)
 
         get_response = get_log_request(run_id)["request"]
 
         self.assertTrue(check_for_file(get_response["workflow_url"][7:]), 'Output file was not found: '
                         + get_response["workflow_url"][:7])
-        shutil.rmtree('workflows')
 
 
-def run_md5sum(cwl_input):
+def run_cwl_md5sum(cwl_input):
     """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
     endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
     params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'},
-              'input_file': {'path': '../../testdata/md5sum.input', 'class': 'File'}}
+              'input_file': {'path': os.path.abspath('testdata/md5sum.input'), 'class': 'File'}}
 
     parts = [("workflow_params", json.dumps(params)), ("workflow_type", "CWL"), ("workflow_type_version", "v1.0")]
     if cwl_input.startswith("file://"):
@@ -117,14 +114,12 @@ class CwltoolTest(IntegrationTest):
 
 class ToilTest(IntegrationTest):
     """Test using Toil."""
-
     def setUp(self):
         """
         Start a (local) wes-service server to make requests against.
         Use toil as the wes-service server 'backend'.
         """
-        self.wes_server_process = subprocess.Popen('python {} '
-                                                   '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL'
+        self.wes_server_process = subprocess.Popen('python {} --backend=wes_service.toil_wes --opt="extra=--logLevel=CRITICAL"'
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True)
         time.sleep(5)
