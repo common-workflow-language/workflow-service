@@ -268,10 +268,6 @@ class ToilBackend(WESBackend):
                 else:
                     body[k] = v.read()
 
-        if body['workflow_type'] != "CWL" or \
-                body['workflow_type_version'] != "v1.0":
-            return
-
         body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
         index = body["workflow_url"].find("http")
         if index > 0:
