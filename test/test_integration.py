@@ -98,7 +98,7 @@ def get_server_pids():
     return pids
 
 
-def check_for_file(filepath, seconds=20):
+def check_for_file(filepath, seconds=40):
     """Return True if a file exists within a certain amount of time."""
     wait_counter = 0
     while not os.path.exists(filepath):
