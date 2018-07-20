@@ -109,7 +109,6 @@ class ToilWorkflow(object):
         endtime = self.fetch(self.endtime)
         cmd = self.fetch(self.cmdfile)
 
-
         outputobj = {}
         if state == "COMPLETE":
             with open(self.output_json, "r") as outputtemp:
