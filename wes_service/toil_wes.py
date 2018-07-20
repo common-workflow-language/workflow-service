@@ -125,7 +125,7 @@ class ToilWorkflow(object):
             "request": request,
             "state": state,
             "workflow_log": {
-                "cmd": cmd,  # array?
+                "cmd": [""],
                 "start_time": starttime,
                 "end_time": endtime,
                 "stdout": "",
