@@ -82,6 +82,12 @@ def run_wdl_md5sum(wdl_input):
              ("workflow_url", wdl_input)]
     response = requests.post(endpoint, files=parts).json()
     output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
+    check_travis_log = os.path.join(output_dir, 'stderr')
+    with open(check_travis_log, 'r') as f:
+        print(f.read())
+    print(subprocess.check_output(['ls', os.path.join('workflows', response['workflow_id'])]))
+    print('\n')
+    print(subprocess.check_output(['ls', output_dir]))
     return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
 
 
