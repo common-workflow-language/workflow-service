@@ -8,6 +8,9 @@ import subprocess32 as subprocess
 import signal
 import requests
 import shutil
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 class IntegrationTest(unittest.TestCase):
@@ -84,10 +87,10 @@ def run_wdl_md5sum(wdl_input):
     output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
     check_travis_log = os.path.join(output_dir, 'stderr')
     with open(check_travis_log, 'r') as f:
-        print(f.read())
-    print(subprocess.check_output(['ls', os.path.join('workflows', response['workflow_id'])]))
-    print('\n')
-    print(subprocess.check_output(['ls', output_dir]))
+        logging.info(f.read())
+    logging.info(subprocess.check_output(['ls', os.path.join('workflows', response['workflow_id'])]))
+    logging.info('\n')
+    logging.info(subprocess.check_output(['ls', output_dir]))
     return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
 
 
