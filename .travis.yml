@@ -9,6 +9,8 @@ before_install:
 script:
 - flake8 wes_service wes_client
 - pytest
+services:
+  - docker
 deploy:
   provider: pypi
   on:
