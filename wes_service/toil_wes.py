@@ -199,29 +199,29 @@ class ToilWorkflow(object):
         state = "RUNNING"
         exit_code = -1
 
-        exitcode_file = os.path.join(self.workdir, "exit_code")
-
-        if os.path.exists(exitcode_file):
-            with open(exitcode_file) as f:
-                exit_code = int(f.read())
-        elif os.path.exists(self.pidfile):
-            with open(self.pidfile, "r") as pid:
-                pid = int(pid.read())
-            try:
-                (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
-                if _pid != 0:
-                    exit_code = exit_status >> 8
-                    with open(exitcode_file, "w") as f:
-                        f.write(str(exit_code))
-                    os.unlink(self.pidfile)
-            except OSError:
-                os.unlink(self.pidfile)
-                exit_code = 255
-
-        if exit_code == 0:
-            state = "COMPLETE"
-        elif exit_code != -1:
-            state = "EXECUTOR_ERROR"
+        # exitcode_file = os.path.join(self.workdir, "exit_code")
+        #
+        # if os.path.exists(exitcode_file):
+        #     with open(exitcode_file) as f:
+        #         exit_code = int(f.read())
+        # elif os.path.exists(self.pidfile):
+        #     with open(self.pidfile, "r") as pid:
+        #         pid = int(pid.read())
+        #     try:
+        #         (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
+        #         if _pid != 0:
+        #             exit_code = exit_status >> 8
+        #             with open(exitcode_file, "w") as f:
+        #                 f.write(str(exit_code))
+        #             os.unlink(self.pidfile)
+        #     except OSError:
+        #         os.unlink(self.pidfile)
+        #         exit_code = 255
+        #
+        # if exit_code == 0:
+        #     state = "COMPLETE"
+        # elif exit_code != -1:
+        #     state = "EXECUTOR_ERROR"
 
         return state, exit_code
 
