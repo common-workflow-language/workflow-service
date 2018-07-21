@@ -53,6 +53,9 @@ class ToilWorkflow(object):
         if wftype == 'cwl':
             command_args = ['toil-cwl-runner'] + extra + [workflow_url, self.input_json]
         elif wftype == 'wdl':
+            if workflow_url.startswith('http://') or workflow_url.startswith('https://'):
+                subprocess.check_call(['wget', workflow_url])
+                workflow_url = os.path.abspath(workflow_url.split('/')[-1])
             command_args = ['toil-wdl-runner'] + extra + [workflow_url, self.input_json]
             assert(os.path.exists(workflow_url), workflow_url)
             with open(workflow_url, 'r') as f:

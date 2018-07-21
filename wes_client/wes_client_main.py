@@ -10,7 +10,7 @@ import argparse
 import logging
 import schema_salad.ref_resolver
 import requests
-from requests.exceptions import InvalidSchema
+from requests.exceptions import InvalidSchema, MissingSchema
 from wes_service.util import visit
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
@@ -81,6 +81,13 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
+    if args.workflow_url.lower().endswith('wdl'):
+        wf_type = 'WDL'
+    elif args.workflow_url.lower().endswith('cwl'):
+        wf_type = 'CWL'
+    elif args.workflow_url.lower().endswith('py'):
+        wf_type = 'PY'
+
     loader = schema_salad.ref_resolver.Loader({
         "location": {"@type": "@id"},
         "path": {"@type": "@id"}
@@ -112,7 +119,7 @@ def main(argv=sys.argv[1:]):
 
     parts = [
         ("workflow_params", json.dumps(input_dict)),
-        ("workflow_type", "CWL"),
+        ("workflow_type", wf_type),
         ("workflow_type_version", "v1.0")
     ]
     if workflow_url.startswith("file://"):
@@ -162,6 +169,8 @@ def main(argv=sys.argv[1:]):
         logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
         logging.info("Workflow log:\n" + logs)
     except InvalidSchema:
+        logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
+    except MissingSchema:
         logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
 
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
