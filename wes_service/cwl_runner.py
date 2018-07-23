@@ -13,10 +13,10 @@ from wes_service.util import WESBackend
 
 
 class Workflow(object):
-    def __init__(self, workflow_id):
+    def __init__(self, run_id):
         super(Workflow, self).__init__()
-        self.workflow_id = workflow_id
-        self.workdir = os.path.join(os.getcwd(), "workflows", self.workflow_id)
+        self.run_id = run_id
+        self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
 
     def run(self, request, opts):
         """
@@ -37,7 +37,7 @@ class Workflow(object):
         :param dict request: A dictionary containing the cwl/json information.
         :param wes_service.util.WESBackend opts: contains the user's arguments;
                                                  specifically the runner and runner options
-        :return: {"workflow_id": self.workflow_id, "state": state}
+        :return: {"run_id": self.run_id, "state": state}
         """
         os.makedirs(self.workdir)
         outdir = os.path.join(self.workdir, "outdir")
@@ -117,7 +117,7 @@ class Workflow(object):
         state, exit_code = self.getstate()
 
         return {
-            "workflow_id": self.workflow_id,
+            "run_id": self.run_id,
             "state": state
         }
 
@@ -137,7 +137,7 @@ class Workflow(object):
                 outputobj = json.load(outputtemp)
 
         return {
-            "workflow_id": self.workflow_id,
+            "run_id": self.run_id,
             "request": request,
             "state": state,
             "workflow_log": {
@@ -169,14 +169,14 @@ class CWLRunnerBackend(WESBackend):
             "key_values": {}
         }
 
-    def ListWorkflows(self):
+    def ListRuns(self, page_size=None, page_token=None, state_search=None):
         # FIXME #15 results don't page
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
                 wf.append(Workflow(l))
 
-        workflows = [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf]  # NOQA
+        workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {
             "workflows": workflows,
             "next_page_token": ""
@@ -204,23 +204,23 @@ class CWLRunnerBackend(WESBackend):
         if index > 0:
             body["workflow_url"] = body["workflow_url"][index:]
 
-        workflow_id = uuid.uuid4().hex
-        job = Workflow(workflow_id)
+        run_id = uuid.uuid4().hex
+        job = Workflow(run_id)
 
         job.run(body, self)
-        return {"workflow_id": workflow_id}
+        return {"run_id": run_id}
 
-    def GetWorkflowLog(self, workflow_id):
-        job = Workflow(workflow_id)
+    def GetRunLog(self, run_id):
+        job = Workflow(run_id)
         return job.getlog()
 
-    def CancelJob(self, workflow_id):
-        job = Workflow(workflow_id)
+    def CancelRun(self, run_id):
+        job = Workflow(run_id)
         job.cancel()
-        return {"workflow_id": workflow_id}
+        return {"run_id": run_id}
 
-    def GetWorkflowStatus(self, workflow_id):
-        job = Workflow(workflow_id)
+    def GetRunStatus(self, run_id):
+        job = Workflow(run_id)
         return job.getstatus()
 
 

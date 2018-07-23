@@ -62,17 +62,17 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={"use_models": False})
 
     if args.list:
-        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page, page_size=args.page_size)
+        response = client.WorkflowExecutionService.ListRuns(page_token=args.page, page_size=args.page_size)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.log:
-        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.log)
+        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.log)
         sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.get)
+        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.get)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -147,14 +147,14 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["workflow_id"] + "\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
+    r = client.WorkflowExecutionService.GetRunStatus(workflow_id=r["workflow_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
+        r = client.WorkflowExecutionService.GetRunStatus(workflow_id=r["workflow_id"]).result()
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
+    s = client.WorkflowExecutionService.GetRunLog(workflow_id=r["workflow_id"]).result()
 
     try:
         # TODO: Only works with Arvados atm
