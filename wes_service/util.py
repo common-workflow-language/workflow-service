@@ -6,6 +6,7 @@ from six import itervalues
 import connexion
 from werkzeug.utils import secure_filename
 
+
 def visit(d, op):
     """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
     op(d)

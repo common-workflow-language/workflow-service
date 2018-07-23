@@ -13,7 +13,6 @@ import logging
 import shutil
 
 from wes_service.util import visit, WESBackend
-from werkzeug.utils import secure_filename
 
 
 class MissingAuthorization(Exception):

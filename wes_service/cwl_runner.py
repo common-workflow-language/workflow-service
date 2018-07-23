@@ -2,12 +2,8 @@ from __future__ import print_function
 import json
 import os
 import subprocess
-import tempfile
 import urllib
 import uuid
-
-import connexion
-from werkzeug.utils import secure_filename
 
 from wes_service.util import WESBackend
 
