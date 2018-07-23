@@ -60,7 +60,7 @@ class IntegrationTest(unittest.TestCase):
 
 def run_md5sum(cwl_input):
     """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
-    endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
+    endpoint = 'http://localhost:8080/ga4gh/wes/v1/runs'
     params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'},
               'input_file': {'path': '../../testdata/md5sum.input', 'class': 'File'}}
 
@@ -71,12 +71,12 @@ def run_md5sum(cwl_input):
     else:
         parts.append(("workflow_url", cwl_input))
     response = requests.post(endpoint, files=parts).json()
-    output_dir = os.path.abspath(os.path.join('workflows', response['workflow_id'], 'outdir'))
-    return os.path.join(output_dir, 'md5sum.txt'), response['workflow_id']
+    output_dir = os.path.abspath(os.path.join('workflows', response['run_id'], 'outdir'))
+    return os.path.join(output_dir, 'md5sum.txt'), response['run_id']
 
 
 def get_log_request(run_id):
-    endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows/{}'.format(run_id)
+    endpoint = 'http://localhost:8080/ga4gh/wes/v1/runs/{}'.format(run_id)
     return requests.get(endpoint).json()
 
 
