@@ -182,27 +182,8 @@ class CWLRunnerBackend(WESBackend):
             "next_page_token": ""
         }
 
-    def RunWorkflow(self):
-        tempdir = tempfile.mkdtemp()
-        body = {}
-        for k, ls in connexion.request.files.iterlists():
-            for v in ls:
-                if k == "workflow_descriptor":
-                    filename = secure_filename(v.filename)
-                    v.save(os.path.join(tempdir, filename))
-                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                    body[k] = json.loads(v.read())
-                else:
-                    body[k] = v.read()
-
-        if body['workflow_type'] != "CWL" or \
-                body['workflow_type_version'] != "v1.0":
-            return
-
-        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
-        index = body["workflow_url"].find("http")
-        if index > 0:
-            body["workflow_url"] = body["workflow_url"][index:]
+    def RunWorkflow(self, **args):
+        tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
         job = Workflow(run_id)

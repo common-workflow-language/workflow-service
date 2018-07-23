@@ -81,6 +81,10 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
+    if not args.job_order:
+        logging.error("Missing job order")
+        return 1
+
     loader = schema_salad.ref_resolver.Loader({
         "location": {"@type": "@id"},
         "path": {"@type": "@id"}
@@ -102,7 +106,7 @@ def main(argv=sys.argv[1:]):
     visit(input_dict, fixpaths)
 
     workflow_url = args.workflow_url
-    if not workflow_url.startswith("/") and ":" not in workflow_url:
+    if ":" not in workflow_url:
         workflow_url = "file://" + os.path.abspath(workflow_url)
 
     if args.quiet:
@@ -131,7 +135,7 @@ def main(argv=sys.argv[1:]):
     else:
         parts.append(("workflow_url", workflow_url))
 
-    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/workflows" % (args.proto, args.host),
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (args.proto, args.host),
                                           files=parts,
                                           headers={"Authorization": args.auth})
 
@@ -142,19 +146,19 @@ def main(argv=sys.argv[1:]):
         exit(1)
 
     if args.wait:
-        logging.info("Workflow id is %s", r["workflow_id"])
+        logging.info("Workflow run id is %s", r["run_id"])
     else:
-        sys.stdout.write(r["workflow_id"] + "\n")
+        sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetRunStatus(workflow_id=r["workflow_id"]).result()
+    r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.WorkflowExecutionService.GetRunStatus(workflow_id=r["workflow_id"]).result()
+        r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetRunLog(workflow_id=r["workflow_id"]).result()
+    s = client.WorkflowExecutionService.GetRunLog(run_id=r["run_id"]).result()
 
     try:
         # TODO: Only works with Arvados atm

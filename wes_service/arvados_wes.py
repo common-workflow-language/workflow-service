@@ -156,23 +156,10 @@ class ArvadosBackend(WESBackend):
                 workflow_descriptor_file.close()
 
     @catch_exceptions
-    def RunWorkflow(self, workflow_params, workflow_type, workflow_type_version,
-                    workflow_url, workflow_descriptor, workflow_engine_parameters=None, tags=None):
-        tempdir = tempfile.mkdtemp()
-        body = {}
-        for k, ls in connexion.request.files.iterlists():
-            for v in ls:
-                if k == "workflow_descriptor":
-                    filename = secure_filename(v.filename)
-                    v.save(os.path.join(tempdir, filename))
-                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                    body[k] = json.loads(v.read())
-                else:
-                    body[k] = v.read()
-        body["workflow_url"] = "file:///%s/%s" % (tempdir, body["workflow_url"])
+    def RunWorkflow(self, **args):
+        tempdir, body = self.collect_attachments()
 
-        if body["workflow_type"] != "CWL" or body["workflow_type_version"] != "v1.0":  # NOQA
-            return
+        print(body)
 
         if not connexion.request.headers.get('Authorization'):
             raise MissingAuthorization()

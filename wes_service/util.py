@@ -1,5 +1,10 @@
-from six import itervalues
+import tempfile
+import json
+import os
 
+from six import itervalues
+import connexion
+from werkzeug.utils import secure_filename
 
 def visit(d, op):
     """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
@@ -35,3 +40,25 @@ class WESBackend(object):
             if k == p:
                 optlist.append(v)
         return optlist
+
+    def collect_attachments(self):
+        tempdir = tempfile.mkdtemp()
+        body = {}
+        for k, ls in connexion.request.files.iterlists():
+            for v in ls:
+                if k == "workflow_descriptor":
+                    filename = secure_filename(v.filename)
+                    v.save(os.path.join(tempdir, filename))
+                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                    body[k] = json.loads(v.read())
+                else:
+                    body[k] = v.read()
+
+        if body['workflow_type'] != "CWL" or \
+                body['workflow_type_version'] != "v1.0":
+            return
+
+        if ":" not in body["workflow_url"]:
+            body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
+
+        return (tempdir, body)
