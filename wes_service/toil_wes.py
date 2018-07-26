@@ -54,10 +54,10 @@ class ToilWorkflow(object):
                 subprocess.check_call(['wget', workflow_url])
                 workflow_url = os.path.abspath(workflow_url.split('/')[-1])
             command_args = ['toil-wdl-runner'] + extra + [workflow_url, self.input_json]
-            assert(os.path.exists(workflow_url), workflow_url)
+            assert(os.path.exists(workflow_url), workflow_url)  # noqa
             with open(workflow_url, 'r') as f:
                 logging.info(f.read())
-            assert(os.path.exists(self.input_json), self.input_json)
+            assert(os.path.exists(self.input_json), self.input_json)  # noqa
             with open(self.input_json, 'r') as f:
                 logging.info(f.read())
         elif wftype == 'py':
@@ -113,7 +113,7 @@ class ToilWorkflow(object):
         stderr = self.fetch(self.errfile)
         starttime = self.fetch(self.starttime)
         endtime = self.fetch(self.endtime)
-        cmd = self.fetch(self.cmdfile)
+        # cmd = self.fetch(self.cmdfile)
 
         outputobj = {}
         if state == "COMPLETE":
