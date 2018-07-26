@@ -2,26 +2,23 @@ from __future__ import print_function
 import json
 import os
 import subprocess
-import tempfile
 import time
 import logging
 import urllib
 import uuid
 
-import connexion
 from multiprocessing import Process
-from werkzeug.utils import secure_filename
 from wes_service.util import WESBackend
 
 logging.basicConfig(level=logging.INFO)
 
 
 class ToilWorkflow(object):
-    def __init__(self, workflow_id):
+    def __init__(self, run_id):
         super(ToilWorkflow, self).__init__()
-        self.workflow_id = workflow_id
+        self.run_id = run_id
 
-        self.workdir = os.path.join(os.getcwd(), 'workflows', self.workflow_id)
+        self.workdir = os.path.join(os.getcwd(), 'runs', self.run_id)
         self.outdir = os.path.join(self.workdir, 'outdir')
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
@@ -124,7 +121,7 @@ class ToilWorkflow(object):
                 outputobj = json.load(outputtemp)
 
         return {
-            "workflow_id": self.workflow_id,
+            "run_id": self.run_id,
             "request": request,
             "state": state,
             "workflow_log": {
@@ -158,7 +155,7 @@ class ToilWorkflow(object):
         :param dict request: A dictionary containing the cwl/json information.
         :param wes_service.util.WESBackend opts: contains the user's arguments;
                                                  specifically the runner and runner options
-        :return: {"workflow_id": self.workflow_id, "state": state}
+        :return: {"run_id": self.run_id, "state": state}
         """
         wftype = request['workflow_type'].lower().strip()
         version = request['workflow_type_version']
@@ -170,7 +167,7 @@ class ToilWorkflow(object):
             raise RuntimeError('workflow_type "py" requires '
                                '"workflow_type_version" to be "2.7": ' + str(version))
 
-        logging.info('Beginning Toil Workflow ID: ' + str(self.workflow_id))
+        logging.info('Beginning Toil Workflow ID: ' + str(self.run_id))
 
         with open(self.starttime, 'w') as f:
             f.write(str(time.time()))
@@ -199,29 +196,31 @@ class ToilWorkflow(object):
         state = "RUNNING"
         exit_code = -1
 
-        # exitcode_file = os.path.join(self.workdir, "exit_code")
-        #
-        # if os.path.exists(exitcode_file):
-        #     with open(exitcode_file) as f:
-        #         exit_code = int(f.read())
-        # elif os.path.exists(self.pidfile):
-        #     with open(self.pidfile, "r") as pid:
-        #         pid = int(pid.read())
-        #     try:
-        #         (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
-        #         if _pid != 0:
-        #             exit_code = exit_status >> 8
-        #             with open(exitcode_file, "w") as f:
-        #                 f.write(str(exit_code))
-        #             os.unlink(self.pidfile)
-        #     except OSError:
-        #         os.unlink(self.pidfile)
-        #         exit_code = 255
-        #
-        # if exit_code == 0:
-        #     state = "COMPLETE"
-        # elif exit_code != -1:
-        #     state = "EXECUTOR_ERROR"
+        # TODO: This sections gets a pid that finishes before the workflow exits unless it is
+        # very quick, like md5sum
+        exitcode_file = os.path.join(self.workdir, "exit_code")
+
+        if os.path.exists(exitcode_file):
+            with open(exitcode_file) as f:
+                exit_code = int(f.read())
+        elif os.path.exists(self.pidfile):
+            with open(self.pidfile, "r") as pid:
+                pid = int(pid.read())
+            try:
+                (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
+                if _pid != 0:
+                    exit_code = exit_status >> 8
+                    with open(exitcode_file, "w") as f:
+                        f.write(str(exit_code))
+                    os.unlink(self.pidfile)
+            except OSError:
+                os.unlink(self.pidfile)
+                exit_code = 255
+
+        if exit_code == 0:
+            state = "COMPLETE"
+        elif exit_code != -1:
+            state = "EXECUTOR_ERROR"
 
         return state, exit_code
 
@@ -229,7 +228,7 @@ class ToilWorkflow(object):
         state, exit_code = self.getstate()
 
         return {
-            "workflow_id": self.workflow_id,
+            "run_id": self.run_id,
             "state": state
         }
 
@@ -251,56 +250,41 @@ class ToilBackend(WESBackend):
             'key_values': {}
         }
 
-    def ListWorkflows(self):
+    def ListRuns(self):
         # FIXME #15 results don't page
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
                 wf.append(ToilWorkflow(l))
 
-        workflows = [{"workflow_id": w.workflow_id, "state": w.getstate()[0]} for w in wf]  # NOQA
+        workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {
             "workflows": workflows,
             "next_page_token": ""
         }
 
     def RunWorkflow(self):
-        tempdir = tempfile.mkdtemp()
-        body = {}
-        for k, ls in connexion.request.files.iterlists():
-            for v in ls:
-                if k == "workflow_descriptor":
-                    filename = secure_filename(os.path.basename(v.filename))
-                    v.save(os.path.join(tempdir, filename))
-                    body["workflow_url"] = "file:///%s/%s" % (tempdir, filename)
-                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                    body[k] = json.loads(v.read())
-                else:
-                    body[k] = v.read()
+        tempdir, body = self.collect_attachments()
 
-        index = body["workflow_url"].find("http")
-        if index > 0:
-            body["workflow_url"] = body["workflow_url"][index:]
-
-        workflow_id = uuid.uuid4().hex
-        job = ToilWorkflow(workflow_id)
+        run_id = uuid.uuid4().hex
+        job = ToilWorkflow(run_id)
         p = Process(target=job.run, args=(body, self))
         p.start()
-        self.processes[workflow_id] = p
-        return {"workflow_id": workflow_id}
+        self.processes[run_id] = p
+        return {"run_id": run_id}
 
-    def GetWorkflowLog(self, workflow_id):
-        job = ToilWorkflow(workflow_id)
+    def GetRunLog(self, run_id):
+        job = ToilWorkflow(run_id)
         return job.getlog()
 
-    def CancelJob(self, workflow_id):
+    def CancelRun(self, run_id):
         # should this block with `p.is_alive()`?
-        if workflow_id in self.processes:
-            self.processes[workflow_id].terminate()
-        return {'workflow_id': workflow_id}
+        if run_id in self.processes:
+            self.processes[run_id].terminate()
+        return {'run_id': run_id}
 
-    def GetWorkflowStatus(self, workflow_id):
-        job = ToilWorkflow(workflow_id)
+    def GetRunStatus(self, run_id):
+        job = ToilWorkflow(run_id)
         return job.getstatus()
 
 
