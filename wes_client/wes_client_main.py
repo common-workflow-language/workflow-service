@@ -62,17 +62,17 @@ def main(argv=sys.argv[1:]):
         http_client=http_client, config={"use_models": False})
 
     if args.list:
-        response = client.WorkflowExecutionService.ListWorkflows(page_token=args.page, page_size=args.page_size)
+        response = client.WorkflowExecutionService.ListRuns(page_token=args.page, page_size=args.page_size)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.log:
-        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.log)
+        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.log)
         sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=args.get)
+        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.get)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -87,6 +87,10 @@ def main(argv=sys.argv[1:]):
         wf_type = 'CWL'
     elif args.workflow_url.lower().endswith('py'):
         wf_type = 'PY'
+
+    if not args.job_order:
+        logging.error("Missing job order")
+        return 1
 
     loader = schema_salad.ref_resolver.Loader({
         "location": {"@type": "@id"},
@@ -109,7 +113,7 @@ def main(argv=sys.argv[1:]):
     visit(input_dict, fixpaths)
 
     workflow_url = args.workflow_url
-    if not workflow_url.startswith("/") and ":" not in workflow_url:
+    if ":" not in workflow_url:
         workflow_url = "file://" + os.path.abspath(workflow_url)
 
     if args.quiet:
@@ -138,7 +142,7 @@ def main(argv=sys.argv[1:]):
     else:
         parts.append(("workflow_url", workflow_url))
 
-    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/workflows" % (args.proto, args.host),
+    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (args.proto, args.host),
                                           files=parts,
                                           headers={"Authorization": args.auth})
 
@@ -149,19 +153,19 @@ def main(argv=sys.argv[1:]):
         exit(1)
 
     if args.wait:
-        logging.info("Workflow id is %s", r["workflow_id"])
+        logging.info("Workflow run id is %s", r["run_id"])
     else:
-        sys.stdout.write(r["workflow_id"] + "\n")
+        sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
+    r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.WorkflowExecutionService.GetWorkflowStatus(workflow_id=r["workflow_id"]).result()
+        r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetWorkflowLog(workflow_id=r["workflow_id"]).result()
+    s = client.WorkflowExecutionService.GetRunLog(run_id=r["run_id"]).result()
 
     try:
         # TODO: Only works with Arvados atm
