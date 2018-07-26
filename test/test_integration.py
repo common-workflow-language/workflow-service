@@ -146,13 +146,6 @@ class ToilTest(IntegrationTest):
                                                    shell=True)
         time.sleep(5)
 
-    def test_wdl_md5sum(self):
-        """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
-        wdl_local_path = os.path.abspath('testdata/md5sum.wdl')
-        output_filepath, _ = run_wdl_md5sum(wdl_input=wdl_local_path)
-
-        self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
-
 
 # Prevent pytest/unittest's discovery from attempting to discover the base test class.
 del IntegrationTest
