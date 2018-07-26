@@ -18,7 +18,7 @@ class ToilWorkflow(object):
         super(ToilWorkflow, self).__init__()
         self.run_id = run_id
 
-        self.workdir = os.path.join(os.getcwd(), 'runs', self.run_id)
+        self.workdir = os.path.join(os.getcwd(), 'workflows', self.run_id)
         self.outdir = os.path.join(self.workdir, 'outdir')
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
