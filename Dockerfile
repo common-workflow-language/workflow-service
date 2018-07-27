@@ -25,15 +25,11 @@ RUN mkdir -p /etc/apt/sources.list.d && \
 
 ARG arvversion
 COPY dist/arvados-cwl-runner-${arvversion}.tar.gz /root
-RUN cd /root && tar xzf arvados-cwl-runner-${arvversion}.tar.gz && \
-    cd arvados-cwl-runner-${arvversion} && \
-    pip install .
+RUN cd /root && pip install arvados-cwl-runner-${arvversion}.tar.gz
 
 ARG version
-COPY dist/wes-service-${version}.tar.gz /root
-RUN cd /root && tar xzf wes-service-${version}.tar.gz && \
-    cd wes-service-${version} && \
-    pip install .[arvados]
+COPY dist/wes_service-${version}-*.whl /root
+RUN cd /root && pip install $(ls wes_service-${version}-*.whl)[arvados]
 
 COPY passenger_wsgi.py /var/www/wes-server/passenger_wsgi.py
 
