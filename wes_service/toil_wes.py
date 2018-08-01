@@ -42,9 +42,9 @@ class ToilWorkflow(object):
             workflow_attachment = request.get('workflow_attachment')
             with open(self.input_wf_filename, "w") as f:
                 f.write(workflow_attachment)
-            workflow_url = urllib.pathname2url(self.input_wf_filename)
-        else:
-            workflow_url = request.get("workflow_url")
+            # workflow_url = urllib.pathname2url(self.input_wf_filename)
+
+        workflow_url = request.get("workflow_url")
 
         extra = opts.getoptlist("extra")
         if wftype == 'cwl':
