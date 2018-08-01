@@ -4,7 +4,6 @@ import os
 import subprocess
 import time
 import logging
-import urllib
 import uuid
 
 from multiprocessing import Process
