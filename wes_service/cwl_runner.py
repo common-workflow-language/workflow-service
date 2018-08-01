@@ -24,7 +24,7 @@ class Workflow(object):
         CWL (url):
         request["workflow_url"] == a url to a cwl file
         or
-        request["workflow_descriptor"] == input cwl text (written to a file and a url constructed for that file)
+        request["workflow_attachment"] == input cwl text (written to a file and a url constructed for that file)
 
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)

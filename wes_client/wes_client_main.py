@@ -128,7 +128,7 @@ def main(argv=sys.argv[1:]):
     ]
     if workflow_url.startswith("file://"):
         # with open(workflow_url[7:], "rb") as f:
-        #     body["workflow_descriptor"] = f.read()
+        #     body["workflow_attachment"] = f.read()
         rootdir = os.path.dirname(workflow_url[7:])
         dirpath = rootdir
         # for dirpath, dirnames, filenames in os.walk(rootdir):
@@ -137,7 +137,7 @@ def main(argv=sys.argv[1:]):
                 continue
             fn = os.path.join(dirpath, f)
             if os.path.isfile(fn):
-                parts.append(('workflow_descriptor', (fn[len(rootdir)+1:], open(fn, "rb"))))
+                parts.append(('workflow_attachment', (fn[len(rootdir)+1:], open(fn, "rb"))))
         parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
     else:
         parts.append(("workflow_url", workflow_url))
