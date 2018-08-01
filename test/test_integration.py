@@ -31,7 +31,6 @@ class IntegrationTest(unittest.TestCase):
                 except OSError as e:
                     print(e)
         if os.path.exists('workflows'):
-            pass
             shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
