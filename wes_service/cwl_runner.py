@@ -2,7 +2,6 @@ from __future__ import print_function
 import json
 import os
 import subprocess
-import urllib
 import uuid
 
 from wes_service.util import WESBackend
@@ -46,13 +45,7 @@ class Workflow(object):
                 self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
-        if request.get("workflow_descriptor"):
-            workflow_descriptor = request.get('workflow_descriptor')
-            with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
-                f.write(workflow_descriptor)
-            workflow_url = urllib.pathname2url(os.path.join(self.workdir, "workflow.cwl"))
-        else:
-            workflow_url = request.get("workflow_url")
+        workflow_url = request.get("workflow_url")  # Will always be local path to descriptor cwl, or url.
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
