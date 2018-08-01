@@ -4,7 +4,6 @@ import os
 import subprocess
 import time
 import logging
-import urllib
 import uuid
 
 from multiprocessing import Process
@@ -38,13 +37,12 @@ class ToilWorkflow(object):
         """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
         self.input_wf_filename = os.path.join(self.workdir, 'workflow.' + wftype)
 
-        if request.get("workflow_descriptor"):
-            workflow_descriptor = request.get('workflow_descriptor')
+        if request.get("workflow_attachment"):
+            workflow_attachment = request.get('workflow_attachment')
             with open(self.input_wf_filename, "w") as f:
-                f.write(workflow_descriptor)
-            workflow_url = urllib.pathname2url(self.input_wf_filename)
-        else:
-            workflow_url = request.get("workflow_url")
+                f.write(workflow_attachment)
+
+        workflow_url = request.get("workflow_url")
 
         extra = opts.getoptlist("extra")
         if wftype == 'cwl':
@@ -147,7 +145,7 @@ class ToilWorkflow(object):
         CWL (url):
         request["workflow_url"] == a url to a cwl file
         or
-        request["workflow_descriptor"] == input cwl text (written to a file and a url constructed for that file)
+        request["workflow_attachment"] == input cwl text (written to a file and a url constructed for that file)
 
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)
