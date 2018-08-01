@@ -184,12 +184,6 @@ class ArvadosBackend(WESBackend):
                                                     "priority": 500}}).execute()
 
         workflow_url = body.get("workflow_url")
-        workflow_attachment_file = None
-        if body.get("workflow_attachment"):
-            workflow_attachment_file = tempfile.NamedTemporaryFile()
-            workflow_attachment_file.write(body.get('workflow_attachment'))
-            workflow_attachment_file.flush()
-            workflow_url = workflow_attachment_file.name
 
         project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
 
@@ -197,7 +191,6 @@ class ArvadosBackend(WESBackend):
                                                               workflow_url,
                                                               body["workflow_params"],
                                                               env,
-                                                              workflow_attachment_file,
                                                               project_uuid,
                                                               tempdir)).start()
 
