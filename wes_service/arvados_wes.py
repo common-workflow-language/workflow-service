@@ -189,7 +189,7 @@ class ArvadosBackend(WESBackend):
             workflow_attachment_file = tempfile.NamedTemporaryFile()
             workflow_attachment_file.write(body.get('workflow_attachment'))
             workflow_attachment_file.flush()
-            workflow_url = workflow_attachment_file.name
+#             workflow_url = workflow_attachment_file.name
 
         project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
 
