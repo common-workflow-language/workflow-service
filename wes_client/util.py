@@ -40,7 +40,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
              ("workflow_type", wf_type(workflow_file)),
              ("workflow_type_version", wf_version(workflow_file))]
 
-    if workflow_file.startswith("file://") or '://' not in workflow_file:
+    if workflow_file.startswith("file://"):
         parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
         parts.append(("workflow_url", os.path.basename(workflow_file[7:])))
     else:
