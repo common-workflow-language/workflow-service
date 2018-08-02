@@ -109,7 +109,7 @@ class ArvadosBackend(WESBackend):
         }
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
-                          env, workflow_descriptor_file, project_uuid,
+                          env, project_uuid,
                           tempdir):
         api = arvados.api_from_config(version="v1", apiconfig={
             "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
@@ -150,9 +150,6 @@ class ArvadosBackend(WESBackend):
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
                                                                 "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
-        finally:
-            if workflow_descriptor_file is not None:
-                workflow_descriptor_file.close()
 
     @catch_exceptions
     def RunWorkflow(self, **args):
@@ -184,12 +181,6 @@ class ArvadosBackend(WESBackend):
                                                     "priority": 500}}).execute()
 
         workflow_url = body.get("workflow_url")
-        workflow_descriptor_file = None
-        if body.get("workflow_descriptor"):
-            workflow_descriptor_file = tempfile.NamedTemporaryFile()
-            workflow_descriptor_file.write(body.get('workflow_descriptor'))
-            workflow_descriptor_file.flush()
-            workflow_url = workflow_descriptor_file.name
 
         project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
 
@@ -197,7 +188,6 @@ class ArvadosBackend(WESBackend):
                                                               workflow_url,
                                                               body["workflow_params"],
                                                               env,
-                                                              workflow_descriptor_file,
                                                               project_uuid,
                                                               tempdir)).start()
 
