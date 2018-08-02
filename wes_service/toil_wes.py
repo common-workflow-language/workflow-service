@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ToilWorkflow(object):
-    def __init__(self, run_id):
+    def __init__(self, run_id, tempdir=None):
         super(ToilWorkflow, self).__init__()
         self.run_id = run_id
 
@@ -21,6 +21,12 @@ class ToilWorkflow(object):
         self.outdir = os.path.join(self.workdir, 'outdir')
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+
+        if tempdir:
+            # tempdir is where attachments were downloaded, if any
+            # symlink everything inside into self.workdir
+            for attachment in os.listdir(tempdir):
+                os.symlink(os.path.join(tempdir, attachment), os.path.join(self.workdir, attachment))
 
         self.outfile = os.path.join(self.workdir, 'stdout')
         self.errfile = os.path.join(self.workdir, 'stderr')
@@ -266,7 +272,7 @@ class ToilBackend(WESBackend):
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
-        job = ToilWorkflow(run_id)
+        job = ToilWorkflow(run_id, tempdir)
         p = Process(target=job.run, args=(body, self))
         p.start()
         self.processes[run_id] = p

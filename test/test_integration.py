@@ -10,11 +10,21 @@ import requests
 import shutil
 import logging
 
+from wes_client.util import build_wes_request
+
 logging.basicConfig(level=logging.INFO)
 
 
 class IntegrationTest(unittest.TestCase):
     """A baseclass that's inherited for use with different cwl backends."""
+    @classmethod
+    def setUpClass(cls):
+
+        cls.cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
+        cls.cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
+        cls.json_input = "file://" + os.path.abspath('testdata/md5sum.json')
+        cls.attachments = ['file://' + os.path.abspath('testdata/md5sum.input'),
+                           'file://' + os.path.abspath('testdata/dockstore-tool-md5sum.cwl')]
 
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
@@ -35,72 +45,54 @@ class IntegrationTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
-        """Fetch the md5sum cwl from dockstore, run it on the wes-service server, and check for the correct output."""
-        cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
-        output_filepath, _ = run_cwl_md5sum(cwl_input=cwl_dockstore_url)
-
-        self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
+        """HTTP md5sum cwl (dockstore), run it on the wes-service server, and check for the correct output."""
+        outfile_path, _ = run_cwl_md5sum(cwl_input=self.cwl_dockstore_url,
+                                         json_input=self.json_input,
+                                         workflow_attachment=self.attachments)
+        self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_local_md5sum(self):
-        """Pass a local md5sum cwl to the wes-service server, and check for the correct output."""
-        cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        workflow_attachment_path = os.path.abspath('testdata/dockstore-tool-md5sum.cwl')
-        output_filepath, _ = run_cwl_md5sum(cwl_input='file://' + cwl_local_path,
-                                            workflow_attachment='file://' + workflow_attachment_path)
-
-        self.assertTrue(check_for_file(output_filepath), 'Output file was not found: ' + str(output_filepath))
+        """LOCAL md5sum cwl to the wes-service server, and check for the correct output."""
+        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.cwl_local_path,
+                                              json_input=self.json_input,
+                                              workflow_attachment=self.attachments)
+        self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_multipart_upload(self):
-        """Pass a local md5sum cwl to the wes-service server, and check for uploaded file in service."""
-        cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        workflow_attachment_path = os.path.abspath('testdata/dockstore-tool-md5sum.cwl')
-        out_file_path, run_id = run_cwl_md5sum(cwl_input='file://' + cwl_local_path,
-                                               workflow_attachment='file://' + workflow_attachment_path)
-
+        """LOCAL md5sum cwl to the wes-service server, and check for uploaded file in service."""
+        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.cwl_local_path,
+                                              json_input=self.json_input,
+                                              workflow_attachment=self.attachments)
         get_response = get_log_request(run_id)["request"]
-
-        self.assertTrue(check_for_file(out_file_path), 'Output file was not found: '
-                        + get_response["workflow_attachment"])
-        self.assertTrue(check_for_file(get_response["workflow_url"][7:]), 'Output file was not found: '
-                        + get_response["workflow_url"][:7])
+        self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + get_response["workflow_attachment"])
+        self.assertTrue(check_for_file(get_response["workflow_url"][7:]), 'Output file was not found: ' + get_response["workflow_url"][:7])
 
     def test_run_attachments(self):
-        """Pass a local md5sum cwl to the wes-service server, check for attachments."""
-        cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
-        workflow_attachment_path = os.path.abspath('testdata/dockstore-tool-md5sum.cwl')
-        out_file_path, run_id = run_cwl_md5sum(cwl_input='file://' + cwl_local_path,
-                                               workflow_attachment='file://' + workflow_attachment_path)
-
+        """LOCAL md5sum cwl to the wes-service server, check for attachments."""
+        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.cwl_local_path,
+                                              json_input=self.json_input,
+                                              workflow_attachment=self.attachments)
         get_response = get_log_request(run_id)["request"]
         attachment_tool_path = get_response["workflow_attachment"][7:] + "/dockstore-tool-md5sum.cwl"
-        self.assertTrue(check_for_file(out_file_path), 'Output file was not found: '
-                        + get_response["workflow_attachment"])
-        self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: '
-                        + get_response["workflow_attachment"])
+        self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + get_response["workflow_attachment"])
+        self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: ' + get_response["workflow_attachment"])
 
 
-def run_cwl_md5sum(cwl_input, workflow_attachment=None):
+def run_cwl_md5sum(cwl_input, json_input, workflow_attachment=None):
     """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
     endpoint = 'http://localhost:8080/ga4gh/wes/v1/runs'
-    params = {'output_file': {'path': '/tmp/md5sum.txt', 'class': 'File'},
-              'input_file': {'path': os.path.abspath('testdata/md5sum.input'), 'class': 'File'}}
-
-    parts = [("workflow_params", json.dumps(params)), ("workflow_type", "CWL"), ("workflow_type_version", "v1.0")]
-    if cwl_input.startswith("file://"):
-        parts.append(("workflow_attachment", ("md5sum.cwl", open(cwl_input[7:], "rb"))))
-        parts.append(("workflow_url", os.path.basename(cwl_input[7:])))
-        if workflow_attachment:
-            parts.append(("workflow_attachment", ("dockstore-tool-md5sum.cwl", open(workflow_attachment[7:], "rb"))))
-    else:
-        parts.append(("workflow_url", cwl_input))
+    parts = build_wes_request(cwl_input,
+                              json_input,
+                              attachments=workflow_attachment)
     response = requests.post(endpoint, files=parts).json()
+
     output_dir = os.path.abspath(os.path.join('workflows', response['run_id'], 'outdir'))
     return os.path.join(output_dir, 'md5sum.txt'), response['run_id']
 
 
 def run_wdl_md5sum(wdl_input):
     """Pass a local md5sum wdl to the wes-service server, and return the path of the output file that was created."""
-    endpoint = 'http://localhost:8080/ga4gh/wes/v1/workflows'
+    endpoint = 'http://localhost:8080/ga4gh/wes/v1/runs'
     params = '{"ga4ghMd5.inputFile": "' + os.path.abspath('testdata/md5sum.input') + '"}'
     parts = [("workflow_params", params),
              ("workflow_type", "WDL"),
@@ -136,8 +128,6 @@ def check_for_file(filepath, seconds=40):
     while not os.path.exists(filepath):
         time.sleep(1)
         wait_counter += 1
-        if os.path.exists(filepath):
-            return True
         if wait_counter > seconds:
             return False
     return True

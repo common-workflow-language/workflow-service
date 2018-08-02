@@ -8,10 +8,19 @@ from wes_service.util import WESBackend
 
 
 class Workflow(object):
-    def __init__(self, run_id):
+    def __init__(self, run_id, tempdir=None):
         super(Workflow, self).__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
+        self.outdir = os.path.join(self.workdir, 'outdir')
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+
+        if tempdir:
+            # tempdir is the folder where attachments were downloaded, if there were any
+            # symlink everything inside into self.workdir
+            for attachment in os.listdir(tempdir):
+                os.symlink(os.path.join(tempdir, attachment), os.path.join(self.workdir, attachment))
 
     def run(self, request, opts):
         """
@@ -34,10 +43,6 @@ class Workflow(object):
                                                  specifically the runner and runner options
         :return: {"run_id": self.run_id, "state": state}
         """
-        os.makedirs(self.workdir)
-        outdir = os.path.join(self.workdir, "outdir")
-        os.mkdir(outdir)
-
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
             json.dump(request, f)
 
@@ -57,7 +62,7 @@ class Workflow(object):
                                 stdout=output,
                                 stderr=stderr,
                                 close_fds=True,
-                                cwd=outdir)
+                                cwd=self.outdir)
         output.close()
         stderr.close()
         with open(os.path.join(self.workdir, "pid"), "w") as pid:
@@ -175,7 +180,7 @@ class CWLRunnerBackend(WESBackend):
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
-        job = Workflow(run_id)
+        job = Workflow(run_id, tempdir)
 
         job.run(body, self)
         return {"run_id": run_id}
