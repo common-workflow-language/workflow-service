@@ -109,7 +109,7 @@ class ArvadosBackend(WESBackend):
         }
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
-                          env, workflow_attachment_file, project_uuid,
+                          env, project_uuid,
                           tempdir):
         api = arvados.api_from_config(version="v1", apiconfig={
             "ARVADOS_API_HOST": env["ARVADOS_API_HOST"],
@@ -150,9 +150,6 @@ class ArvadosBackend(WESBackend):
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
                                                                 "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
-        finally:
-            if workflow_attachment_file is not None:
-                workflow_attachment_file.close()
 
     @catch_exceptions
     def RunWorkflow(self, **args):
