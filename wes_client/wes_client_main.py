@@ -54,12 +54,10 @@ def main(argv=sys.argv[1:]):
     http_client = RequestsClient()
     split = urlparse.urlsplit("%s://%s/" % (args.proto, args.host))
 
-    http_client.set_api_key(
-        split.hostname, args.auth,
-        param_name="Authorization", param_in="header")
-    client = SwaggerClient.from_url(
-        "%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host),
-        http_client=http_client, config={"use_models": False})
+    http_client.set_api_key(split.hostname, args.auth, param_name="Authorization", param_in="header")
+    swagger_url = "%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host)
+    swagger_url = 'https://raw.githubusercontent.com/ga4gh/workflow-execution-service-schemas/develop/openapi/workflow_execution_service.swagger.yaml'
+    client = SwaggerClient.from_url(swagger_url, http_client=http_client, config={"use_models": False})
 
     if args.list:
         response = client.WorkflowExecutionService.ListRuns(page_token=args.page, page_size=args.page_size)
@@ -87,9 +85,12 @@ def main(argv=sys.argv[1:]):
         wf_type = 'CWL'
     elif args.workflow_url.lower().endswith('py'):
         wf_type = 'PY'
+    else:
+        raise ValueError('Unrecognized/unsupported workflow file extension: %s'
+                         '' % args.workflow_url.lower().split('.')[-1])
 
     if not args.job_order:
-        logging.error("Missing job order")
+        logging.error("Missing json input.")
         return 1
 
     loader = schema_salad.ref_resolver.Loader({
@@ -128,7 +129,7 @@ def main(argv=sys.argv[1:]):
     ]
     if workflow_url.startswith("file://"):
         # with open(workflow_url[7:], "rb") as f:
-        #     body["workflow_descriptor"] = f.read()
+        #     body["workflow_attachment"] = f.read()
         rootdir = os.path.dirname(workflow_url[7:])
         dirpath = rootdir
         # for dirpath, dirnames, filenames in os.walk(rootdir):
@@ -137,7 +138,7 @@ def main(argv=sys.argv[1:]):
                 continue
             fn = os.path.join(dirpath, f)
             if os.path.isfile(fn):
-                parts.append(('workflow_descriptor', (fn[len(rootdir)+1:], open(fn, "rb"))))
+                parts.append(('workflow_attachment', (fn[len(rootdir) + 1:], open(fn, "rb"))))
         parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
     else:
         parts.append(("workflow_url", workflow_url))
@@ -188,4 +189,4 @@ def main(argv=sys.argv[1:]):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    main(sys.argv[1:])

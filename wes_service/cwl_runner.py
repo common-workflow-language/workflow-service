@@ -2,17 +2,25 @@ from __future__ import print_function
 import json
 import os
 import subprocess
-import urllib
 import uuid
 
 from wes_service.util import WESBackend
 
 
 class Workflow(object):
-    def __init__(self, run_id):
+    def __init__(self, run_id, tempdir=None):
         super(Workflow, self).__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
+        self.outdir = os.path.join(self.workdir, 'outdir')
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+
+        if tempdir:
+            # tempdir is the folder where attachments were downloaded, if there were any
+            # symlink everything inside into self.workdir
+            for attachment in os.listdir(tempdir):
+                os.symlink(os.path.join(tempdir, attachment), os.path.join(self.workdir, attachment))
 
     def run(self, request, opts):
         """
@@ -25,7 +33,7 @@ class Workflow(object):
         CWL (url):
         request["workflow_url"] == a url to a cwl file
         or
-        request["workflow_descriptor"] == input cwl text (written to a file and a url constructed for that file)
+        request["workflow_attachment"] == input cwl text (written to a file and a url constructed for that file)
 
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)
@@ -35,24 +43,15 @@ class Workflow(object):
                                                  specifically the runner and runner options
         :return: {"run_id": self.run_id, "state": state}
         """
-        os.makedirs(self.workdir)
         outdir = os.path.join(self.workdir, "outdir")
-        os.mkdir(outdir)
 
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
             json.dump(request, f)
 
-        with open(os.path.join(
-                self.workdir, "cwl.input.json"), "w") as inputtemp:
+        with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
-        if request.get("workflow_descriptor"):
-            workflow_descriptor = request.get('workflow_descriptor')
-            with open(os.path.join(self.workdir, "workflow.cwl"), "w") as f:
-                f.write(workflow_descriptor)
-            workflow_url = urllib.pathname2url(os.path.join(self.workdir, "workflow.cwl"))
-        else:
-            workflow_url = request.get("workflow_url")
+        workflow_url = request.get("workflow_url")  # Will always be a local path to descriptor cwl, or url.
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
@@ -182,7 +181,7 @@ class CWLRunnerBackend(WESBackend):
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
-        job = Workflow(run_id)
+        job = Workflow(run_id, tempdir)
 
         job.run(body, self)
         return {"run_id": run_id}

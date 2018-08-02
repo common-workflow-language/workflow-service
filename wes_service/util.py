@@ -47,19 +47,16 @@ class WESBackend(object):
         body = {}
         for k, ls in connexion.request.files.iterlists():
             for v in ls:
-                if k == "workflow_descriptor":
+                if k == "workflow_attachment":
                     filename = secure_filename(v.filename)
                     v.save(os.path.join(tempdir, filename))
+                    body[k] = "file://%s" % tempdir  # Reference to tmp working dir.
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     body[k] = json.loads(v.read())
                 else:
                     body[k] = v.read()
 
-        if body['workflow_type'] != "CWL" or \
-                body['workflow_type_version'] != "v1.0":
-            return
-
-        if ":" not in body["workflow_url"]:
+        if "://" not in body["workflow_url"]:
             body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
 
-        return (tempdir, body)
+        return tempdir, body
