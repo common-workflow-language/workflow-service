@@ -40,8 +40,8 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-        # if os.path.exists('workflows'):
-        #     shutil.rmtree('workflows')
+        if os.path.exists('workflows'):
+            shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
