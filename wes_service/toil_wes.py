@@ -28,11 +28,12 @@ class ToilWorkflow(object):
         self.endtime = os.path.join(self.workdir, 'endtime')
         self.pidfile = os.path.join(self.workdir, 'pid')
         self.cmdfile = os.path.join(self.workdir, 'cmd')
+        self.jobstorefile = os.path.join(self.workdir, 'jobstore')
         self.request_json = os.path.join(self.workdir, 'request.json')
         self.output_json = os.path.join(self.workdir, "output.json")
         self.input_wf_filename = os.path.join(self.workdir, "wes_workflow.cwl")
         self.input_json = os.path.join(self.workdir, "wes_input.json")
-        self.jobstore_default = os.path.join(self.workdir, 'toiljobstore')
+        self.jobstore_default = os.path.join(self.workdir, 'file:toiljobstore')
         self.jobstore = None
 
     def sort_toil_options(self, extra):
@@ -43,13 +44,18 @@ class ToilWorkflow(object):
                 self.jobstore = e[11:]
                 if self.jobstore.startswith(('aws', 'google', 'azure')):
                     cloud = True
-            if e.startswith('--outdir='):
+            if e.startswith(('--outdir=', '-o=')):
                 extra.remove(e)
         if not cloud:
             extra.append('--outdir=' + self.outdir)
         if not self.jobstore:
-            extra.append('--jobStore=file:' + self.jobstore_default)
+            extra.append('--jobStore=' + self.jobstore_default)
             self.jobstore = self.jobstore_default
+
+        # store the jobstore location
+        with open(self.jobstorefile, 'w') as f:
+            f.write(self.jobstore)
+
         return extra
 
     def write_workflow(self, request, opts, cwd, wftype='cwl'):
@@ -79,8 +85,8 @@ class ToilWorkflow(object):
 
     def write_json(self, request_dict):
         input_json = os.path.join(self.workdir, 'input.json')
-        with open(input_json, 'w') as inputtemp:
-            json.dump(request_dict['workflow_params'], inputtemp)
+        with open(input_json, 'w') as f:
+            json.dump(request_dict['workflow_params'], f)
         return input_json
 
     def call_cmd(self, cmd, cwd):
@@ -128,8 +134,8 @@ class ToilWorkflow(object):
 
         outputobj = {}
         if state == "COMPLETE":
-            with open(self.output_json, "r") as outputtemp:
-                outputobj = json.load(outputtemp)
+            with open(self.output_json, "r") as f:
+                outputobj = json.load(f)
 
         return {
             "run_id": self.run_id,
@@ -209,42 +215,19 @@ class ToilWorkflow(object):
         state = "RUNNING"
         exit_code = -1
 
-        exitcode_file = os.path.join(self.workdir, "exit_code")
-        pid_file = os.path.join(self.workdir, "pid")
+        with open(self.jobstorefile, 'r') as f:
+            self.jobstore = f.read()
 
-        if os.path.exists(exitcode_file):
-            with open(exitcode_file) as f:
-                exit_code = int(f.read())
-        elif os.path.exists(pid_file):
-            with open(pid_file, "r") as pid:
-                pid = int(pid.read())
-            try:
-                (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
-                if _pid != 0:
-                    exit_code = exit_status >> 8
-                    with open(exitcode_file, "w") as f:
-                        f.write(str(exit_code))
-                    os.unlink(pid_file)
-            except OSError:
-                os.unlink(pid_file)
-                exit_code = 255
-
-        if exit_code == 0:
-            state = "COMPLETE"
-        elif exit_code != -1:
+        logs = subprocess.check_output(['toil', 'status', 'file:' + self.jobstore, '--printLogs'])
+        if 'ERROR:toil.worker:Exiting' in logs:
             state = "EXECUTOR_ERROR"
-
-        # Uncomment once https://github.com/DataBiosphere/toil/pull/2330 is merged
-        # logs = subprocess.check_output(['toil', 'status', 'file:' + self.jobstore, '--printLogs'])
-        # if 'ERROR:toil.worker:Exiting' in logs:
-        #     state = "EXECUTOR_ERROR"
-        #     exit_code = 255
-        # elif 'Root job is absent.  The workflow may have completed successfully.' in logs:
-        #     state = "COMPLETE"
-        #     exit_code = 0
-        # elif 'No job store found.' in logs:
-        #     state = "INITIALIZING"
-        #     exit_code = -1
+            exit_code = 255
+        elif 'Root job is absent.  The workflow may have completed successfully.' in logs:
+            state = "COMPLETE"
+            exit_code = 0
+        elif 'No job store found.' in logs:
+            state = "INITIALIZING"
+            exit_code = -1
 
         return state, exit_code
 

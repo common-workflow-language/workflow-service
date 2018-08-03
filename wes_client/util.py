@@ -49,6 +49,8 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     if attachments:
         for attachment in attachments:
             attachment = attachment[7:] if attachment.startswith("file://") else attachment
+            if ':' in attachment:
+                raise TypeError('Only local files supported for attachment: %s' % attachment)
             parts.append(("workflow_attachment", (os.path.basename(attachment), open(attachment, "rb"))))
 
     return parts
