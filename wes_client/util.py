@@ -33,7 +33,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
 
     :return: A list of tuples formatted to be sent in a post to the wes-server (Swagger API).
     """
-    workflow_file = "file://" + workflow_file if "://" not in workflow_file else workflow_file
+    workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
     json_path = json_path[7:] if json_path.startswith("file://") else json_path
 
     parts = [("workflow_params", json.dumps(json.load(open(json_path)))),

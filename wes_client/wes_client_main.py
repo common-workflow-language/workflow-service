@@ -12,6 +12,7 @@ import schema_salad.ref_resolver
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
 from wes_service.util import visit
+from wes_client.util import build_wes_request
 from bravado.client import SwaggerClient
 from bravado.requests_client import RequestsClient
 
@@ -25,6 +26,7 @@ def main(argv=sys.argv[1:]):
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
+    parser.add_argument("--attachments", type=list, default=None)
     parser.add_argument("--page", type=str, default=None)
     parser.add_argument("--page-size", type=int, default=None)
 
@@ -81,15 +83,8 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
-    if args.workflow_url.lower().endswith('wdl'):
-        wf_type = 'WDL'
-    elif args.workflow_url.lower().endswith('cwl'):
-        wf_type = 'CWL'
-    elif args.workflow_url.lower().endswith('py'):
-        wf_type = 'PY'
-
     if not args.job_order:
-        logging.error("Missing job order")
+        logging.error("Missing json/yaml file.")
         return 1
 
     loader = schema_salad.ref_resolver.Loader({
@@ -112,35 +107,12 @@ def main(argv=sys.argv[1:]):
                 del d["path"]
     visit(input_dict, fixpaths)
 
-    workflow_url = args.workflow_url
-    if ":" not in workflow_url:
-        workflow_url = "file://" + os.path.abspath(workflow_url)
-
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    parts = [
-        ("workflow_params", json.dumps(input_dict)),
-        ("workflow_type", wf_type),
-        ("workflow_type_version", "v1.0")
-    ]
-    if workflow_url.startswith("file://"):
-        # with open(workflow_url[7:], "rb") as f:
-        #     body["workflow_attachment"] = f.read()
-        rootdir = os.path.dirname(workflow_url[7:])
-        dirpath = rootdir
-        # for dirpath, dirnames, filenames in os.walk(rootdir):
-        for f in os.listdir(rootdir):
-            if f.startswith("."):
-                continue
-            fn = os.path.join(dirpath, f)
-            if os.path.isfile(fn):
-                parts.append(('workflow_attachment', (fn[len(rootdir)+1:], open(fn, "rb"))))
-        parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
-    else:
-        parts.append(("workflow_url", workflow_url))
+    parts = build_wes_request(args.workflow_url, args.job_order, attachments=args.attachments)
 
     postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (args.proto, args.host),
                                           files=parts,

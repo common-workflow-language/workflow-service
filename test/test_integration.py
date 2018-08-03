@@ -40,8 +40,8 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-        if os.path.exists('workflows'):
-            shutil.rmtree('workflows')
+        # if os.path.exists('workflows'):
+        #     shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
@@ -85,7 +85,7 @@ def run_cwl_md5sum(cwl_input, json_input, workflow_attachment=None):
                               json_input,
                               attachments=workflow_attachment)
     response = requests.post(endpoint, files=parts).json()
-
+    assert 'run_id' in response, str(response.json())
     output_dir = os.path.abspath(os.path.join('workflows', response['run_id'], 'outdir'))
     return os.path.join(output_dir, 'md5sum.txt'), response['run_id']
 
