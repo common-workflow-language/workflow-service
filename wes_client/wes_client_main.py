@@ -26,7 +26,9 @@ def main(argv=sys.argv[1:]):
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
-    parser.add_argument("--attachments", type=list, default=None)
+    parser.add_argument("--attachments", type=str, default=None,
+                        help='A comma separated list of attachments to include.  Example: '
+                             '--attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input"')
     parser.add_argument("--page", type=str, default=None)
     parser.add_argument("--page-size", type=int, default=None)
 
@@ -69,12 +71,12 @@ def main(argv=sys.argv[1:]):
         return 0
 
     if args.log:
-        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.log)
+        response = client.WorkflowExecutionService.GetRunLog(run_id=args.log)
         sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.get)
+        response = client.WorkflowExecutionService.GetRunLog(run_id=args.get)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -112,6 +114,7 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
+    args.attachments = args.attachments if not args.attachments else args.attachments.split(',')
     parts = build_wes_request(args.workflow_url, args.job_order, attachments=args.attachments)
 
     postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (args.proto, args.host),

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import unittest
 import time
 import os
@@ -44,8 +43,8 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-        # if os.path.exists('workflows'):
-        #     shutil.rmtree('workflows')
+        if os.path.exists('workflows'):
+            shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
@@ -130,7 +129,9 @@ class ToilTest(IntegrationTest):
         Start a (local) wes-service server to make requests against.
         Use toil as the wes-service server 'backend'.
         """
-        self.wes_server_process = subprocess.Popen('python {} --backend=wes_service.toil_wes --opt="extra=--logLevel=CRITICAL"'
+        self.wes_server_process = subprocess.Popen('python {} --backend=wes_service.toil_wes '
+                                                   '--opt="extra=--logLevel=CRITICAL"'
+                                                   '--opt="extra=--clean=never"'
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True)
         time.sleep(5)

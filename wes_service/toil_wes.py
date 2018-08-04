@@ -5,6 +5,7 @@ import subprocess
 import time
 import logging
 import uuid
+import shutil
 
 from multiprocessing import Process
 from wes_service.util import WESBackend
@@ -30,10 +31,9 @@ class ToilWorkflow(object):
         self.cmdfile = os.path.join(self.workdir, 'cmd')
         self.jobstorefile = os.path.join(self.workdir, 'jobstore')
         self.request_json = os.path.join(self.workdir, 'request.json')
-        self.output_json = os.path.join(self.workdir, "output.json")
         self.input_wf_filename = os.path.join(self.workdir, "wes_workflow.cwl")
         self.input_json = os.path.join(self.workdir, "wes_input.json")
-        self.jobstore_default = os.path.join(self.workdir, 'file:toiljobstore')
+        self.jobstore_default = 'file:' + os.path.join(self.workdir, 'toiljobstore')
         self.jobstore = None
 
     def sort_toil_options(self, extra):
@@ -117,15 +117,18 @@ class ToilWorkflow(object):
 
     def fetch(self, filename):
         if os.path.exists(filename):
-            with open(filename, "r") as f:
+            with open(filename, 'r') as f:
                 return f.read()
         return ''
 
     def getlog(self):
         state, exit_code = self.getstate()
 
-        with open(self.request_json, "r") as f:
+        with open(self.request_json, 'r') as f:
             request = json.load(f)
+
+        with open(self.jobstorefile, 'r') as f:
+            self.jobstore = f.read()
 
         stderr = self.fetch(self.errfile)
         starttime = self.fetch(self.starttime)
@@ -134,8 +137,15 @@ class ToilWorkflow(object):
 
         outputobj = {}
         if state == "COMPLETE":
-            with open(self.output_json, "r") as f:
-                outputobj = json.load(f)
+            # only tested locally
+            if self.jobstore.startswith('file:'):
+                for f in os.listdir(self.outdir):
+                    if f.startswith('out_tmpdir'):
+                        shutil.rmtree(os.path.join(self.outdir, f))
+                for f in os.listdir(self.outdir):
+                    outputobj[f] = {'location': os.path.join(self.outdir, f),
+                                    'size': os.stat(os.path.join(self.outdir, f)).st_size,
+                                    'class': 'File'}
 
         return {
             "run_id": self.run_id,
@@ -218,17 +228,23 @@ class ToilWorkflow(object):
         with open(self.jobstorefile, 'r') as f:
             self.jobstore = f.read()
 
-        logs = subprocess.check_output(['toil', 'status', 'file:' + self.jobstore, '--printLogs'])
-        if 'ERROR:toil.worker:Exiting' in logs:
+        p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logs, stderr = p.communicate()
+        assert p.returncode == 0
+        if 'ERROR:toil.worker:Exiting' in logs or \
+           'ERROR:toil.worker:Exiting' in stderr:
             state = "EXECUTOR_ERROR"
             exit_code = 255
-        elif 'Root job is absent.  The workflow may have completed successfully.' in logs:
+        elif 'Root job is absent.  The workflow may have completed successfully.' in logs or \
+             'Root job is absent.  The workflow may have completed successfully.' in stderr:
             state = "COMPLETE"
             exit_code = 0
-        elif 'No job store found.' in logs:
+        elif 'No job store found.' in logs or \
+             'No job store found.' in stderr:
             state = "INITIALIZING"
             exit_code = -1
 
+        logging.info('Workflow ' + self.run_id + ': ' + state)
         return state, exit_code
 
     def getstatus(self):
@@ -257,7 +273,7 @@ class ToilBackend(WESBackend):
             'key_values': {}
         }
 
-    def ListRuns(self):
+    def ListRuns(self, page_size=None, page_token=None, state_search=None):
         # FIXME #15 results don't page
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):

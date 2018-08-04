@@ -27,7 +27,7 @@ $ wes-server
 Note! All inputs files must be accessible from the filesystem.
 
 ```
-$ wes-client --host=localhost:8080 testdata/md5sum.cwl testdata/md5sum.cwl.json
+$ wes-client --host=localhost:8080 --proto=http --attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input" testdata/md5sum.cwl testdata/md5sum.cwl.json
 ```
 
 ### List workflows
@@ -56,10 +56,17 @@ $ wes-client --proto http --host=locahost:8080 --log <workflow-id>
 $ wes-server --backend=wes_service.arvados_wes
 ```
 
+### Run a standalone server with Toil backend:
+
+```
+$ pip install toil[all]
+$ wes-server --backend=wes_service.toil_wes --opt extra=--clean=never
+```
+
 ### Use a different executable with cwl_runner backend
 
 ```
-$ pip install toil
+$ pip install toil[all]
 $ wes-server --backend=wes_service.cwl_runner --opt runner=cwltoil --opt extra=--logLevel=CRITICAL
 ```
 
@@ -98,7 +105,14 @@ flags, `--host`, `--auth`, and `proto` respectively.
 
 ## Development
 If you would like to develop against `workflow-service` make sure you pass the provided test and it is flake8 compliant
-#### Run test
+
+#### Install from Source
+
+```
+$ virtualenv venv && source venv/bin/activate && pip install toil==3.16.0 && pip install . --process-dependency-links && pip install -r dev-requirements.txt
+```
+
+#### Running Tests
 From path `workflow-service` run 
 
 ```
