@@ -230,7 +230,6 @@ class ToilWorkflow(object):
 
         p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logs, stderr = p.communicate()
-        assert p.returncode == 0
         if 'ERROR:toil.worker:Exiting' in logs or \
            'ERROR:toil.worker:Exiting' in stderr:
             state = "EXECUTOR_ERROR"
