@@ -130,7 +130,7 @@ class ToilTest(IntegrationTest):
         Use toil as the wes-service server 'backend'.
         """
         self.wes_server_process = subprocess.Popen('python {} --backend=wes_service.toil_wes '
-                                                   '--opt="extra=--logLevel=CRITICAL"'
+                                                   '--opt="extra=--logLevel=CRITICAL" '
                                                    '--opt="extra=--clean=never"'
                                                    ''.format(os.path.abspath('wes_service/wes_service_main.py')),
                                                    shell=True)
