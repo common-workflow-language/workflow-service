@@ -1,28 +1,60 @@
 import os
 import json
+import subprocess
+import yaml
+from urllib import urlopen
+
+def _twoSevenCompatible(filePath):
+    """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
+    try:
+        passes = not subprocess.call(['python2', '-m', 'py_compile', filePath])
+    except:
+        raise RuntimeError('Python files must be 2.7 compatible')
+    return passes
 
 
-def wf_type(workflow_file):
-    if workflow_file.lower().endswith('wdl'):
-        return 'WDL'
-    elif workflow_file.lower().endswith('cwl'):
-        return 'CWL'
-    elif workflow_file.lower().endswith('py'):
-        return 'PY'
-    else:
-        raise ValueError('Unrecognized/unsupported workflow file extension: %s' % workflow_file.lower().split('.')[-1])
-
-
-def wf_version(workflow_file):
-    # TODO: Check inside of the file, handling local/http/etc.
-    if wf_type(workflow_file) == 'PY':
+def _getVersion(extension, workflow_file):
+    '''Determines the version of a .py, .wdl, or .cwl file.'''
+    if extension == 'py' and _twoSevenCompatible(workflow_file):
         return '2.7'
-    # elif wf_type(workflow_file) == 'CWL':
-    #     # only works locally
-    #     return yaml.load(open(workflow_file))['cwlVersion']
+    elif extension == 'cwl':
+        return yaml.load(open(workflow_file))['cwlVersion']
+    else:  # Must be a wdl file.
+        # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
+        try:
+            return [l.lstrip('version') for l in workflow_file.splitlines() if 'version' in l.split(' ')][0]
+        except IndexError:
+            return 'draft-2'
+
+
+def wf_info(workflow_file):
+    """
+    Returns the version of the file and the file extension.
+
+    Assumes that the file path is to the file directly ie, ends with a valid file extension.Supports checking local
+    files as well as files at http:// and https:// locations. Files at these remote locations are recreated locally to
+    enable our approach to version checking, then removed after version is extracted.
+    """
+
+    supportedFormats = ['py', 'wdl', 'cwl']
+    fileType = workflow_file.lower().split('.')[-1]  # Grab the file extension
+    workflow_file = workflow_file if ':' in workflow_file else 'file://' + workflow_file
+
+    if fileType in supportedFormats:
+        if workflow_file.startswith('file://'):
+            version = _getVersion(fileType, workflow_file[7:])
+        elif workflow_file.startswith('https://') or workflow_file.startswith('http://'):  # If file not local go fetch it.
+            html = urlopen(workflow_file).read()
+            localLoc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + fileType)
+            with open(localLoc, 'w') as f:
+                f.write(html)
+            version = wf_info('file://' + localLoc)[0] # Dont take the filetype here.
+            os.remove(localLoc)  # TODO: Find a way to avoid recreating file before version determination.
+        else:
+            raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_file))
     else:
-        # TODO: actually check the wdl file
-        return "v1.0"
+        raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(fileType, '.py, .cwl, or .wdl'))
+    return version, fileType.upper()
 
 
 def build_wes_request(workflow_file, json_path, attachments=None):
