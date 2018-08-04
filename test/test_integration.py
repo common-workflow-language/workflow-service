@@ -141,15 +141,6 @@ class ToilTest(IntegrationTest):
         outfile_path, run_id = run_md5sum(wf_input=self.wdl_local_path,
                                           json_input=self.wdl_json_input,
                                           workflow_attachment=self.wdl_attachments)
-
-        # debug travis >.<
-        with open(os.path.join('workflows', run_id, 'stderr'), 'r') as f:
-            print(f.read())
-        with open(os.path.join('workflows', run_id, 'stdout'), 'r') as f:
-            i = f.read()
-            print(f.read())
-        i = subprocess.check_output(['ls', os.path.join('workflows', run_id)])
-        assert i == 1, i
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
 
