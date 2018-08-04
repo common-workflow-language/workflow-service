@@ -144,9 +144,9 @@ class ToilTest(IntegrationTest):
 
         # debug travis >.<
         with open(os.path.join('workflows', run_id, 'stderr'), 'r') as f:
-            i = f.read()
             print(f.read())
         with open(os.path.join('workflows', run_id, 'stdout'), 'r') as f:
+            i = f.read()
             print(f.read())
         assert i == 1, i
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
