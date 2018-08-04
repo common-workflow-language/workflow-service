@@ -109,7 +109,7 @@ If you would like to develop against `workflow-service` make sure you pass the p
 #### Install from Source
 
 ```
-$ virtualenv venv && source venv/bin/activate && pip install toil==3.16.0 && pip install . --process-dependency-links && pip install -r dev-requirements.txt
+$ virtualenv venv && source venv/bin/activate && pip install toil[all] && pip install . --process-dependency-links && pip install -r dev-requirements.txt
 ```
 
 #### Running Tests
