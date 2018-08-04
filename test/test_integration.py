@@ -30,7 +30,7 @@ class IntegrationTest(unittest.TestCase):
         cls.wdl_attachments = ['file://' + os.path.abspath('testdata/md5sum.input')]
         
         # manual test (wdl only working locally atm)
-        self.manual = False
+        cls.manual = False
 
     def setUp(self):
         """Start a (local) wes-service server to make requests against."""
