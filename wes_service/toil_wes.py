@@ -108,6 +108,13 @@ class ToilWorkflow(object):
                                    cwd=cwd)
         stdout.close()
         stderr.close()
+
+        # debug travis >.<
+        with open(self.outfile, 'r') as f:
+            print(f.read())
+        with open(self.errfile, 'r') as f:
+            print(f.read())
+
         return process.pid
 
     def cancel(self):
