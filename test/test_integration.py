@@ -43,39 +43,39 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-        if os.path.exists('workflows'):
-            shutil.rmtree('workflows')
+        # if os.path.exists('workflows'):
+        #     shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
         """HTTP md5sum cwl (dockstore), run it on the wes-service server, and check for the correct output."""
-        outfile_path, _ = run_cwl_md5sum(cwl_input=self.cwl_dockstore_url,
-                                         json_input=self.cwl_json_input,
-                                         workflow_attachment=self.cwl_attachments)
+        outfile_path, _ = run_md5sum(wf_input=self.cwl_dockstore_url,
+                                     json_input=self.cwl_json_input,
+                                     workflow_attachment=self.cwl_attachments)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_local_md5sum(self):
         """LOCAL md5sum cwl to the wes-service server, and check for the correct output."""
-        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.cwl_local_path,
-                                              json_input=self.cwl_json_input,
-                                              workflow_attachment=self.cwl_attachments)
+        outfile_path, run_id = run_md5sum(wf_input=self.cwl_local_path,
+                                          json_input=self.cwl_json_input,
+                                          workflow_attachment=self.cwl_attachments)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_run_attachments(self):
         """LOCAL md5sum cwl to the wes-service server, check for attachments."""
-        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.cwl_local_path,
-                                              json_input=self.cwl_json_input,
-                                              workflow_attachment=self.cwl_attachments)
+        outfile_path, run_id = run_md5sum(wf_input=self.cwl_local_path,
+                                          json_input=self.cwl_json_input,
+                                          workflow_attachment=self.cwl_attachments)
         get_response = get_log_request(run_id)["request"]
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + get_response["workflow_attachment"])
         attachment_tool_path = get_response["workflow_attachment"][7:] + "/dockstore-tool-md5sum.cwl"
         self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: ' + get_response["workflow_attachment"])
 
 
-def run_cwl_md5sum(cwl_input, json_input, workflow_attachment=None):
+def run_md5sum(wf_input, json_input, workflow_attachment=None):
     """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
     endpoint = 'http://localhost:8080/ga4gh/wes/v1/runs'
-    parts = build_wes_request(cwl_input,
+    parts = build_wes_request(wf_input,
                               json_input,
                               attachments=workflow_attachment)
     response = requests.post(endpoint, files=parts).json()
@@ -138,9 +138,9 @@ class ToilTest(IntegrationTest):
 
     def test_local_wdl(self):
         """LOCAL md5sum wdl to the wes-service server, and check for the correct output."""
-        outfile_path, run_id = run_cwl_md5sum(cwl_input=self.wdl_local_path,
-                                              json_input=self.wdl_json_input,
-                                              workflow_attachment=self.wdl_attachments)
+        outfile_path, run_id = run_md5sum(wf_input=self.wdl_local_path,
+                                          json_input=self.wdl_json_input,
+                                          workflow_attachment=self.wdl_attachments)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
 

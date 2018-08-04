@@ -31,7 +31,6 @@ class ToilWorkflow(object):
         self.cmdfile = os.path.join(self.workdir, 'cmd')
         self.jobstorefile = os.path.join(self.workdir, 'jobstore')
         self.request_json = os.path.join(self.workdir, 'request.json')
-        self.input_wf_filename = os.path.join(self.workdir, "wes_workflow.cwl")
         self.input_json = os.path.join(self.workdir, "wes_input.json")
         self.jobstore_default = 'file:' + os.path.join(self.workdir, 'toiljobstore')
         self.jobstore = None
@@ -60,14 +59,13 @@ class ToilWorkflow(object):
 
     def write_workflow(self, request, opts, cwd, wftype='cwl'):
         """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
-        self.input_wf_filename = os.path.join(self.workdir, 'workflow.' + wftype)
 
         workflow_url = request.get("workflow_url")
 
         # link the cwl and json into the cwd
         if workflow_url.startswith('file://'):
-            os.link(workflow_url[7:], os.path.join(cwd, "wes_workflow.cwl"))
-            workflow_url = os.path.join(cwd, "wes_workflow.cwl")
+            os.link(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
+            workflow_url = os.path.join(cwd, "wes_workflow." + wftype)
         os.link(self.input_json, os.path.join(cwd, "wes_input.json"))
         self.input_json = os.path.join(cwd, "wes_input.json")
 
@@ -77,7 +75,7 @@ class ToilWorkflow(object):
         elif wftype == 'wdl':
             command_args = ['toil-wdl-runner'] + extra_options + [workflow_url, self.input_json]
         elif wftype == 'py':
-            command_args = ['python'] + extra_options + [self.input_wf_filename]
+            command_args = ['python'] + extra_options + [workflow_url]
         else:
             raise RuntimeError('workflow_type is not "cwl", "wdl", or "py": ' + str(wftype))
 
@@ -230,7 +228,7 @@ class ToilWorkflow(object):
 
         p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logs, stderr = p.communicate()
-        assert p.returncode == 0
+        # assert p.returncode == 0
         if 'ERROR:toil.worker:Exiting' in logs or \
            'ERROR:toil.worker:Exiting' in stderr:
             state = "EXECUTOR_ERROR"
