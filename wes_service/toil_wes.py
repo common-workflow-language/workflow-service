@@ -228,7 +228,7 @@ class ToilWorkflow(object):
 
         # the jobstore never existed
         if not os.path.exists(self.jobstorefile):
-            logging.info('Workflow ' + self.run_id + ': ' + state)
+            logging.info('Workflow ' + self.run_id + ': ' + "QUEUED")
             return "QUEUED", -1
 
         # completed earlier
