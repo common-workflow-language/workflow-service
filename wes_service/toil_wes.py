@@ -224,12 +224,15 @@ class ToilWorkflow(object):
         state = "RUNNING"
         exit_code = -1
 
+        if not os.path.exists(self.jobstorefile):
+            return "QUEUED", -1
+
         with open(self.jobstorefile, 'r') as f:
             self.jobstore = f.read()
 
         p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logs, stderr = p.communicate()
-        # assert p.returncode == 0
+
         if 'ERROR:toil.worker:Exiting' in logs or \
            'ERROR:toil.worker:Exiting' in stderr:
             state = "EXECUTOR_ERROR"

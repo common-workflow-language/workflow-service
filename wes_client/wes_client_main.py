@@ -8,7 +8,9 @@ import argparse
 import logging
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
-from wes_client.util import run_wf, wes_client, modify_jsonyaml_paths
+from wes_client.util import (run_wf,
+                             wes_client,
+                             modify_jsonyaml_paths)
 from bravado.requests_client import RequestsClient
 
 
