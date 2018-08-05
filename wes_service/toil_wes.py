@@ -252,11 +252,6 @@ class ToilWorkflow(object):
             open(self.staterrorfile, 'a').close()
             state = "EXECUTOR_ERROR"
             exit_code = 255
-        elif 'Root job is absent.  The workflow may have completed successfully.' in logs or \
-             'Root job is absent.  The workflow may have completed successfully.' in stderr:
-            open(self.statcompletefile, 'a').close()
-            state = "COMPLETE"
-            exit_code = 0
         # the jobstore existed once, but was deleted
         elif 'No job store found.' in logs or \
              'No job store found.' in stderr:
@@ -266,6 +261,10 @@ class ToilWorkflow(object):
                         logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
                         open(self.statcompletefile, 'a').close()
                         return "COMPLETE", 0
+                    if 'returned non-zero exit status' in line:
+                        logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
+                        open(self.staterrorfile, 'a').close()
+                        return "EXECUTOR_ERROR", 255
             state = "INITIALIZING"
             exit_code = -1
 
