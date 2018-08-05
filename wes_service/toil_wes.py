@@ -28,6 +28,8 @@ class ToilWorkflow(object):
         self.starttime = os.path.join(self.workdir, 'starttime')
         self.endtime = os.path.join(self.workdir, 'endtime')
         self.pidfile = os.path.join(self.workdir, 'pid')
+        self.statcompletefile = os.path.join(self.workdir, 'status_completed')
+        self.staterrorfile = os.path.join(self.workdir, 'status_error')
         self.cmdfile = os.path.join(self.workdir, 'cmd')
         self.jobstorefile = os.path.join(self.workdir, 'jobstore')
         self.request_json = os.path.join(self.workdir, 'request.json')
@@ -224,25 +226,46 @@ class ToilWorkflow(object):
         state = "RUNNING"
         exit_code = -1
 
+        # the jobstore never existed
         if not os.path.exists(self.jobstorefile):
+            logging.info('Workflow ' + self.run_id + ': ' + state)
             return "QUEUED", -1
 
+        # completed earlier
+        if os.path.exists(self.statcompletefile):
+            logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
+            return "COMPLETE", 0
+
+        # errored earlier
+        if os.path.exists(self.staterrorfile):
+            logging.info('Workflow ' + self.run_id + ': ' + "EXECUTOR_ERROR")
+            return "EXECUTOR_ERROR", 255
+
+        # query toil for status
         with open(self.jobstorefile, 'r') as f:
             self.jobstore = f.read()
-
         p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logs, stderr = p.communicate()
 
         if 'ERROR:toil.worker:Exiting' in logs or \
            'ERROR:toil.worker:Exiting' in stderr:
+            open(self.staterrorfile, 'a').close()
             state = "EXECUTOR_ERROR"
             exit_code = 255
         elif 'Root job is absent.  The workflow may have completed successfully.' in logs or \
              'Root job is absent.  The workflow may have completed successfully.' in stderr:
+            open(self.statcompletefile, 'a').close()
             state = "COMPLETE"
             exit_code = 0
+        # the jobstore existed once, but was deleted
         elif 'No job store found.' in logs or \
              'No job store found.' in stderr:
+            with open(self.errfile, 'r') as f:
+                for line in f:
+                    if 'Finished toil run successfully.' in line:
+                        logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
+                        open(self.statcompletefile, 'a').close()
+                        return "COMPLETE", 0
             state = "INITIALIZING"
             exit_code = -1
 
