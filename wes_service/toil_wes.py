@@ -217,59 +217,52 @@ class ToilWorkflow(object):
 
     def getstate(self):
         """
-        Returns INITIALIZING, -1
-                RUNNING, -1
-                COMPLETE, 0
+        Returns QUEUED,          -1
+                INITIALIZING,    -1
+                RUNNING,         -1
+                COMPLETE,         0
                 or
                 EXECUTOR_ERROR, 255
         """
-        state = "RUNNING"
-        exit_code = -1
-
         # the jobstore never existed
         if not os.path.exists(self.jobstorefile):
-            logging.info('Workflow ' + self.run_id + ': ' + "QUEUED")
+            logging.info('Workflow ' + self.run_id + ': QUEUED')
             return "QUEUED", -1
 
         # completed earlier
         if os.path.exists(self.statcompletefile):
-            logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
+            logging.info('Workflow ' + self.run_id + ': COMPLETE')
             return "COMPLETE", 0
 
         # errored earlier
         if os.path.exists(self.staterrorfile):
-            logging.info('Workflow ' + self.run_id + ': ' + "EXECUTOR_ERROR")
+            logging.info('Workflow ' + self.run_id + ': EXECUTOR_ERROR')
             return "EXECUTOR_ERROR", 255
 
-        # query toil for status
-        with open(self.jobstorefile, 'r') as f:
-            self.jobstore = f.read()
-        p = subprocess.Popen(['toil', 'status', self.jobstore, '--printLogs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logs, stderr = p.communicate()
+        # the workflow is staged but has not run yet
+        if not os.path.exists(self.stderr):
+            logging.info('Workflow ' + self.run_id + ': INITIALIZING')
+            return "INITIALIZING", -1
 
-        if 'ERROR:toil.worker:Exiting' in logs or \
-           'ERROR:toil.worker:Exiting' in stderr:
-            open(self.staterrorfile, 'a').close()
-            state = "EXECUTOR_ERROR"
-            exit_code = 255
-        # the jobstore existed once, but was deleted
-        elif 'No job store found.' in logs or \
-             'No job store found.' in stderr:
-            with open(self.errfile, 'r') as f:
-                for line in f:
-                    if 'Finished toil run successfully.' in line:
-                        logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
-                        open(self.statcompletefile, 'a').close()
-                        return "COMPLETE", 0
-                    if 'returned non-zero exit status' in line:
-                        logging.info('Workflow ' + self.run_id + ': ' + "COMPLETE")
-                        open(self.staterrorfile, 'a').close()
-                        return "EXECUTOR_ERROR", 255
-            state = "INITIALIZING"
-            exit_code = -1
+        # TODO: Query with "toil status"
+        completed = False
+        with open(self.errfile, 'r') as f:
+            for line in f:
+                if 'Traceback (most recent call last)' in line:
+                    logging.info('Workflow ' + self.run_id + ': EXECUTOR_ERROR')
+                    open(self.staterrorfile, 'a').close()
+                    return "EXECUTOR_ERROR", 255
+                # run can complete successfully but fail to upload outputs to cloud buckets
+                # so save the completed status and make sure there was no error elsewhere
+                if 'Finished toil run successfully.' in line:
+                    completed = True
+        if completed:
+            logging.info('Workflow ' + self.run_id + ': COMPLETE')
+            open(self.statcompletefile, 'a').close()
+            return "COMPLETE", 0
 
-        logging.info('Workflow ' + self.run_id + ': ' + state)
-        return state, exit_code
+        logging.info('Workflow ' + self.run_id + ': RUNNING')
+        return "RUNNING", -1
 
     def getstatus(self):
         state, exit_code = self.getstate()
