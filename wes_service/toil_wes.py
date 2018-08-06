@@ -240,7 +240,7 @@ class ToilWorkflow(object):
             return "EXECUTOR_ERROR", 255
 
         # the workflow is staged but has not run yet
-        if not os.path.exists(self.stderr):
+        if not os.path.exists(self.errfile):
             logging.info('Workflow ' + self.run_id + ': INITIALIZING')
             return "INITIALIZING", -1
 
