@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-import urlparse
 import pkg_resources  # part of setuptools
-import urllib
 import json
 import time
 import sys
 import os
 import argparse
 import logging
-import schema_salad.ref_resolver
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
-from wes_service.util import visit
-from bravado.client import SwaggerClient
+from wes_client.util import (run_wf,
+                             wes_client,
+                             modify_jsonyaml_paths)
 from bravado.requests_client import RequestsClient
 
 
@@ -25,6 +23,9 @@ def main(argv=sys.argv[1:]):
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
+    parser.add_argument("--attachments", type=str, default=None,
+                        help='A comma separated list of attachments to include.  Example: '
+                             '--attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input"')
     parser.add_argument("--page", type=str, default=None)
     parser.add_argument("--page-size", type=int, default=None)
 
@@ -52,32 +53,25 @@ def main(argv=sys.argv[1:]):
         exit(0)
 
     http_client = RequestsClient()
-    split = urlparse.urlsplit("%s://%s/" % (args.proto, args.host))
-
-    http_client.set_api_key(
-        split.hostname, args.auth,
-        param_name="Authorization", param_in="header")
-    client = SwaggerClient.from_url(
-        "%s://%s/ga4gh/wes/v1/swagger.json" % (args.proto, args.host),
-        http_client=http_client, config={"use_models": False})
+    client = wes_client(http_client, args.auth, args.proto, args.host)
 
     if args.list:
-        response = client.WorkflowExecutionService.ListRuns(page_token=args.page, page_size=args.page_size)
+        response = client.ListRuns(page_token=args.page, page_size=args.page_size)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.log:
-        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.log)
+        response = client.GetRunLog(run_id=args.log)
         sys.stdout.write(response.result()["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.WorkflowExecutionService.GetRunLog(workflow_id=args.get)
+        response = client.GetRunLog(run_id=args.get)
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
     if args.info:
-        response = client.WorkflowExecutionService.GetServiceInfo()
+        response = client.GetServiceInfo()
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
@@ -85,80 +79,25 @@ def main(argv=sys.argv[1:]):
         parser.print_help()
         return 1
 
-    if args.workflow_url.lower().endswith('wdl'):
-        wf_type = 'WDL'
-    elif args.workflow_url.lower().endswith('cwl'):
-        wf_type = 'CWL'
-    elif args.workflow_url.lower().endswith('py'):
-        wf_type = 'PY'
-
     if not args.job_order:
-        logging.error("Missing job order")
+        logging.error("Missing json/yaml file.")
         return 1
 
-    loader = schema_salad.ref_resolver.Loader({
-        "location": {"@type": "@id"},
-        "path": {"@type": "@id"}
-    })
-    input_dict, _ = loader.resolve_ref(args.job_order, checklinks=False)
-
-    basedir = os.path.dirname(args.job_order)
-
-    def fixpaths(d):
-        """Make sure all paths have a schema."""
-        if isinstance(d, dict):
-            if "path" in d:
-                if ":" not in d["path"]:
-                    local_path = os.path.normpath(os.path.join(os.getcwd(), basedir, d["path"]))
-                    d["location"] = urllib.pathname2url(local_path)
-                else:
-                    d["location"] = d["path"]
-                del d["path"]
-    visit(input_dict, fixpaths)
-
-    workflow_url = args.workflow_url
-    if ":" not in workflow_url:
-        workflow_url = "file://" + os.path.abspath(workflow_url)
+    modify_jsonyaml_paths(args.job_order)
 
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    parts = [
-        ("workflow_params", json.dumps(input_dict)),
-        ("workflow_type", wf_type),
-        ("workflow_type_version", "v1.0")
-    ]
-    if workflow_url.startswith("file://"):
-        # with open(workflow_url[7:], "rb") as f:
-        #     body["workflow_attachment"] = f.read()
-        rootdir = os.path.dirname(workflow_url[7:])
-        dirpath = rootdir
-        # for dirpath, dirnames, filenames in os.walk(rootdir):
-        for f in os.listdir(rootdir):
-            if f.startswith("."):
-                continue
-            fn = os.path.join(dirpath, f)
-            if os.path.isfile(fn):
-                parts.append(('workflow_attachment', (fn[len(rootdir)+1:], open(fn, "rb"))))
-        parts.append(("workflow_url", os.path.basename(workflow_url[7:])))
-    else:
-        parts.append(("workflow_url", workflow_url))
-
-    postresult = http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (args.proto, args.host),
-                                          files=parts,
-                                          headers={"Authorization": args.auth})
-
-    try:
-        r = json.loads(postresult.text)
-    except ValueError:
-        logging.error("%s", postresult.text)
-        exit(1)
-
-    if postresult.status_code != 200:
-        logging.error("%s", r)
-        exit(1)
+    args.attachments = args.attachments if not args.attachments else args.attachments.split(',')
+    r = run_wf(args.workflow_url,
+               args.job_order,
+               args.attachments,
+               http_client,
+               args.auth,
+               args.proto,
+               args.host)
 
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])
@@ -166,14 +105,14 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
+    r = client.GetRunStatus(run_id=r["run_id"]).result()
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.WorkflowExecutionService.GetRunStatus(run_id=r["run_id"]).result()
+        r = client.GetRunStatus(run_id=r["run_id"]).result()
 
     logging.info("State is %s", r["state"])
 
-    s = client.WorkflowExecutionService.GetRunLog(run_id=r["run_id"]).result()
+    s = client.GetRunLog(run_id=r["run_id"]).result()
 
     try:
         # TODO: Only works with Arvados atm
@@ -185,6 +124,7 @@ def main(argv=sys.argv[1:]):
     except MissingSchema:
         logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
 
+    # print the output json
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
         del s["outputs"]["fields"]
     json.dump(s["outputs"], sys.stdout, indent=4)
