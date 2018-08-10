@@ -78,7 +78,7 @@ def main(argv=sys.argv[1:]):
     if not args.workflow_url:
         parser.print_help()
         return 1
-      
+
     if not args.job_order:
         logging.error("Missing json/yaml file.")
         return 1
