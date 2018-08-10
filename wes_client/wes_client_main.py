@@ -81,6 +81,10 @@ def main(argv=sys.argv[1:]):
         json.dump(response.result(), sys.stdout, indent=4)
         return 0
 
+    if not args.workflow_url:
+        parser.print_help()
+        return 1
+
     if args.workflow_url.lower().endswith('wdl'):
         wf_type = 'WDL'
     elif args.workflow_url.lower().endswith('cwl'):
@@ -96,7 +100,7 @@ def main(argv=sys.argv[1:]):
         "location": {"@type": "@id"},
         "path": {"@type": "@id"}
     })
-    input_dict, _ = loader.resolve_ref(args.job_order)
+    input_dict, _ = loader.resolve_ref(args.job_order, checklinks=False)
 
     basedir = os.path.dirname(args.job_order)
 
@@ -146,7 +150,11 @@ def main(argv=sys.argv[1:]):
                                           files=parts,
                                           headers={"Authorization": args.auth})
 
-    r = json.loads(postresult.text)
+    try:
+        r = json.loads(postresult.text)
+    except ValueError:
+        logging.error("%s", postresult.text)
+        exit(1)
 
     if postresult.status_code != 200:
         logging.error("%s", r)
