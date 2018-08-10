@@ -28,7 +28,7 @@ class IntegrationTest(unittest.TestCase):
         cls.wdl_json_input = "file://" + os.path.abspath('testdata/md5sum.wdl.json')
         cls.wdl_attachments = ['file://' + os.path.abspath('testdata/md5sum.input')]
 
-        # houses the API methods
+        # client for the swagger API methods
         cls.client = WESClient({'auth': '', 'proto': 'http', 'host': 'localhost:8080'})
         
         # manual test (wdl only working locally atm)
@@ -76,6 +76,39 @@ class IntegrationTest(unittest.TestCase):
         attachment_tool_path = get_response["workflow_attachment"][7:] + "/dockstore-tool-md5sum.cwl"
         self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: ' + get_response["workflow_attachment"])
 
+    def test_get_service_info(self):
+        """
+        Test wes_client.util.WESClient.get_service_info()
+
+        This method will exit(1) if the response is not 200.
+        """
+        r = self.client.get_service_info()
+        assert 'workflow_type_versions' in r
+        assert 'supported_wes_versions' in r
+        assert 'supported_filesystem_protocols' in r
+        assert 'engine_versions' in r
+
+    def test_list_runs(self):
+        """
+        Test wes_client.util.WESClient.list_runs()
+
+        This method will exit(1) if the response is not 200.
+        """
+        r = self.client.list_runs()
+        assert 'workflows' in r
+
+    def test_get_run_status(self):
+        """
+        Test wes_client.util.WESClient.run_status()
+
+        This method will exit(1) if the response is not 200.
+        """
+        outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_local_path,
+                                               json_input=self.cwl_json_input,
+                                               workflow_attachment=self.cwl_attachments)
+        r = self.client.get_run_status(run_id)
+        assert 'state' in r
+        assert 'run_id' in r
 
     def run_md5sum(self, wf_input, json_input, workflow_attachment=None):
         """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
@@ -136,14 +169,15 @@ class ToilTest(IntegrationTest):
         """LOCAL md5sum wdl to the wes-service server, and check for the correct output."""
         # Working locally but not on travis... >.<;
         if self.manual:
-            outfile_path, run_id = run_md5sum(wf_input=self.wdl_local_path,
-                                              json_input=self.wdl_json_input,
-                                              workflow_attachment=self.wdl_attachments)
+            outfile_path, run_id = self.run_md5sum(wf_input=self.wdl_local_path,
+                                                   json_input=self.wdl_json_input,
+                                                   workflow_attachment=self.wdl_attachments)
             self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
 
 # Prevent pytest/unittest's discovery from attempting to discover the base test class.
 del IntegrationTest
+
 
 if __name__ == '__main__':
     unittest.main()  # run all tests
