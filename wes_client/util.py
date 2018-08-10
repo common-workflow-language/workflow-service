@@ -111,7 +111,6 @@ class WESClient(object):
         WES API versions supported, and information about general
         the service availability.
 
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
@@ -128,7 +127,6 @@ class WESClient(object):
         live updates as the user traverses the pages, the behavior
         should be decided (and documented) by each implementation.
 
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
@@ -145,7 +143,6 @@ class WESClient(object):
         :param str workflow_file: A local/http/https path to a cwl/wdl/python workflow file.
         :param str jsonyaml: A local path to a json or yaml file.
         :param list attachments: A list of local paths to files that will be uploaded to the server.
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
@@ -163,7 +160,6 @@ class WESClient(object):
         Cancel a running workflow.
 
         :param run_id: String (typically a uuid) identifying the run.
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
@@ -178,7 +174,6 @@ class WESClient(object):
         Get detailed info about a running workflow.
 
         :param run_id: String (typically a uuid) identifying the run.
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
@@ -193,7 +188,6 @@ class WESClient(object):
         Get quick status info about a running workflow.
 
         :param run_id: String (typically a uuid) identifying the run.
-        :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
