@@ -30,7 +30,7 @@ class IntegrationTest(unittest.TestCase):
 
         # client for the swagger API methods
         cls.client = WESClient({'auth': '', 'proto': 'http', 'host': 'localhost:8080'})
-        
+
         # manual test (wdl only working locally atm)
         cls.manual = False
 
@@ -58,14 +58,14 @@ class IntegrationTest(unittest.TestCase):
                                           json_input=self.cwl_json_input,
                                           workflow_attachment=self.cwl_attachments)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
-    
+
     def test_local_md5sum(self):
         """LOCAL md5sum cwl to the wes-service server, and check for the correct output."""
         outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_local_path,
                                                json_input=self.cwl_json_input,
                                                workflow_attachment=self.cwl_attachments)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
-    
+
     def test_run_attachments(self):
         """LOCAL md5sum cwl to the wes-service server, check for attachments."""
         outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_local_path,
