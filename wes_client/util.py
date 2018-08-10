@@ -82,11 +82,11 @@ def modify_jsonyaml_paths(jsonyaml_file):
         "location": {"@type": "@id"},
         "path": {"@type": "@id"}
     })
-    input_dict, _ = loader.resolve_ref(jsonyaml_file)
+    input_dict, _ = loader.resolve_ref(jsonyaml_file, checklinks=False)
     basedir = os.path.dirname(jsonyaml_file)
 
     def fixpaths(d):
-        """Make sure all paths have a schema."""
+        """Make sure all paths have a URI scheme."""
         if isinstance(d, dict):
             if "path" in d:
                 if ":" not in d["path"]:
