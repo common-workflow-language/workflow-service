@@ -15,6 +15,12 @@ logging.basicConfig(level=logging.INFO)
 
 class ToilWorkflow(object):
     def __init__(self, run_id):
+        """
+        Represents a toil workflow.
+
+        :param str run_id: A uuid string.  Used to name the folder that contains
+            all of the files containing this particular workflow instance's information.
+        """
         super(ToilWorkflow, self).__init__()
         self.run_id = run_id
 
