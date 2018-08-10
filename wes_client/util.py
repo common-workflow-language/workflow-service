@@ -1,5 +1,6 @@
 import os
 import json
+import glob
 import requests
 import urllib
 import logging
@@ -88,6 +89,13 @@ def modify_jsonyaml_paths(jsonyaml_file):
                 del d["path"]
 
     visit(input_dict, fixpaths)
+
+
+def expand_globs(attachments):
+    expanded_list = []
+    for filepath in attachments:
+        expanded_list += glob.glob(filepath)
+    return set(expanded_list)
 
 
 def wes_reponse(postresult):

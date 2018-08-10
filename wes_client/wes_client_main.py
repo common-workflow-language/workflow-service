@@ -8,7 +8,7 @@ import argparse
 import logging
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
-from wes_client.util import modify_jsonyaml_paths, WESClient
+from wes_client.util import modify_jsonyaml_paths, expand_globs, WESClient
 
 
 def main(argv=sys.argv[1:]):
@@ -87,6 +87,7 @@ def main(argv=sys.argv[1:]):
         logging.basicConfig(level=logging.INFO)
 
     args.attachments = args.attachments if not args.attachments else args.attachments.split(',')
+    args.attachments = list(expand_globs(args.attachments))
     r = client.run(args.workflow_url, args.job_order, args.attachments)
 
     if args.wait:
