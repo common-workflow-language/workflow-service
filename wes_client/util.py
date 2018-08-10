@@ -157,6 +157,7 @@ class WESClient(object):
 
         :return: The body of the post result as a dictionary.
         """
+        attachments = list(expand_globs(attachments))
         parts = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
                                    files=parts,
