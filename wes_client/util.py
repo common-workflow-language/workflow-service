@@ -1,6 +1,6 @@
 import os
 import json
-from bravado.requests_client import RequestsClient
+import requests
 import urllib
 import logging
 import schema_salad.ref_resolver
@@ -102,7 +102,6 @@ class WESClient(object):
         self.auth = service['auth']
         self.proto = service['proto']
         self.host = service['host']
-        self.http_client = RequestsClient()
 
     def get_service_info(self):
         """
@@ -118,8 +117,8 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = self.http_client.session.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
-                                                  headers={"Authorization": self.auth})
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def list_runs(self):
@@ -135,8 +134,8 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = self.http_client.session.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                                  headers={"Authorization": self.auth})
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def run(self, wf, jsonyaml, attachments):
@@ -154,52 +153,52 @@ class WESClient(object):
         :return: The body of the post result as a dictionary.
         """
         parts = build_wes_request(wf, jsonyaml, attachments)
-        postresult = self.http_client.session.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                                   files=parts,
-                                                   headers={"Authorization": self.auth})
+        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+                                   files=parts,
+                                   headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def cancel(self, run_id):
         """
         Cancel a running workflow.
 
-        :param run_id:
+        :param run_id: String (typically a uuid) identifying the run.
         :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the delete result as a dictionary.
         """
-        postresult = self.http_client.session.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                                     headers={"Authorization": self.auth})
+        postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+                                     headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
         """
         Get detailed info about a running workflow.
 
-        :param run_id:
+        :param run_id: String (typically a uuid) identifying the run.
         :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = self.http_client.session.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                                  headers={"Authorization": self.auth})
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def get_run_status(self, run_id):
         """
         Get quick status info about a running workflow.
 
-        :param run_id:
+        :param run_id: String (typically a uuid) identifying the run.
         :param object http_client: bravado.requests_client.RequestsClient
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = self.http_client.session.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
-                                             headers={"Authorization": self.auth})
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
