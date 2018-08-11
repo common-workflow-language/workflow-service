@@ -94,7 +94,14 @@ def modify_jsonyaml_paths(jsonyaml_file):
 def expand_globs(attachments):
     expanded_list = []
     for filepath in attachments:
-        expanded_list += glob.glob(filepath)
+        if 'file://' in filepath:
+            for f in glob.glob(filepath[7:]):
+                expanded_list += ['file://' + os.path.abspath(f)]
+        elif ':' not in filepath:
+            for f in glob.glob(filepath):
+                expanded_list += ['file://' + os.path.abspath(f)]
+        else:
+            expanded_list += [filepath]
     return set(expanded_list)
 
 
