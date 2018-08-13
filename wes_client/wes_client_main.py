@@ -53,22 +53,22 @@ def main(argv=sys.argv[1:]):
 
     if args.list:
         response = client.list_runs()  # how to include: page_token=args.page, page_size=args.page_size ?
-        json.dump(response.result(), sys.stdout, indent=4)
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if args.log:
         response = client.get_run_log(run_id=args.log)
-        sys.stdout.write(response.result()["workflow_log"]["stderr"])
+        sys.stdout.write(response["workflow_log"]["stderr"])
         return 0
 
     if args.get:
         response = client.get_run_log(run_id=args.get)
-        json.dump(response.result(), sys.stdout, indent=4)
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if args.info:
         response = client.get_service_info()
-        json.dump(response.result(), sys.stdout, indent=4)
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if not args.workflow_url:
@@ -95,14 +95,14 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.get_run_status(run_id=r["run_id"]).result()
+    r = client.get_run_status(run_id=r["run_id"])
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.get_run_status(run_id=r["run_id"]).result()
+        r = client.get_run_status(run_id=r["run_id"])
 
     logging.info("State is %s", r["state"])
 
-    s = client.get_run_log(run_id=r["run_id"]).result()
+    s = client.get_run_log(run_id=r["run_id"])
 
     try:
         # TODO: Only works with Arvados atm
