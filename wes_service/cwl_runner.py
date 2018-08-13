@@ -173,6 +173,8 @@ class CWLRunnerBackend(WESBackend):
 
     def ListRuns(self, page_size=None, page_token=None, state_search=None):
         # FIXME #15 results don't page
+        if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
+            return {"workflows": [], "next_page_token": ""}
         wf = []
         for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
             if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):

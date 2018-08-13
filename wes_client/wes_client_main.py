@@ -8,10 +8,7 @@ import argparse
 import logging
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
-from wes_client.util import (run_wf,
-                             wes_client,
-                             modify_jsonyaml_paths)
-from bravado.requests_client import RequestsClient
+from wes_client.util import modify_jsonyaml_paths, WESClient
 
 
 def main(argv=sys.argv[1:]):
@@ -52,27 +49,26 @@ def main(argv=sys.argv[1:]):
         print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
-    http_client = RequestsClient()
-    client = wes_client(http_client, args.auth, args.proto, args.host)
+    client = WESClient({'auth': args.auth, 'proto': args.proto, 'host': args.host})
 
     if args.list:
-        response = client.ListRuns(page_token=args.page, page_size=args.page_size)
-        json.dump(response.result(), sys.stdout, indent=4)
+        response = client.list_runs()  # how to include: page_token=args.page, page_size=args.page_size ?
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if args.log:
-        response = client.GetRunLog(run_id=args.log)
-        sys.stdout.write(response.result()["workflow_log"]["stderr"])
+        response = client.get_run_log(run_id=args.log)
+        sys.stdout.write(response["workflow_log"]["stderr"])
         return 0
 
     if args.get:
-        response = client.GetRunLog(run_id=args.get)
-        json.dump(response.result(), sys.stdout, indent=4)
+        response = client.get_run_log(run_id=args.get)
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if args.info:
-        response = client.GetServiceInfo()
-        json.dump(response.result(), sys.stdout, indent=4)
+        response = client.get_service_info()
+        json.dump(response, sys.stdout, indent=4)
         return 0
 
     if not args.workflow_url:
@@ -90,14 +86,8 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    args.attachments = args.attachments if not args.attachments else args.attachments.split(',')
-    r = run_wf(args.workflow_url,
-               args.job_order,
-               args.attachments,
-               http_client,
-               args.auth,
-               args.proto,
-               args.host)
+    args.attachments = "" if not args.attachments else args.attachments.split(',')
+    r = client.run(args.workflow_url, args.job_order, args.attachments)
 
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])
@@ -105,14 +95,14 @@ def main(argv=sys.argv[1:]):
         sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.GetRunStatus(run_id=r["run_id"]).result()
+    r = client.get_run_status(run_id=r["run_id"])
     while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
         time.sleep(8)
-        r = client.GetRunStatus(run_id=r["run_id"]).result()
+        r = client.get_run_status(run_id=r["run_id"])
 
     logging.info("State is %s", r["state"])
 
-    s = client.GetRunLog(run_id=r["run_id"]).result()
+    s = client.get_run_log(run_id=r["run_id"])
 
     try:
         # TODO: Only works with Arvados atm
