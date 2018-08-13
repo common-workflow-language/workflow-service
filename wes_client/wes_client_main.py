@@ -86,7 +86,7 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    args.attachments = args.attachments if not args.attachments else args.attachments.split(',')
+    args.attachments = "" if not args.attachments else args.attachments.split(',')
     r = client.run(args.workflow_url, args.job_order, args.attachments)
 
     if args.wait:
