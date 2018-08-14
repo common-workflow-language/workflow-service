@@ -1,23 +1,18 @@
 import os
 import json
-import glob
-import requests
-import urllib
-import logging
 import schema_salad.ref_resolver
-from wes_service.util import visit
 import subprocess
 import yaml
 import glob
 import requests
 import urllib
 import logging
-import schema_salad.ref_resolver
 
 from wes_service.util import visit
 from urllib import urlopen
 
-def _twoSevenCompatible(filePath):
+
+def _two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
         passes = not subprocess.call(['python2', '-m', 'py_compile', filePath])
@@ -26,9 +21,9 @@ def _twoSevenCompatible(filePath):
     return passes
 
 
-def _getVersion(extension, workflow_file):
+def _get_version(extension, workflow_file):
     '''Determines the version of a .py, .wdl, or .cwl file.'''
-    if extension == 'py' and _twoSevenCompatible(workflow_file):
+    if extension == 'py' and _two_seven_compatible(workflow_file):
         return '2.7'
     elif extension == 'cwl':
         return yaml.load(open(workflow_file))['cwlVersion']
@@ -49,26 +44,26 @@ def wf_info(workflow_path):
     enable our approach to version checking, then removed after version is extracted.
     """
 
-    supportedFormats = ['py', 'wdl', 'cwl']
-    fileType = workflow_path.lower().split('.')[-1]  # Grab the file extension
+    supported_formats = ['py', 'wdl', 'cwl']
+    file_type = workflow_path.lower().split('.')[-1]  # Grab the file extension
     workflow_path = workflow_path if ':' in workflow_path else 'file://' + workflow_path
 
-    if fileType in supportedFormats:
+    if file_type in supported_formats:
         if workflow_path.startswith('file://'):
-            version = _getVersion(fileType, workflow_path[7:])
+            version = _get_version(file_type, workflow_path[7:])
         elif workflow_path.startswith('https://') or workflow_path.startswith('http://'):
             # If file not local go fetch it.
             html = urlopen(workflow_path).read()
-            localLoc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + fileType)
-            with open(localLoc, 'w') as f:
+            local_loc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_type)
+            with open(local_loc, 'w') as f:
                 f.write(html)
-            version = wf_info('file://' + localLoc)[0]  # Don't take the fileType here, found it above.
-            os.remove(localLoc)  # TODO: Find a way to avoid recreating file before version determination.
+            version = wf_info('file://' + local_loc)[0]  # Don't take the file_type here, found it above.
+            os.remove(local_loc)  # TODO: Find a way to avoid recreating file before version determination.
         else:
             raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_path))
     else:
-        raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(fileType, '.py, .cwl, or .wdl'))
-    return version, fileType.upper()
+        raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(file_type, '.py, .cwl, or .wdl'))
+    return version, file_type.upper()
 
 
 def build_wes_request(workflow_file, json_path, attachments=None):
