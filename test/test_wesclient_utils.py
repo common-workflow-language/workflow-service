@@ -3,7 +3,7 @@ import os
 import sys
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
-sys.path.insert(0, pkg_root) # noqa
+sys.path.insert(0, pkg_root)  # noqa
 
 from wes_client.util import wf_info
 
@@ -18,13 +18,13 @@ class WorkflowInfoTest(unittest.TestCase):
     remote = {'cwl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.cwl',
               'wdl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.wdl',
               'py': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/test/test_integration.py',
-              'unsupported': 'gs://topmed_workflow_testing/topmed_aligner/small_test_files_sbg/example_human_known_snp.py', # TODO: find real external file of .py, .cwl, .wdl
+              'unsupported': 'gs://topmed_workflow_testing/topmed_aligner/small_test_files_sbg/example_human_known_snp.py',  # TODO: find real external file of .py, .cwl, .wdl
               'unreachable': 'https://fake.py'}
 
     expected = {'cwl': ('v1.0', 'CWL'),
-                'wdl': ('draft-2','WDL'),
-                'py': ('2.7','PY'),
-                'pyWithPrefix': ('2.7','PY')}
+                'wdl': ('draft-2', 'WDL'),
+                'py': ('2.7', 'PY'),
+                'pyWithPrefix': ('2.7', 'PY')}
 
     def testSupportedFormatChecking(self):
         """
@@ -43,7 +43,6 @@ class WorkflowInfoTest(unittest.TestCase):
                 # Tests behavior after recieveing a non supported file type.
                 with self.assertRaises(TypeError):
                     wf_info(location)
-
 
     def testFileLocationChecking(self):
         """

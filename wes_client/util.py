@@ -4,6 +4,7 @@ import subprocess
 import yaml
 from urllib import urlopen
 
+
 def _twoSevenCompatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
@@ -49,7 +50,7 @@ def wf_info(workflow_path):
             localLoc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + fileType)
             with open(localLoc, 'w') as f:
                 f.write(html)
-            version = wf_info('file://' + localLoc)[0] # Don't take the fileType here, found it above.
+            version = wf_info('file://' + localLoc)[0]  # Don't take the fileType here, found it above.
             os.remove(localLoc)  # TODO: Find a way to avoid recreating file before version determination.
         else:
             raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_path))
