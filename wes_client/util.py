@@ -2,6 +2,13 @@ import os
 import json
 import subprocess
 import yaml
+import glob
+import requests
+import urllib
+import logging
+import schema_salad.ref_resolver
+
+from wes_service.util import visit
 from urllib import urlopen
 
 
@@ -69,10 +76,11 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     """
     workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
     json_path = json_path[7:] if json_path.startswith("file://") else json_path
+    wf_version, wf_type = wf_info(workflow_file)
 
     parts = [("workflow_params", json.dumps(json.load(open(json_path)))),
-             ("workflow_type", wf_type(workflow_file)),
-             ("workflow_type_version", wf_version(workflow_file))]
+             ("workflow_type", wf_type),
+             ("workflow_type_version", wf_version)]
 
     if workflow_file.startswith("file://"):
         parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
