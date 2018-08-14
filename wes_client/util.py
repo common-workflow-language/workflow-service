@@ -1,7 +1,7 @@
 import os
 import json
 import schema_salad.ref_resolver
-import subprocess
+from subprocess32 import check_call, DEVNULL, CalledProcessError
 import yaml
 import glob
 import requests
@@ -15,10 +15,10 @@ from urllib import urlopen
 def _two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
-        passes = not subprocess.call(['python2', '-m', 'py_compile', filePath])
-    except:
+        check_call(['python2', '-m', 'py_compile', filePath],stderr=DEVNULL)
+    except CalledProcessError:
         raise RuntimeError('Python files must be 2.7 compatible')
-    return passes
+    return True
 
 
 def _get_version(extension, workflow_file):
