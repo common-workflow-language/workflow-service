@@ -12,7 +12,7 @@ from wes_service.util import visit
 from urllib import urlopen
 
 
-def _two_seven_compatible(filePath):
+def two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
         check_call(['python2', '-m', 'py_compile', filePath], stderr=DEVNULL)
@@ -21,9 +21,9 @@ def _two_seven_compatible(filePath):
     return True
 
 
-def _get_version(extension, workflow_file):
+def get_version(extension, workflow_file):
     '''Determines the version of a .py, .wdl, or .cwl file.'''
-    if extension == 'py' and _two_seven_compatible(workflow_file):
+    if extension == 'py' and two_seven_compatible(workflow_file):
         return '2.7'
     elif extension == 'cwl':
         return yaml.load(open(workflow_file))['cwlVersion']
@@ -50,7 +50,7 @@ def wf_info(workflow_path):
 
     if file_type in supported_formats:
         if workflow_path.startswith('file://'):
-            version = _get_version(file_type, workflow_path[7:])
+            version = get_version(file_type, workflow_path[7:])
         elif workflow_path.startswith('https://') or workflow_path.startswith('http://'):
             # If file not local go fetch it.
             html = urlopen(workflow_path).read()
