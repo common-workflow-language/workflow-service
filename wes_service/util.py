@@ -2,7 +2,7 @@ import tempfile
 import json
 import os
 
-from six import itervalues
+from six import itervalues, iterlists
 import connexion
 from werkzeug.utils import secure_filename
 
@@ -45,7 +45,7 @@ class WESBackend(object):
     def collect_attachments(self):
         tempdir = tempfile.mkdtemp()
         body = {}
-        for k, ls in connexion.request.files.iterlists():
+        for k, ls in iterlists(connexion.request.files):
             for v in ls:
                 if k == "workflow_attachment":
                     filename = secure_filename(v.filename)

@@ -1,5 +1,11 @@
 import os
 import json
+import glob
+import requests
+import urllib
+import logging
+import schema_salad.ref_resolver
+from wes_service.util import visit
 import subprocess
 import yaml
 import glob
@@ -10,7 +16,6 @@ import schema_salad.ref_resolver
 
 from wes_service.util import visit
 from urllib import urlopen
-
 
 def _twoSevenCompatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
@@ -96,3 +101,154 @@ def build_wes_request(workflow_file, json_path, attachments=None):
             parts.append(("workflow_attachment", (os.path.basename(attachment), open(attachment, "rb"))))
 
     return parts
+
+
+def modify_jsonyaml_paths(jsonyaml_file):
+    """
+    Changes relative paths in a json/yaml file to be relative
+    to where the json/yaml file is located.
+
+    :param jsonyaml_file: Path to a json/yaml file.
+    """
+    loader = schema_salad.ref_resolver.Loader({
+        "location": {"@type": "@id"},
+        "path": {"@type": "@id"}
+    })
+    input_dict, _ = loader.resolve_ref(jsonyaml_file, checklinks=False)
+    basedir = os.path.dirname(jsonyaml_file)
+
+    def fixpaths(d):
+        """Make sure all paths have a URI scheme."""
+        if isinstance(d, dict):
+            if "path" in d:
+                if ":" not in d["path"]:
+                    local_path = os.path.normpath(os.path.join(os.getcwd(), basedir, d["path"]))
+                    d["location"] = urllib.pathname2url(local_path)
+                else:
+                    d["location"] = d["path"]
+                del d["path"]
+
+    visit(input_dict, fixpaths)
+
+
+def expand_globs(attachments):
+    expanded_list = []
+    for filepath in attachments:
+        if 'file://' in filepath:
+            for f in glob.glob(filepath[7:]):
+                expanded_list += ['file://' + os.path.abspath(f)]
+        elif ':' not in filepath:
+            for f in glob.glob(filepath):
+                expanded_list += ['file://' + os.path.abspath(f)]
+        else:
+            expanded_list += [filepath]
+    return set(expanded_list)
+
+
+def wes_reponse(postresult):
+    if postresult.status_code != 200:
+        logging.error("%s", json.loads(postresult.text))
+        exit(1)
+    return json.loads(postresult.text)
+
+
+class WESClient(object):
+    def __init__(self, service):
+        self.auth = service['auth']
+        self.proto = service['proto']
+        self.host = service['host']
+
+    def get_service_info(self):
+        """
+        Get information about Workflow Execution Service. May
+        include information related (but not limited to) the
+        workflow descriptor formats, versions supported, the
+        WES API versions supported, and information about general
+        the service availability.
+
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+        :return: The body of the get result as a dictionary.
+        """
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
+                                  headers={"Authorization": self.auth})
+        return wes_reponse(postresult)
+
+    def list_runs(self):
+        """
+        List the workflows, this endpoint will list the workflows
+        in order of oldest to newest. There is no guarantee of
+        live updates as the user traverses the pages, the behavior
+        should be decided (and documented) by each implementation.
+
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+        :return: The body of the get result as a dictionary.
+        """
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+                                  headers={"Authorization": self.auth})
+        return wes_reponse(postresult)
+
+    def run(self, wf, jsonyaml, attachments):
+        """
+        Composes and sends a post request that signals the wes server to run a workflow.
+
+        :param str workflow_file: A local/http/https path to a cwl/wdl/python workflow file.
+        :param str jsonyaml: A local path to a json or yaml file.
+        :param list attachments: A list of local paths to files that will be uploaded to the server.
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+
+        :return: The body of the post result as a dictionary.
+        """
+        attachments = list(expand_globs(attachments))
+        parts = build_wes_request(wf, jsonyaml, attachments)
+        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+                                   files=parts,
+                                   headers={"Authorization": self.auth})
+        return wes_reponse(postresult)
+
+    def cancel(self, run_id):
+        """
+        Cancel a running workflow.
+
+        :param run_id: String (typically a uuid) identifying the run.
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+        :return: The body of the delete result as a dictionary.
+        """
+        postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+                                     headers={"Authorization": self.auth})
+        return wes_reponse(postresult)
+
+    def get_run_log(self, run_id):
+        """
+        Get detailed info about a running workflow.
+
+        :param run_id: String (typically a uuid) identifying the run.
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+        :return: The body of the get result as a dictionary.
+        """
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+                                  headers={"Authorization": self.auth})
+        return wes_reponse(postresult)
+
+    def get_run_status(self, run_id):
+        """
+        Get quick status info about a running workflow.
+
+        :param run_id: String (typically a uuid) identifying the run.
+        :param str auth: String to send in the auth header.
+        :param proto: Schema where the server resides (http, https)
+        :param host: Port where the post request will be sent and the wes server listens at (default 8080)
+        :return: The body of the get result as a dictionary.
+        """
+        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
+                                  headers={"Authorization": self.auth})
+        return wes_reponse(postresult)

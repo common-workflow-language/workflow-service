@@ -3,7 +3,7 @@ python:
 - '2.7'
 before_install:
 - sudo apt-get update -qq
-- virtualenv venv && . venv/bin/activate && git clone https://github.com/DataBiosphere/toil.git && cd toil && make prepare && make develop extras=[all] && cd ..
+- pip install toil[all]==3.17.0
 - pip install . --process-dependency-links
 - pip install -r dev-requirements.txt
 script:
