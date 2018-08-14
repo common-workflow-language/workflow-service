@@ -18,6 +18,22 @@ class IntegrationTest(unittest.TestCase):
     def setUp(self):
         dirname, filename = os.path.split(os.path.abspath(__file__))
         self.testdata_dir = dirname + 'data'
+        self.local = {'cwl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.cwl'),
+                 'wdl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.wdl'),
+                 'py': 'file://' + os.path.join(os.getcwd() + '/test/test_integration.py'),
+                 'unsupported': 'fake.txt'}
+
+        self.remote = {
+            'cwl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.cwl',
+            'wdl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.wdl',
+            'py': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/test/test_integration.py',
+            'unsupported': 'gs://topmed_workflow_testing/topmed_aligner/small_test_files_sbg/example_human_known_snp.py',
+            'unreachable': 'https://fake.py'}
+
+        self.expected = {'cwl': ('v1.0', 'CWL'),
+                    'wdl': ('draft-2', 'WDL'),
+                    'py': ('2.7', 'PY'),
+                    'pyWithPrefix': ('2.7', 'PY')}
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
@@ -37,25 +53,6 @@ class IntegrationTest(unittest.TestCase):
         files = ['file://' + os.path.abspath(f) for f in files]
         glob_files = expand_globs('*')
         assert set(files) == glob_files, '\n' + str(set(files)) + '\n' + str(glob_files)
-
-
-class WorkflowInfoTest(unittest.TestCase):
-
-    local = {'cwl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.cwl'),
-             'wdl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.wdl'),
-             'py': 'file://' + os.path.join(os.getcwd() + '/test/test_integration.py'),
-             'unsupported': 'fake.txt'}
-
-    remote = {'cwl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.cwl',
-              'wdl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.wdl',
-              'py': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/test/test_integration.py',
-              'unsupported': 'gs://topmed_workflow_testing/topmed_aligner/small_test_files_sbg/example_human_known_snp.py',  # TODO: find real external file of .py, .cwl, .wdl
-              'unreachable': 'https://fake.py'}
-
-    expected = {'cwl': ('v1.0', 'CWL'),
-                'wdl': ('draft-2', 'WDL'),
-                'py': ('2.7', 'PY'),
-                'pyWithPrefix': ('2.7', 'PY')}
 
     def testSupportedFormatChecking(self):
         """
@@ -96,6 +93,7 @@ class WorkflowInfoTest(unittest.TestCase):
             else:
                 self.assertEquals(wf_info(location), self.expected[format])
                 self.assertFalse(os.path.isfile(os.path.join(os.getcwd(), 'fetchedFromRemote.' + format)))
+
 
 if __name__ == '__main__':
     unittest.main()  # run all tests
