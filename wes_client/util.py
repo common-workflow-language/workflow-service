@@ -15,7 +15,7 @@ from urllib import urlopen
 def _two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
-        check_call(['python2', '-m', 'py_compile', filePath],stderr=DEVNULL)
+        check_call(['python2', '-m', 'py_compile', filePath], stderr=DEVNULL)
     except CalledProcessError:
         raise RuntimeError('Python files must be 2.7 compatible')
     return True
