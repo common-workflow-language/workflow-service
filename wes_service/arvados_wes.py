@@ -155,8 +155,6 @@ class ArvadosBackend(WESBackend):
     def RunWorkflow(self, **args):
         tempdir, body = self.collect_attachments()
 
-        print(body)
-
         if not connexion.request.headers.get('Authorization'):
             raise MissingAuthorization()
 
@@ -214,7 +212,10 @@ class ArvadosBackend(WESBackend):
         if request["output_uuid"]:
             c = arvados.collection.CollectionReader(request["output_uuid"], api_client=api)
             with c.open("cwl.output.json") as f:
-                outputobj = json.load(f)
+                try:
+                    outputobj = json.load(f)
+                except ValueError:
+                    pass
 
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
