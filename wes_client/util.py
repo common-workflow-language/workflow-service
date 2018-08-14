@@ -27,7 +27,7 @@ def _getVersion(extension, workflow_file):
             return 'draft-2'
 
 
-def wf_info(workflow_file):
+def wf_info(workflow_path):
     """
     Returns the version of the file and the file extension.
 
@@ -37,21 +37,22 @@ def wf_info(workflow_file):
     """
 
     supportedFormats = ['py', 'wdl', 'cwl']
-    fileType = workflow_file.lower().split('.')[-1]  # Grab the file extension
-    workflow_file = workflow_file if ':' in workflow_file else 'file://' + workflow_file
+    fileType = workflow_path.lower().split('.')[-1]  # Grab the file extension
+    workflow_path = workflow_path if ':' in workflow_path else 'file://' + workflow_path
 
     if fileType in supportedFormats:
-        if workflow_file.startswith('file://'):
-            version = _getVersion(fileType, workflow_file[7:])
-        elif workflow_file.startswith('https://') or workflow_file.startswith('http://'):  # If file not local go fetch it.
-            html = urlopen(workflow_file).read()
+        if workflow_path.startswith('file://'):
+            version = _getVersion(fileType, workflow_path[7:])
+        elif workflow_path.startswith('https://') or workflow_path.startswith('http://'):
+            # If file not local go fetch it.
+            html = urlopen(workflow_path).read()
             localLoc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + fileType)
             with open(localLoc, 'w') as f:
                 f.write(html)
-            version = wf_info('file://' + localLoc)[0] # Dont take the filetype here.
+            version = wf_info('file://' + localLoc)[0] # Don't take the fileType here, found it above.
             os.remove(localLoc)  # TODO: Find a way to avoid recreating file before version determination.
         else:
-            raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_file))
+            raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_path))
     else:
         raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(fileType, '.py, .cwl, or .wdl'))
     return version, fileType.upper()
