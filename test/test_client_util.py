@@ -61,14 +61,14 @@ class IntegrationTest(unittest.TestCase):
         This test is run only on local files to avoid downloading and removing a new file.
         """
 
-        for format, location in self.local.items():
-            if format != 'unsupported':
+        for file_format, location in self.local.items():
+            if file_format != 'unsupported':
                 # Tests the behavior after receiving supported file types with and without the 'file://' prefix
-                self.assertEquals(wf_info(location), self.expected[format])
-                self.assertEquals(wf_info(location[7:]), self.expected[format])
+                self.assertEquals(wf_info(location), self.expected[file_format])
+                self.assertEquals(wf_info(location[7:]), self.expected[file_format])
 
             else:
-                # Tests behavior after recieveing a non supported file type.
+                # Tests behavior after receiving a non supported file type.
                 with self.assertRaises(TypeError):
                     wf_info(location)
 
@@ -79,20 +79,20 @@ class IntegrationTest(unittest.TestCase):
         This test needs to be run on remote files to test the location checking functionality of wf_info().
         """
 
-        for format, location in self.remote.items():
-            if format == 'unsupported':
+        for file_format, location in self.remote.items():
+            if file_format == 'unsupported':
                 # Tests behavior after receiving a file hosted at an unsupported location.
                 with self.assertRaises(NotImplementedError):
                     wf_info(location)
 
-            elif format == 'unreachable':
+            elif file_format == 'unreachable':
                 # Tests behavior after receiving a non-existent file.
                 with self.assertRaises(IOError):
                     wf_info(location)
 
             else:
-                self.assertEquals(wf_info(location), self.expected[format])
-                self.assertFalse(os.path.isfile(os.path.join(os.getcwd(), 'fetchedFromRemote.' + format)))
+                self.assertEquals(wf_info(location), self.expected[file_format])
+                self.assertFalse(os.path.isfile(os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_format)))
 
 
 if __name__ == '__main__':

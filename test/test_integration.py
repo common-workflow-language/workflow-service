@@ -7,6 +7,10 @@ import subprocess32 as subprocess
 import signal
 import shutil
 import logging
+import sys
+
+pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
+sys.path.insert(0, pkg_root)  # noqa
 
 from wes_client.util import WESClient
 
