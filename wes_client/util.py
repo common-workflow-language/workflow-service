@@ -1,35 +1,69 @@
 import os
 import json
+import schema_salad.ref_resolver
+from subprocess32 import check_call, DEVNULL, CalledProcessError
+import yaml
 import glob
 import requests
 import urllib
 import logging
-import schema_salad.ref_resolver
 
 from wes_service.util import visit
+from urllib import urlopen
 
 
-def wf_type(workflow_file):
-    if workflow_file.lower().endswith('wdl'):
-        return 'WDL'
-    elif workflow_file.lower().endswith('cwl'):
-        return 'CWL'
-    elif workflow_file.lower().endswith('py'):
-        return 'PY'
-    else:
-        raise ValueError('Unrecognized/unsupported workflow file extension: %s' % workflow_file.lower().split('.')[-1])
+def two_seven_compatible(filePath):
+    """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
+    try:
+        check_call(['python2', '-m', 'py_compile', filePath], stderr=DEVNULL)
+    except CalledProcessError:
+        raise RuntimeError('Python files must be 2.7 compatible')
+    return True
 
 
-def wf_version(workflow_file):
-    # TODO: Check inside of the file, handling local/http/etc.
-    if wf_type(workflow_file) == 'PY':
+def get_version(extension, workflow_file):
+    '''Determines the version of a .py, .wdl, or .cwl file.'''
+    if extension == 'py' and two_seven_compatible(workflow_file):
         return '2.7'
-    # elif wf_type(workflow_file) == 'CWL':
-    #     # only works locally
-    #     return yaml.load(open(workflow_file))['cwlVersion']
+    elif extension == 'cwl':
+        return yaml.load(open(workflow_file))['cwlVersion']
+    else:  # Must be a wdl file.
+        # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
+        try:
+            return [l.lstrip('version') for l in workflow_file.splitlines() if 'version' in l.split(' ')][0]
+        except IndexError:
+            return 'draft-2'
+
+
+def wf_info(workflow_path):
+    """
+    Returns the version of the file and the file extension.
+
+    Assumes that the file path is to the file directly ie, ends with a valid file extension.Supports checking local
+    files as well as files at http:// and https:// locations. Files at these remote locations are recreated locally to
+    enable our approach to version checking, then removed after version is extracted.
+    """
+
+    supported_formats = ['py', 'wdl', 'cwl']
+    file_type = workflow_path.lower().split('.')[-1]  # Grab the file extension
+    workflow_path = workflow_path if ':' in workflow_path else 'file://' + workflow_path
+
+    if file_type in supported_formats:
+        if workflow_path.startswith('file://'):
+            version = get_version(file_type, workflow_path[7:])
+        elif workflow_path.startswith('https://') or workflow_path.startswith('http://'):
+            # If file not local go fetch it.
+            html = urlopen(workflow_path).read()
+            local_loc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_type)
+            with open(local_loc, 'w') as f:
+                f.write(html)
+            version = wf_info('file://' + local_loc)[0]  # Don't take the file_type here, found it above.
+            os.remove(local_loc)  # TODO: Find a way to avoid recreating file before version determination.
+        else:
+            raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_path))
     else:
-        # TODO: actually check the wdl file
-        return "v1.0"
+        raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(file_type, '.py, .cwl, or .wdl'))
+    return version, file_type.upper()
 
 
 def build_wes_request(workflow_file, json_path, attachments=None):
@@ -42,10 +76,11 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     """
     workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
     json_path = json_path[7:] if json_path.startswith("file://") else json_path
+    wf_version, wf_type = wf_info(workflow_file)
 
     parts = [("workflow_params", json.dumps(json.load(open(json_path)))),
-             ("workflow_type", wf_type(workflow_file)),
-             ("workflow_type_version", wf_version(workflow_file))]
+             ("workflow_type", wf_type),
+             ("workflow_type_version", wf_version)]
 
     if workflow_file.startswith("file://"):
         parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
