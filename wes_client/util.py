@@ -2,15 +2,14 @@ import os
 import json
 import schema_salad.ref_resolver
 from subprocess32 import check_call, DEVNULL, CalledProcessError
-import yaml
 import glob
 import requests
 import urllib
 import logging
 
-from wes_service.util import visit
 from urllib import urlopen
 
+from ruamel import yaml
 
 def two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
@@ -26,7 +25,7 @@ def get_version(extension, workflow_file):
     if extension == 'py' and two_seven_compatible(workflow_file):
         return '2.7'
     elif extension == 'cwl':
-        return yaml.load(open(workflow_file))['cwlVersion']
+        return yaml.safe_load(open(workflow_file))['cwlVersion']
     else:  # Must be a wdl file.
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
         try:
@@ -96,6 +95,18 @@ def build_wes_request(workflow_file, json_path, attachments=None):
             parts.append(("workflow_attachment", (os.path.basename(attachment), open(attachment, "rb"))))
 
     return parts
+
+
+# Copied from wes_service.util to avoid import dependencies
+def visit(d, op):
+    """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
+    op(d)
+    if isinstance(d, list):
+        for i in d:
+            visit(i, op)
+    elif isinstance(d, dict):
+        for i in d.values():
+            visit(i, op)
 
 
 def modify_jsonyaml_paths(jsonyaml_file):
