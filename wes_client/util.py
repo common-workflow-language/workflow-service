@@ -163,6 +163,10 @@ class WESClient(object):
         self.auth = service['auth']
         self.proto = service['proto']
         self.host = service['host']
+        auth_param = {'token': 'Authorization',
+                      'api_key': 'X-API-KEY',
+                       None: ''} 
+        self.param_in = auth_param[service['auth_type']]
 
     def get_service_info(self):
         """
@@ -178,7 +182,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
-                                  headers={"Authorization": self.auth})
+                                  headers={self.param_in: self.auth})
         return wes_reponse(postresult)
 
     def list_runs(self):
@@ -194,7 +198,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                  headers={"Authorization": self.auth})
+                                  headers={self.param_in: self.auth})
         return wes_reponse(postresult)
 
     def run(self, wf, jsonyaml, attachments):
@@ -214,7 +218,7 @@ class WESClient(object):
         parts = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
                                    files=parts,
-                                   headers={"Authorization": self.auth})
+                                   headers={self.param_in: self.auth})
         return wes_reponse(postresult)
 
     def cancel(self, run_id):
@@ -228,7 +232,7 @@ class WESClient(object):
         :return: The body of the delete result as a dictionary.
         """
         postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                     headers={"Authorization": self.auth})
+                                     headers={self.param_in: self.auth})
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
@@ -242,7 +246,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                  headers={"Authorization": self.auth})
+                                  headers={self.param_in: self.auth})
         return wes_reponse(postresult)
 
     def get_run_status(self, run_id):
@@ -256,5 +260,5 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
-                                  headers={"Authorization": self.auth})
+                                  headers={self.param_in: self.auth})
         return wes_reponse(postresult)
