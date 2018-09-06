@@ -112,6 +112,9 @@ def build_wes_request(workflow_file, json_path, attachments=None):
         wf_params = modify_jsonyaml_paths(json_path)
     else:
         wf_params = json_path
+        with open(json_path) as f:
+            wf_params = json.dumps(json.load(f))
+
     wf_version, wf_type = wf_info(workflow_file)
 
     parts = [("workflow_params", wf_params),
