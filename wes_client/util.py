@@ -165,7 +165,7 @@ class WESClient(object):
         self.host = service['host']
         auth_param = {'token': 'Authorization',
                       'api_key': 'X-API-KEY',
-                       None: ''} 
+                       None: 'Authorization'} 
         self.param_in = auth_param[service['auth_type']]
 
     def get_service_info(self):
