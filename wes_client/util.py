@@ -110,7 +110,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
             wf_params = json.dumps(json.load(f))
     elif json_path.startswith("http"):
         wf_params = modify_jsonyaml_paths(json_path)
-    else: 
+    else:
         wf_params = json_path
     wf_version, wf_type = wf_info(workflow_file)
 
@@ -127,7 +127,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     if attachments:
         for attachment in attachments:
             if attachment.startswith("file://"):
-                attachment = attachment[7:] 
+                attachment = attachment[7:]
                 attach_f = open(attachment, "rb")
             elif attachment.startswith("http"):
                 attach_f = urlopen(attachment)
