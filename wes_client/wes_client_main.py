@@ -16,7 +16,6 @@ def main(argv=sys.argv[1:]):
     parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"),
                         help="Example: '--host=localhost:8080'.  Defaults to WES_API_HOST.")
     parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"), help="Defaults to WES_API_AUTH.")
-    parser.add_argument("--auth_type", type=str, default=None, help="Defaults to None.")
     parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"),
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
@@ -50,7 +49,7 @@ def main(argv=sys.argv[1:]):
         print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
-    client = WESClient({'auth': args.auth, 'auth_type': args.auth_type, 'proto': args.proto, 'host': args.host})
+    client = WESClient({'auth': args.auth, 'proto': args.proto, 'host': args.host})
 
     if args.list:
         response = client.list_runs()  # how to include: page_token=args.page, page_size=args.page_size ?

@@ -110,11 +110,8 @@ def build_wes_request(workflow_file, json_path, attachments=None):
             wf_params = json.dumps(json.load(f))
     elif json_path.startswith("http"):
         wf_params = modify_jsonyaml_paths(json_path)
-    else:
+    else: 
         wf_params = json_path
-        with open(json_path) as f:
-            wf_params = json.dumps(json.load(f))
-
     wf_version, wf_type = wf_info(workflow_file)
 
     parts = [("workflow_params", wf_params),
@@ -130,7 +127,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     if attachments:
         for attachment in attachments:
             if attachment.startswith("file://"):
-                attachment = attachment[7:]
+                attachment = attachment[7:] 
                 attach_f = open(attachment, "rb")
             elif attachment.startswith("http"):
                 attach_f = urlopen(attachment)
@@ -166,10 +163,6 @@ class WESClient(object):
         self.auth = service['auth']
         self.proto = service['proto']
         self.host = service['host']
-        auth_param = {'token': 'Authorization',
-                      'api_key': 'X-API-KEY',
-                      None: 'Authorization'}
-        self.param_in = auth_param[service['auth_type']]
 
     def get_service_info(self):
         """
@@ -185,7 +178,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
-                                  headers={self.param_in: self.auth})
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def list_runs(self):
@@ -201,7 +194,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                  headers={self.param_in: self.auth})
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def run(self, wf, jsonyaml, attachments):
@@ -221,7 +214,7 @@ class WESClient(object):
         parts = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
                                    files=parts,
-                                   headers={self.param_in: self.auth})
+                                   headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def cancel(self, run_id):
@@ -235,7 +228,7 @@ class WESClient(object):
         :return: The body of the delete result as a dictionary.
         """
         postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                     headers={self.param_in: self.auth})
+                                     headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
@@ -249,7 +242,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                  headers={self.param_in: self.auth})
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)
 
     def get_run_status(self, run_id):
@@ -263,5 +256,5 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
-                                  headers={self.param_in: self.auth})
+                                  headers={"Authorization": self.auth})
         return wes_reponse(postresult)

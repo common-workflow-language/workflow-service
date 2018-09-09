@@ -33,7 +33,7 @@ class IntegrationTest(unittest.TestCase):
         cls.wdl_attachments = ['file://' + os.path.abspath('testdata/md5sum.input')]
 
         # client for the swagger API methods
-        cls.client = WESClient({'auth': '', 'auth_type': None, 'proto': 'http', 'host': 'localhost:8080'})
+        cls.client = WESClient({'auth': '', 'proto': 'http', 'host': 'localhost:8080'})
 
         # manual test (wdl only working locally atm)
         cls.manual = False

@@ -19,9 +19,9 @@ class IntegrationTest(unittest.TestCase):
         dirname, filename = os.path.split(os.path.abspath(__file__))
         self.testdata_dir = dirname + 'data'
         self.local = {'cwl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.cwl'),
-                      'wdl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.wdl'),
-                      'py': 'file://' + os.path.join(os.getcwd() + '/test/test_integration.py'),
-                      'unsupported': 'fake.txt'}
+                 'wdl': 'file://' + os.path.join(os.getcwd() + '/testdata/md5sum.wdl'),
+                 'py': 'file://' + os.path.join(os.getcwd() + '/test/test_integration.py'),
+                 'unsupported': 'fake.txt'}
 
         self.remote = {
             'cwl': 'https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.cwl',
@@ -31,9 +31,9 @@ class IntegrationTest(unittest.TestCase):
             'unreachable': 'https://fake.py'}
 
         self.expected = {'cwl': ('v1.0', 'CWL'),
-                         'wdl': ('draft-2', 'WDL'),
-                         'py': ('2.7', 'PY'),
-                         'pyWithPrefix': ('2.7', 'PY')}
+                    'wdl': ('draft-2', 'WDL'),
+                    'py': ('2.7', 'PY'),
+                    'pyWithPrefix': ('2.7', 'PY')}
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
