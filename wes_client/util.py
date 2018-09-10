@@ -66,38 +66,6 @@ def wf_info(workflow_path):
     return version, file_type.upper()
 
 
-def build_wes_request(workflow_file, json_path, attachments=None):
-    """
-    :param str workflow_file: Path to cwl/wdl file.  Can be http/https/file.
-    :param json_path: Path to accompanying json file.  Currently must be local.
-    :param attachments: Any other files needing to be uploaded to the server.
-
-    :return: A list of tuples formatted to be sent in a post to the wes-server (Swagger API).
-    """
-    workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
-    json_path = json_path[7:] if json_path.startswith("file://") else json_path
-    wf_version, wf_type = wf_info(workflow_file)
-
-    parts = [("workflow_params", json.dumps(json.load(open(json_path)))),
-             ("workflow_type", wf_type),
-             ("workflow_type_version", wf_version)]
-
-    if workflow_file.startswith("file://"):
-        parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
-        parts.append(("workflow_url", os.path.basename(workflow_file[7:])))
-    else:
-        parts.append(("workflow_url", workflow_file))
-
-    if attachments:
-        for attachment in attachments:
-            attachment = attachment[7:] if attachment.startswith("file://") else attachment
-            if ':' in attachment:
-                raise TypeError('Only local files supported for attachment: %s' % attachment)
-            parts.append(("workflow_attachment", (os.path.basename(attachment), open(attachment, "rb"))))
-
-    return parts
-
-
 def modify_jsonyaml_paths(jsonyaml_file):
     """
     Changes relative paths in a json/yaml file to be relative
@@ -124,6 +92,49 @@ def modify_jsonyaml_paths(jsonyaml_file):
                 del d["path"]
 
     visit(input_dict, fixpaths)
+    return json.dumps(input_dict)
+
+
+def build_wes_request(workflow_file, json_path, attachments=None):
+    """
+    :param str workflow_file: Path to cwl/wdl file.  Can be http/https/file.
+    :param json_path: Path to accompanying json file.
+    :param attachments: Any other files needing to be uploaded to the server.
+
+    :return: A list of tuples formatted to be sent in a post to the wes-server (Swagger API).
+    """
+    workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
+    if json_path.startswith("file://"):
+        json_path = json_path[7:]
+        with open(json_path) as f:
+            wf_params = json.dumps(json.load(f))
+    elif json_path.startswith("http"):
+        wf_params = modify_jsonyaml_paths(json_path)
+    else:
+        wf_params = json_path
+    wf_version, wf_type = wf_info(workflow_file)
+
+    parts = [("workflow_params", wf_params),
+             ("workflow_type", wf_type),
+             ("workflow_type_version", wf_version)]
+
+    if workflow_file.startswith("file://"):
+        parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
+        parts.append(("workflow_url", os.path.basename(workflow_file[7:])))
+    else:
+        parts.append(("workflow_url", workflow_file))
+
+    if attachments:
+        for attachment in attachments:
+            if attachment.startswith("file://"):
+                attachment = attachment[7:]
+                attach_f = open(attachment, "rb")
+            elif attachment.startswith("http"):
+                attach_f = urlopen(attachment)
+
+            parts.append(("workflow_attachment", (os.path.basename(attachment), attach_f)))
+
+    return parts
 
 
 def expand_globs(attachments):
@@ -167,7 +178,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
-                                  headers={"Authorization": self.auth})
+                                  headers=self.auth)
         return wes_reponse(postresult)
 
     def list_runs(self):
@@ -183,7 +194,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                  headers={"Authorization": self.auth})
+                                  headers=self.auth)
         return wes_reponse(postresult)
 
     def run(self, wf, jsonyaml, attachments):
@@ -203,7 +214,7 @@ class WESClient(object):
         parts = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
                                    files=parts,
-                                   headers={"Authorization": self.auth})
+                                   headers=self.auth)
         return wes_reponse(postresult)
 
     def cancel(self, run_id):
@@ -217,7 +228,7 @@ class WESClient(object):
         :return: The body of the delete result as a dictionary.
         """
         postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                     headers={"Authorization": self.auth})
+                                     headers=self.auth)
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
@@ -231,7 +242,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                  headers={"Authorization": self.auth})
+                                  headers=self.auth)
         return wes_reponse(postresult)
 
     def get_run_status(self, run_id):
@@ -245,5 +256,5 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
-                                  headers={"Authorization": self.auth})
+                                  headers=self.auth)
         return wes_reponse(postresult)
