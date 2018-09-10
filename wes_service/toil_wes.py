@@ -195,8 +195,8 @@ class ToilWorkflow(object):
         wftype = request['workflow_type'].lower().strip()
         version = request['workflow_type_version']
 
-        if version != 'v1.0' and wftype in ('cwl', 'wdl'):
-            raise RuntimeError('workflow_type "cwl", "wdl" requires '
+        if version != 'v1.0' and wftype == 'cwl':
+            raise RuntimeError('workflow_type "cwl" requires '
                                '"workflow_type_version" to be "v1.0": ' + str(version))
         if version != '2.7' and wftype == 'py':
             raise RuntimeError('workflow_type "py" requires '
@@ -286,7 +286,7 @@ class ToilBackend(WESBackend):
         return {
             'workflow_type_versions': {
                 'CWL': {'workflow_type_version': ['v1.0']},
-                'WDL': {'workflow_type_version': ['v1.0']},
+                'WDL': {'workflow_type_version': ['draft-2']},
                 'PY': {'workflow_type_version': ['2.7']}
             },
             'supported_wes_versions': '0.3.0',
