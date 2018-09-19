@@ -1,6 +1,7 @@
 import tempfile
 import json
 import os
+import logging
 
 from six import itervalues, iterlists
 import connexion
@@ -42,15 +43,20 @@ class WESBackend(object):
                 optlist.append(v)
         return optlist
 
-    def collect_attachments(self):
+    def log_for_run(self, run_id, message):
+        logging.info("Workflow %s: %s", run_id, message)
+
+    def collect_attachments(self, run_id=None):
         tempdir = tempfile.mkdtemp()
         body = {}
         for k, ls in iterlists(connexion.request.files):
             for v in ls:
                 if k == "workflow_attachment":
                     filename = secure_filename(v.filename)
-                    v.save(os.path.join(tempdir, filename))
-                    body[k] = "file://%s" % tempdir  # Reference to tem working dir.
+                    dest = os.path.join(tempdir, filename)
+                    self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
+                    v.save(dest)
+                    body[k] = "file://%s" % tempdir  # Reference to temp working dir.
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     body[k] = json.loads(v.read())
                 else:
@@ -58,5 +64,7 @@ class WESBackend(object):
 
         if ":" not in body["workflow_url"]:
             body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
+
+        self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
 
         return tempdir, body

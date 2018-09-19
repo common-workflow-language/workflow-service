@@ -142,7 +142,7 @@ class Workflow(object):
             "run_id": self.run_id,
             "request": request,
             "state": state,
-            "workflow_log": {
+            "run_log": {
                 "cmd": [""],
                 "start_time": "",
                 "end_time": "",

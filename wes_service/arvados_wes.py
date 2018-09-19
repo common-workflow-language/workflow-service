@@ -66,7 +66,7 @@ class ArvadosBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": {"workflow_type_version": ["v1.0"]}
             },
-            "supported_wes_versions": ["0.2.1"],
+            "supported_wes_versions": ["0.3.0"],
             "supported_filesystem_protocols": ["http", "https", "keep"],
             "workflow_engine_versions": {
                 "arvados-cwl-runner": stderr
@@ -108,6 +108,12 @@ class ArvadosBackend(WESBackend):
             "next_page_token": workflow_list[-1]["run_id"] if workflow_list else ""
         }
 
+    def log_for_run(self, run_id, message):
+        api.logs().create(body={"log": {"object_uuid": run_id,
+                                        "event_type": "stderr",
+                                        "properties": {"text": message}}}).execute()
+
+
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
                           env, project_uuid,
                           tempdir):
@@ -141,9 +147,8 @@ class ArvadosBackend(WESBackend):
                 if proc.returncode != 0:
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
 
-                api.logs().create(body={"log": {"object_uuid": cr_uuid,
-                                                "event_type": "stderr",
-                                                "properties": {"text": stderrdata}}}).execute()
+                self.log_for_run(cr_uuid, stderrdata)
+
                 if tempdir:
                     shutil.rmtree(tempdir)
 
@@ -153,8 +158,6 @@ class ArvadosBackend(WESBackend):
 
     @catch_exceptions
     def RunWorkflow(self, **args):
-        tempdir, body = self.collect_attachments()
-
         if not connexion.request.headers.get('Authorization'):
             raise MissingAuthorization()
 
@@ -177,6 +180,8 @@ class ArvadosBackend(WESBackend):
                                                     "state": "Uncommitted",
                                                     "output_path": "n/a",
                                                     "priority": 500}}).execute()
+
+        tempdir, body = self.collect_attachments(cr["uuid"])
 
         workflow_url = body.get("workflow_url")
 
@@ -256,7 +261,7 @@ class ArvadosBackend(WESBackend):
                 "workflow_params": request["mounts"].get("/var/lib/cwl/cwl.input.json", {}).get("content", {})
             },
             "state": statemap[container["state"]],
-            "workflow_log": log_object(request),
+            "run_log": log_object(request),
             "task_logs": [log_object(t) for t in task_reqs],
             "outputs": outputobj
         }
