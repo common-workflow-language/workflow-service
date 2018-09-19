@@ -208,7 +208,13 @@ class ArvadosBackend(WESBackend):
             containers_map = {c["uuid"]: c for c in tasks}
             containers_map[container["uuid"]] = container
         else:
-            container = {"state": "Queued", "exit_code": None, "log": None}
+            container = {
+                "state": "Queued" if request["priority"] > 0 else "Cancelled"
+                "exit_code": None,
+                "log": None
+            }
+            else:
+                pass
             tasks = []
             containers_map = {}
             task_reqs = []
