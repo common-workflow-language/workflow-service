@@ -109,10 +109,9 @@ class ArvadosBackend(WESBackend):
         }
 
     def log_for_run(self, run_id, message):
-        api.logs().create(body={"log": {"object_uuid": run_id,
-                                        "event_type": "stderr",
-                                        "properties": {"text": message}}}).execute()
-
+        get_api().logs().create(body={"log": {"object_uuid": run_id,
+                                              "event_type": "stderr",
+                                              "properties": {"text": message}}}).execute()
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
                           env, project_uuid,
@@ -209,12 +208,10 @@ class ArvadosBackend(WESBackend):
             containers_map[container["uuid"]] = container
         else:
             container = {
-                "state": "Queued" if request["priority"] > 0 else "Cancelled"
+                "state": "Queued" if request["priority"] > 0 else "Cancelled",
                 "exit_code": None,
                 "log": None
             }
-            else:
-                pass
             tasks = []
             containers_map = {}
             task_reqs = []
