@@ -116,8 +116,8 @@ class ArvadosBackend(WESBackend):
 
     def log_for_run(self, run_id, message, authtoken=None):
         get_api(authtoken).logs().create(body={"log": {"object_uuid": run_id,
-                                              "event_type": "stderr",
-                                              "properties": {"text": message+"\n"}}}).execute()
+                                                       "event_type": "stderr",
+                                                       "properties": {"text": message+"\n"}}}).execute()
 
     def invoke_cwl_runner(self, cr_uuid, workflow_url, workflow_params,
                           env, project_uuid,
