@@ -24,8 +24,9 @@ def get_api(authtoken=None):
         if not connexion.request.headers.get('Authorization'):
             raise MissingAuthorization()
         authtoken = connexion.request.headers['Authorization']
-        if authtoken.startswith("Bearer ") or authtoken.startswith("OAuth2 "):
-            authtoken = authtoken[7:]
+        if not authtoken.startswith("Bearer ") or authtoken.startswith("OAuth2 "):
+            raise ValueError("Authorization token must start with 'Bearer '")
+        authtoken = authtoken[7:]
     return arvados.api_from_config(version="v1", apiconfig={
         "ARVADOS_API_HOST": os.environ["ARVADOS_API_HOST"],
         "ARVADOS_API_TOKEN": authtoken,
