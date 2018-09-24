@@ -158,7 +158,7 @@ class ToilWorkflow(object):
             "run_id": self.run_id,
             "request": request,
             "state": state,
-            "workflow_log": {
+            "run_log": {
                 "cmd": cmd,
                 "start_time": starttime,
                 "end_time": endtime,

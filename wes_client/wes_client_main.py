@@ -15,7 +15,7 @@ def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"),
                         help="Example: '--host=localhost:8080'.  Defaults to WES_API_HOST.")
-    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"), help="Defaults to WES_API_AUTH.")
+    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"), help="Format is 'Header: value' or just 'value'.  If header name is not provided, value goes in the 'Authorization'.  Defaults to WES_API_AUTH.")
     parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"),
                         help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
     parser.add_argument("--quiet", action="store_true", default=False)
@@ -49,7 +49,15 @@ def main(argv=sys.argv[1:]):
         print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
-    client = WESClient({'auth': args.auth, 'proto': args.proto, 'host': args.host})
+    auth = {}
+    if args.auth:
+        if ": " in args.auth:
+            sp = args.auth.split(": ")
+            auth[sp[0]] = sp[1]
+        else:
+            auth["Authorization"] = args.auth
+
+    client = WESClient({'auth': auth, 'proto': args.proto, 'host': args.host})
 
     if args.list:
         response = client.list_runs()  # how to include: page_token=args.page, page_size=args.page_size ?
@@ -79,7 +87,7 @@ def main(argv=sys.argv[1:]):
         logging.error("Missing json/yaml file.")
         return 1
 
-    modify_jsonyaml_paths(args.job_order)
+    job_order = modify_jsonyaml_paths(args.job_order)
 
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
@@ -87,7 +95,7 @@ def main(argv=sys.argv[1:]):
         logging.basicConfig(level=logging.INFO)
 
     args.attachments = "" if not args.attachments else args.attachments.split(',')
-    r = client.run(args.workflow_url, args.job_order, args.attachments)
+    r = client.run(args.workflow_url, job_order, args.attachments)
 
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])
@@ -106,13 +114,13 @@ def main(argv=sys.argv[1:]):
 
     try:
         # TODO: Only works with Arvados atm
-        logging.info(str(s["workflow_log"]["stderr"]))
-        logs = requests.get(s["workflow_log"]["stderr"], headers={"Authorization": args.auth}).text
-        logging.info("Workflow log:\n" + logs)
+        logging.info(str(s["run_log"]["stderr"]))
+        logs = requests.get(s["run_log"]["stderr"], headers=auth).text
+        logging.info("Run log:\n" + logs)
     except InvalidSchema:
-        logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
+        logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
     except MissingSchema:
-        logging.info("Workflow log:\n" + str(s["workflow_log"]["stderr"]))
+        logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
 
     # print the output json
     if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
