@@ -49,11 +49,13 @@ def main(argv=sys.argv[1:]):
         print(u"%s %s" % (sys.argv[0], pkg[0].version))
         exit(0)
 
-    if ": " in args.auth:
-        sp = args.auth.split(": ")
-        auth = {sp[0]: sp[1]}
-    else:
-        auth = {"Authorization": auth}
+    auth = {}
+    if args.auth:
+        if ": " in args.auth:
+            sp = args.auth.split(": ")
+            auth[sp[0]] = sp[1]
+        else:
+            auth["Authorization"] = args.auth
 
     client = WESClient({'auth': auth, 'proto': args.proto, 'host': args.host})
 
@@ -85,7 +87,7 @@ def main(argv=sys.argv[1:]):
         logging.error("Missing json/yaml file.")
         return 1
 
-    modify_jsonyaml_paths(args.job_order)
+    job_order = modify_jsonyaml_paths(args.job_order)
 
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
@@ -93,7 +95,7 @@ def main(argv=sys.argv[1:]):
         logging.basicConfig(level=logging.INFO)
 
     args.attachments = "" if not args.attachments else args.attachments.split(',')
-    r = client.run(args.workflow_url, args.job_order, args.attachments)
+    r = client.run(args.workflow_url, job_order, args.attachments)
 
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])
