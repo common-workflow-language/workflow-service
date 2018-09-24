@@ -199,25 +199,23 @@ class ArvadosBackend(WESBackend):
 
         try:
             tempdir, body = self.collect_attachments(cr["uuid"])
+
+            workflow_url = body.get("workflow_url")
+
+            project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
+
+            threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"],
+                                                                  workflow_url,
+                                                                  body["workflow_params"],
+                                                                  env,
+                                                                  project_uuid,
+                                                                  tempdir)).start()
+
         except Exception as e:
             self.log_for_run(cr["uuid"], str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
                                                  body={"container_request":
                                                        {"priority": 0}}).execute()
-
-            return {"run_id": cr["uuid"]}
-
-        workflow_url = body.get("workflow_url")
-
-        project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
-
-        threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"],
-                                                              workflow_url,
-                                                              body["workflow_params"],
-                                                              env,
-                                                              project_uuid,
-                                                              tempdir)).start()
-
         return {"run_id": cr["uuid"]}
 
     @catch_exceptions
