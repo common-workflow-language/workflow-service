@@ -52,8 +52,14 @@ class WESBackend(object):
         for k, ls in iterlists(connexion.request.files):
             for v in ls:
                 if k == "workflow_attachment":
-                    filename = secure_filename(v.filename)
-                    dest = os.path.join(tempdir, filename)
+                    sp = v.filename.split("/")
+                    fn = []
+                    for p in sp:
+                        if p not in ("", ".", ".."):
+                            fn.append(secure_filename(p))
+                    dest = os.path.join(tempdir, *fn)
+                    if not os.path.isdir(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
                     self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
                     v.save(dest)
                     body[k] = "file://%s" % tempdir  # Reference to temp working dir.

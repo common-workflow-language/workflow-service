@@ -165,8 +165,8 @@ class ArvadosBackend(WESBackend):
 
                 self.log_for_run(cr_uuid, stderrdata, env['ARVADOS_API_TOKEN'])
 
-                if tempdir:
-                    shutil.rmtree(tempdir)
+            if tempdir:
+                shutil.rmtree(tempdir)
 
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
@@ -272,11 +272,10 @@ class ArvadosBackend(WESBackend):
                 "exit_code": containerlog["exit_code"] or 0
             }
             if containerlog["log"]:
-                r["stdout"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stdout.txt")  # NOQA
-                r["stderr"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stderr.txt")  # NOQA
-            else:
-                r["stdout"] = "%s/x-dynamic-logs/stdout" % (connexion.request.url)
-                r["stderr"] = "%s/x-dynamic-logs/stderr" % (connexion.request.url)
+                r["stdout_keep"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stdout.txt")  # NOQA
+                r["stderr_keep"] = "%sc=%s/_/%s" % (api._resourceDesc["keepWebServiceUrl"], containerlog["log"], "stderr.txt")  # NOQA
+            r["stdout"] = "%s/x-dynamic-logs/stdout" % (connexion.request.url)
+            r["stderr"] = "%s/x-dynamic-logs/stderr" % (connexion.request.url)
 
             return r
 
