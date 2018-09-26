@@ -59,9 +59,9 @@ class Workflow(object):
 
         # link the cwl and json into the tempdir/cwd
         if workflow_url.startswith('file://'):
-            os.link(workflow_url[7:], os.path.join(tempdir, "wes_workflow.cwl"))
+            os.symlink(workflow_url[7:], os.path.join(tempdir, "wes_workflow.cwl"))
             workflow_url = os.path.join(tempdir, "wes_workflow.cwl")
-        os.link(inputtemp.name, os.path.join(tempdir, "cwl.input.json"))
+        os.symlink(inputtemp.name, os.path.join(tempdir, "cwl.input.json"))
         jsonpath = os.path.join(tempdir, "cwl.input.json")
 
         # build args and run
