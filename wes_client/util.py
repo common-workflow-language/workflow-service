@@ -129,7 +129,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
             if attachment.startswith("file://"):
                 attachment = attachment[7:]
                 attach_f = open(attachment, "rb")
-                relpath = os.path.relpath(attachment, os.path.dirname(workflow_file[7:]))
+                relpath = os.path.relpath(attachment, os.getcwd())
             elif attachment.startswith("http"):
                 attach_f = urlopen(attachment)
                 relpath = os.path.basename(attach_f)
