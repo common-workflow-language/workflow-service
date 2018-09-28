@@ -33,19 +33,19 @@ $ wes-client --host=localhost:8080 --proto=http --attachments="testdata/dockstor
 ### List workflows
 
 ```
-$ wes-client --proto http --host=locahost:8080 --list
+$ wes-client --proto http --host=localhost:8080 --list
 ```
 
 ### Get workflow status
 
 ```
-$ wes-client --proto http --host=locahost:8080 --get <workflow-id>
+$ wes-client --proto http --host=localhost:8080 --get <workflow-id>
 ```
 
 ### Get stderr log from workflow:
 
 ```
-$ wes-client --proto http --host=locahost:8080 --log <workflow-id>
+$ wes-client --proto http --host=localhost:8080 --log <workflow-id>
 ```
 
 ## Server Configuration
