@@ -9,7 +9,11 @@ import urllib
 import logging
 
 from wes_service.util import visit
-from urllib import urlopen
+
+from future.standard_library import hooks
+
+with hooks():
+    from urllib.request import pathname2url
 
 
 def two_seven_compatible(filePath):
