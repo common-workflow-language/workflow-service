@@ -5,7 +5,6 @@ from subprocess32 import check_call, DEVNULL, CalledProcessError
 import yaml
 import glob
 import requests
-import urllib
 import logging
 
 from wes_service.util import visit
@@ -13,7 +12,7 @@ from wes_service.util import visit
 from future.standard_library import hooks
 
 with hooks():
-    from urllib.request import pathname2url
+    from urllib.request import urlopen, pathname2url
 
 
 def two_seven_compatible(filePath):
@@ -60,7 +59,7 @@ def wf_info(workflow_path):
             html = urlopen(workflow_path).read()
             local_loc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_type)
             with open(local_loc, 'w') as f:
-                f.write(html)
+                f.write(html.decode())
             version = wf_info('file://' + local_loc)[0]  # Don't take the file_type here, found it above.
             os.remove(local_loc)  # TODO: Find a way to avoid recreating file before version determination.
         else:
@@ -90,7 +89,7 @@ def modify_jsonyaml_paths(jsonyaml_file):
             if "path" in d:
                 if ":" not in d["path"]:
                     local_path = os.path.normpath(os.path.join(os.getcwd(), basedir, d["path"]))
-                    d["location"] = urllib.pathname2url(local_path)
+                    d["location"] = pathname2url(local_path)
                 else:
                     d["location"] = d["path"]
                 del d["path"]

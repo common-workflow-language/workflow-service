@@ -64,8 +64,8 @@ class IntegrationTest(unittest.TestCase):
         for file_format, location in self.local.items():
             if file_format != 'unsupported':
                 # Tests the behavior after receiving supported file types with and without the 'file://' prefix
-                self.assertEquals(wf_info(location), self.expected[file_format])
-                self.assertEquals(wf_info(location[7:]), self.expected[file_format])
+                self.assertEqual(wf_info(location), self.expected[file_format])
+                self.assertEqual(wf_info(location[7:]), self.expected[file_format])
 
             else:
                 # Tests behavior after receiving a non supported file type.
@@ -91,7 +91,7 @@ class IntegrationTest(unittest.TestCase):
                     wf_info(location)
 
             else:
-                self.assertEquals(wf_info(location), self.expected[file_format])
+                self.assertEqual(wf_info(location), self.expected[file_format])
                 self.assertFalse(os.path.isfile(os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_format)))
 
 
