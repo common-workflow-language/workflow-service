@@ -67,7 +67,7 @@ class WESBackend(object):
                     content = v.read()
                     body[k] = json.loads(content)
                 else:
-                    body[k] = v.read()
+                    body[k] = v.read().decode()
 
         if ":" not in body["workflow_url"]:
             body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
