@@ -158,8 +158,10 @@ def expand_globs(attachments):
 
 def wes_reponse(postresult):
     if postresult.status_code != 200:
-        logging.error("%s", json.loads(postresult.text))
-        exit(1)
+        error = str(json.loads(postresult.text))
+        logging.error(error)
+        raise Exception(error)
+
     return json.loads(postresult.text)
 
 
