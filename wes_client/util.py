@@ -234,7 +234,7 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the delete result as a dictionary.
         """
-        postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
                                      headers=self.auth)
         return wes_reponse(postresult)
 

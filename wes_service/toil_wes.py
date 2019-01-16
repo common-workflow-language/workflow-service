@@ -289,7 +289,7 @@ class ToilBackend(WESBackend):
                 'WDL': {'workflow_type_version': ['draft-2']},
                 'PY': {'workflow_type_version': ['2.7']}
             },
-            'supported_wes_versions': '0.3.0',
+            'supported_wes_versions': ['0.3.0', '1.0.0'],
             'supported_filesystem_protocols': ['file', 'http', 'https'],
             'engine_versions': ['3.16.0'],
             'system_state_counts': {},
