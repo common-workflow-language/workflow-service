@@ -241,7 +241,7 @@ class WESClient(object):
         :return: The body of the delete result as a dictionary.
         """
         postresult = requests.post("%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
-                                     headers=self.auth)
+                                   headers=self.auth)
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):

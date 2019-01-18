@@ -8,6 +8,7 @@ import signal
 import shutil
 import logging
 import sys
+import requests
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -60,7 +61,7 @@ class IntegrationTest(unittest.TestCase):
                                           json_input=self.cwl_json_input,
                                           workflow_attachment=self.cwl_attachments)
         state = self.wait_for_finish(run_id)
-        assert state == "COMPLETE"
+        self.check_complete(run_id)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_local_md5sum(self):
@@ -69,7 +70,7 @@ class IntegrationTest(unittest.TestCase):
                                                json_input=self.cwl_json_input,
                                                workflow_attachment=self.cwl_attachments)
         state = self.wait_for_finish(run_id)
-        assert state == "COMPLETE"
+        self.check_complete(run_id)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_run_attachments(self):
@@ -79,7 +80,7 @@ class IntegrationTest(unittest.TestCase):
                                                workflow_attachment=self.cwl_attachments)
         get_response = self.client.get_run_log(run_id)["request"]
         state = self.wait_for_finish(run_id)
-        assert state == "COMPLETE"
+        self.check_complete(run_id)
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + get_response["workflow_attachment"])
         attachment_tool_path = get_response["workflow_attachment"][7:] + "/dockstore-tool-md5sum.cwl"
         self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: ' + get_response["workflow_attachment"])
@@ -137,6 +138,14 @@ class IntegrationTest(unittest.TestCase):
             r = self.client.get_run_status(run_id)
         return r["state"]
 
+    def check_complete(self, run_id):
+        s = self.client.get_run_log(run_id)
+        if s["state"] != "COMPLETE":
+            logging.info(str(s["run_log"]["stderr"]))
+            if str(s["run_log"]["stderr"]).startswith("http"):
+                logs = requests.get(s["run_log"]["stderr"], headers=auth).text
+                logging.info("Run log:\n" + logs)
+        assert s["state"] == "COMPLETE"
 
 def get_server_pids():
     try:
