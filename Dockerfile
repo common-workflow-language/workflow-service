@@ -4,7 +4,7 @@ FROM debian:9
 
 RUN apt-get update && \
     apt-get install -y dirmngr gnupg && \
-    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7 && \
+    apt-key adv --no-tty --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7 && \
     apt-get install -y apt-transport-https ca-certificates && \
     sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger stretch main > /etc/apt/sources.list.d/passenger.list'
 
@@ -14,8 +14,8 @@ RUN apt-get update && \
 
 RUN apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl1.0-dev
 
-RUN apt-key adv --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D || \
-    apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+RUN apt-key adv --no-tty --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D || \
+    apt-key adv --no-tty --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 
 RUN mkdir -p /etc/apt/sources.list.d && \
     echo deb https://apt.dockerproject.org/repo debian-stretch main > /etc/apt/sources.list.d/docker.list && \
