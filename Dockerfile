@@ -1,10 +1,13 @@
 FROM debian:9
 
+# Package signing keys for Docker Engine and Phusion Passenger
+ADD keys/58118E89F3A912897C070ADBF76221572C52609D.asc keys/561F9B9CAC40B2F7.asc /tmp/
+
 # Install passenger
 
 RUN apt-get update && \
     apt-get install -y dirmngr gnupg && \
-    apt-key adv --no-tty --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7 && \
+    apt-key add --no-tty /tmp/561F9B9CAC40B2F7.asc && \
     apt-get install -y apt-transport-https ca-certificates && \
     sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger stretch main > /etc/apt/sources.list.d/passenger.list'
 
@@ -14,8 +17,7 @@ RUN apt-get update && \
 
 RUN apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl1.0-dev
 
-RUN apt-key adv --no-tty --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D || \
-    apt-key adv --no-tty --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+RUN apt-key add --no-tty /tmp/58118E89F3A912897C070ADBF76221572C52609D.asc
 
 RUN mkdir -p /etc/apt/sources.list.d && \
     echo deb https://apt.dockerproject.org/repo debian-stretch main > /etc/apt/sources.list.d/docker.list && \
