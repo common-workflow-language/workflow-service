@@ -145,7 +145,7 @@ class ArvadosBackend(WESBackend):
                 # a-c-r submission processes from seeing each other.
 
                 cmd = ["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid,
-                       "--submit", "--no-wait", "--api=containers"]
+                       "--submit", "--no-wait", "--api=containers", "--debug"]
 
                 if project_uuid:
                     cmd.append("--project-uuid="+project_uuid)
