@@ -160,16 +160,21 @@ class Workflow(object):
 
 class CWLRunnerBackend(WESBackend):
     def GetServiceInfo(self):
-        return {
+        runner = self.getopt("runner", default="cwl-runner")
+        stdout, stderr = subprocess.Popen([runner, "--version"], stderr=subprocess.PIPE).communicate()
+        r = {
             "workflow_type_versions": {
                 "CWL": {"workflow_type_version": ["v1.0"]}
             },
-            "supported_wes_versions": ["0.3.0"],
+            "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["file", "http", "https"],
-            "engine_versions": "cwl-runner",
+            "workflow_engine_versions": {
+                "cwl-runner": str(stderr)
+            },
             "system_state_counts": {},
-            "key_values": {}
+            "tags": {}
         }
+        return r
 
     def ListRuns(self, page_size=None, page_token=None, state_search=None):
         # FIXME #15 results don't page

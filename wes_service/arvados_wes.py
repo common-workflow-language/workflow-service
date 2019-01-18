@@ -72,10 +72,10 @@ class ArvadosBackend(WESBackend):
             "workflow_type_versions": {
                 "CWL": {"workflow_type_version": ["v1.0"]}
             },
-            "supported_wes_versions": ["0.3.0"],
+            "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["http", "https", "keep"],
             "workflow_engine_versions": {
-                "arvados-cwl-runner": stderr
+                "arvados-cwl-runner": str(stderr)
             },
             "default_workflow_engine_parameters": [],
             "system_state_counts": {},
@@ -145,7 +145,7 @@ class ArvadosBackend(WESBackend):
                 # a-c-r submission processes from seeing each other.
 
                 cmd = ["arvados-cwl-runner", "--submit-request-uuid="+cr_uuid,
-                       "--submit", "--no-wait", "--api=containers"]
+                       "--submit", "--no-wait", "--api=containers", "--debug"]
 
                 if project_uuid:
                     cmd.append("--project-uuid="+project_uuid)

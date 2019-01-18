@@ -107,7 +107,9 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     :return: A list of tuples formatted to be sent in a post to the wes-server (Swagger API).
     """
     workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
+    wfbase = None
     if json_path.startswith("file://"):
+        wfbase = os.path.dirname(json_path[7:])
         json_path = json_path[7:]
         with open(json_path) as f:
             wf_params = json.dumps(json.load(f))
@@ -122,17 +124,21 @@ def build_wes_request(workflow_file, json_path, attachments=None):
              ("workflow_type_version", wf_version)]
 
     if workflow_file.startswith("file://"):
+        if wfbase is None:
+            wfbase = os.path.dirname(workflow_file[7:])
         parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
         parts.append(("workflow_url", os.path.basename(workflow_file[7:])))
     else:
         parts.append(("workflow_url", workflow_file))
 
+    if wfbase is None:
+        wfbase = os.getcwd()
     if attachments:
         for attachment in attachments:
             if attachment.startswith("file://"):
                 attachment = attachment[7:]
                 attach_f = open(attachment, "rb")
-                relpath = os.path.relpath(attachment, os.getcwd())
+                relpath = os.path.relpath(attachment, wfbase)
             elif attachment.startswith("http"):
                 attach_f = urlopen(attachment)
                 relpath = os.path.basename(attach_f)
@@ -234,8 +240,8 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the delete result as a dictionary.
         """
-        postresult = requests.delete("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                     headers=self.auth)
+        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
+                                   headers=self.auth)
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
