@@ -75,7 +75,7 @@ class ArvadosBackend(WESBackend):
             "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["http", "https", "keep"],
             "workflow_engine_versions": {
-                "arvados-cwl-runner": stderr
+                "arvados-cwl-runner": str(stderr)
             },
             "default_workflow_engine_parameters": [],
             "system_state_counts": {},

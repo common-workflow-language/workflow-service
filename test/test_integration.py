@@ -23,7 +23,7 @@ class IntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         # cwl
         cls.cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
-        cls.cwl_local_path = os.path.abspath('testdata/md5sum.cwl')
+        cls.cwl_local_path = "file://" + os.path.abspath('testdata/md5sum.cwl')
         cls.cwl_json_input = "file://" + os.path.abspath('testdata/md5sum.json')
         cls.cwl_attachments = ['file://' + os.path.abspath('testdata/md5sum.input'),
                                'file://' + os.path.abspath('testdata/dockstore-tool-md5sum.cwl')]
@@ -52,15 +52,15 @@ class IntegrationTest(unittest.TestCase):
                     time.sleep(3)
                 except OSError as e:
                     print(e)
-        if os.path.exists('workflows'):
-            shutil.rmtree('workflows')
         unittest.TestCase.tearDown(self)
 
     def test_dockstore_md5sum(self):
         """HTTP md5sum cwl (dockstore), run it on the wes-service server, and check for the correct output."""
-        outfile_path, _ = self.run_md5sum(wf_input=self.cwl_dockstore_url,
+        outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_dockstore_url,
                                           json_input=self.cwl_json_input,
                                           workflow_attachment=self.cwl_attachments)
+        state = self.wait_for_finish(run_id)
+        assert state == "COMPLETE"
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_local_md5sum(self):
@@ -68,6 +68,8 @@ class IntegrationTest(unittest.TestCase):
         outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_local_path,
                                                json_input=self.cwl_json_input,
                                                workflow_attachment=self.cwl_attachments)
+        state = self.wait_for_finish(run_id)
+        assert state == "COMPLETE"
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
     def test_run_attachments(self):
@@ -76,6 +78,8 @@ class IntegrationTest(unittest.TestCase):
                                                json_input=self.cwl_json_input,
                                                workflow_attachment=self.cwl_attachments)
         get_response = self.client.get_run_log(run_id)["request"]
+        state = self.wait_for_finish(run_id)
+        assert state == "COMPLETE"
         self.assertTrue(check_for_file(outfile_path), 'Output file was not found: ' + get_response["workflow_attachment"])
         attachment_tool_path = get_response["workflow_attachment"][7:] + "/dockstore-tool-md5sum.cwl"
         self.assertTrue(check_for_file(attachment_tool_path), 'Attachment file was not found: ' + get_response["workflow_attachment"])
@@ -90,7 +94,7 @@ class IntegrationTest(unittest.TestCase):
         assert 'workflow_type_versions' in r
         assert 'supported_wes_versions' in r
         assert 'supported_filesystem_protocols' in r
-        assert 'engine_versions' in r
+        assert 'workflow_engine_versions' in r
 
     def test_list_runs(self):
         """
@@ -121,6 +125,18 @@ class IntegrationTest(unittest.TestCase):
         output_dir = os.path.abspath(os.path.join('workflows', response['run_id'], 'outdir'))
         return os.path.join(output_dir, 'md5sum.txt'), response['run_id']
 
+    def wait_for_finish(self, run_id, seconds=120):
+        """Return True if a file exists within a certain amount of time."""
+        wait_counter = 0
+        r = self.client.get_run_status(run_id)
+        while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
+            time.sleep(1)
+            wait_counter += 1
+            if wait_counter > seconds:
+                return None
+            r = self.client.get_run_status(run_id)
+        return r["state"]
+
 
 def get_server_pids():
     try:
@@ -149,9 +165,13 @@ class CwltoolTest(IntegrationTest):
         Start a (local) wes-service server to make requests against.
         Use cwltool as the wes-service server 'backend'.
         """
+        if os.path.exists('workflows'):
+            shutil.rmtree('workflows')
         self.wes_server_process = subprocess.Popen(
-            'python {}'.format(os.path.abspath('wes_service/wes_service_main.py')),
-            shell=True)
+            ['python', os.path.abspath('wes_service/wes_service_main.py'),
+             '--backend=wes_service.cwl_runner',
+             '--port=8080',
+             '--debug'])
         time.sleep(5)
 
 

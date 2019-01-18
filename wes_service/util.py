@@ -65,7 +65,7 @@ class WESBackend(object):
                     body[k] = "file://%s" % tempdir  # Reference to temp working dir.
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     content = v.read()
-                    body[k] = json.loads(content)
+                    body[k] = json.loads(content.decode("utf-8"))
                 else:
                     body[k] = v.read().decode()
 

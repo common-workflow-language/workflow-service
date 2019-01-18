@@ -291,7 +291,7 @@ class ToilBackend(WESBackend):
             },
             'supported_wes_versions': ['0.3.0', '1.0.0'],
             'supported_filesystem_protocols': ['file', 'http', 'https'],
-            'engine_versions': ['3.16.0'],
+            'workflow_engine_versions': ['3.16.0'],
             'system_state_counts': {},
             'key_values': {}
         }

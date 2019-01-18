@@ -11,7 +11,7 @@ with open("README.pypi.rst") as readmeFile:
     long_description = readmeFile.read()
 
 setup(name='wes-service',
-      version='2.9',
+      version='3.0',
       description='GA4GH Workflow Execution Service reference implementation',
       long_description=long_description,
       author='GA4GH Containers and Workflows task team',
@@ -25,9 +25,9 @@ setup(name='wes-service',
       install_requires=[
           'future',
           'connexion==1.4.2',
-          'ruamel.yaml >= 0.12.4, < 0.15',
+          'ruamel.yaml >= 0.12.4, <= 0.15.77',
           'cwlref-runner==1.0',
-          'schema-salad>=2.6, <3',
+          'schema-salad >= 3.0, < 3.1',
           'subprocess32==3.5.2'
                         ],
       entry_points={
