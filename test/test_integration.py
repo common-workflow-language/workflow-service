@@ -9,6 +9,7 @@ import shutil
 import logging
 import sys
 import requests
+import pytest
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -180,6 +181,7 @@ class CwltoolTest(IntegrationTest):
         self.wes_server_process = subprocess.Popen(
             ['python', os.path.abspath('wes_service/wes_service_main.py'),
              '--backend=wes_service.cwl_runner',
+             '--opt', 'runner=cwltool',
              '--port=8080',
              '--debug'])
         time.sleep(5)
@@ -209,6 +211,7 @@ class ToilTest(IntegrationTest):
             self.assertTrue(self.check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
 
+@pytest.mark.skipif(not os.environ.get("ARVADOS_API_TOKEN"), reason="Arvados not configured")
 class ArvadosTest(IntegrationTest):
     """Test using arvados-cwl-runner."""
 

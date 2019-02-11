@@ -68,10 +68,18 @@ class WESBackend(object):
                     body[k] = json.loads(content.decode("utf-8"))
                 else:
                     body[k] = v.read().decode()
+        for k, ls in iterlists(connexion.request.form):
+            for v in ls:
+                if k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                    body[k] = json.loads(v)
+                else:
+                    body[k] = v
 
-        if ":" not in body["workflow_url"]:
-            body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
-
-        self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
+        if "workflow_url" in body:
+            if ":" not in body["workflow_url"]:
+                body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
+            self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
+        else:
+            raise Exception("Missing 'workflow_url' in submission")
 
         return tempdir, body

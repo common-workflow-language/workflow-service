@@ -26,8 +26,7 @@ setup(name='wes-service',
           'future',
           'connexion==1.4.2',
           'ruamel.yaml >= 0.12.4, <= 0.15.77',
-          'cwlref-runner==1.0',
-          'schema-salad >= 3.0, < 3.1',
+          'schema-salad',
           'subprocess32==3.5.2'
                         ],
       entry_points={
@@ -35,6 +34,7 @@ setup(name='wes-service',
                               "wes-client=wes_client.wes_client_main:main"]
                     },
       extras_require={
+          "cwltool": ['cwlref-runner'],
           "arvados": ["arvados-cwl-runner"
                       ],
           "toil": ["toil[all]==3.18.0"
