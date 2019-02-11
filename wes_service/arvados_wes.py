@@ -129,7 +129,7 @@ class ArvadosBackend(WESBackend):
         })
 
         try:
-            with tempfile.NamedTemporaryFile(dir=tempdir, suffix=".json") as inputtemp:
+            with tempfile.NamedTemporaryFile("wt", dir=tempdir, suffix=".json") as inputtemp:
                 json.dump(workflow_params, inputtemp)
                 inputtemp.flush()
 
@@ -163,7 +163,7 @@ class ArvadosBackend(WESBackend):
                 if proc.returncode != 0:
                     api.container_requests().update(uuid=cr_uuid, body={"priority": 0}).execute()
 
-                self.log_for_run(cr_uuid, stderrdata, env['ARVADOS_API_TOKEN'])
+                self.log_for_run(cr_uuid, stderrdata.decode("utf-8"), env['ARVADOS_API_TOKEN'])
 
             if tempdir:
                 shutil.rmtree(tempdir)
@@ -212,7 +212,8 @@ class ArvadosBackend(WESBackend):
                                                                   tempdir)).start()
 
         except Exception as e:
-            self.log_for_run(cr["uuid"], str(e))
+            logging.exception("Error")
+            self.log_for_run(cr["uuid"], "An exception ocurred while handling your request: " + str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
                                                  body={"container_request":
                                                        {"priority": 0}}).execute()
