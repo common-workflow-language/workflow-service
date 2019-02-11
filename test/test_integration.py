@@ -180,6 +180,7 @@ class CwltoolTest(IntegrationTest):
         self.wes_server_process = subprocess.Popen(
             ['python', os.path.abspath('wes_service/wes_service_main.py'),
              '--backend=wes_service.cwl_runner',
+             '--opt', 'runner=cwltool',
              '--port=8080',
              '--debug'])
         time.sleep(5)
