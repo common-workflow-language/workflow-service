@@ -211,7 +211,7 @@ class ToilTest(IntegrationTest):
             self.assertTrue(self.check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
 
-@pytest.mark.skipif(not os.environ.get("ARVADOS_API_TOKEN"), "Arvados not configured")
+@pytest.mark.skipif(not os.environ.get("ARVADOS_API_TOKEN"), reason="Arvados not configured")
 class ArvadosTest(IntegrationTest):
     """Test using arvados-cwl-runner."""
 
