@@ -197,6 +197,7 @@ class ArvadosBackend(WESBackend):
                                                     "output_path": "n/a",
                                                     "priority": 500}}).execute()
 
+        success = False
         try:
             tempdir, body = self.collect_attachments(cr["uuid"])
 
@@ -210,14 +211,22 @@ class ArvadosBackend(WESBackend):
                                                                   env,
                                                                   project_uuid,
                                                                   tempdir)).start()
-
+            success = True
+        except ValueError as e:
+            self.log_for_run(cr["uuid"], "Bad request: " + str(e))
+            cr = api.container_requests().update(uuid=cr["uuid"],
+                                                 body={"container_request":
+                                                       {"priority": 0}}).execute()
+            return {"msg": str(e), "status_code": 400}, 400
         except Exception as e:
             logging.exception("Error")
             self.log_for_run(cr["uuid"], "An exception ocurred while handling your request: " + str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
                                                  body={"container_request":
                                                        {"priority": 0}}).execute()
-        return {"run_id": cr["uuid"]}
+            return {"msg": str(e), "status_code": 500}, 500
+        else:
+            return {"run_id": cr["uuid"]}
 
     @catch_exceptions
     def GetRunLog(self, run_id):
