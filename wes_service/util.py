@@ -49,6 +49,7 @@ class WESBackend(object):
     def collect_attachments(self, run_id=None):
         tempdir = tempfile.mkdtemp()
         body = {}
+        has_attachments = False
         for k, ls in iterlists(connexion.request.files):
             for v in ls:
                 if k == "workflow_attachment":
@@ -62,6 +63,7 @@ class WESBackend(object):
                         os.makedirs(os.path.dirname(dest))
                     self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
                     v.save(dest)
+                    has_attachments = True
                     body[k] = "file://%s" % tempdir  # Reference to temp working dir.
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     content = v.read()
@@ -77,9 +79,11 @@ class WESBackend(object):
 
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:
+                if not has_attachments:
+                    raise ValueError("Relative 'workflow_url' but missing 'workflow_attachment'")
                 body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
             self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
         else:
-            raise Exception("Missing 'workflow_url' in submission")
+            raise ValueError("Missing 'workflow_url' in submission")
 
         return tempdir, body
