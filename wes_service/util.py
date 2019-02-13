@@ -64,6 +64,7 @@ class WESBackend(object):
                     self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
                     v.save(dest)
                     has_attachments = True
+                    body[k] = "file://%s" % tempdir  # Reference to temp working dir.
                 elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                     content = v.read()
                     body[k] = json.loads(content.decode("utf-8"))
