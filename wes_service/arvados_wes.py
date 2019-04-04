@@ -203,7 +203,10 @@ class ArvadosBackend(WESBackend):
 
             workflow_url = body.get("workflow_url")
 
-            project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
+            workflow_engine_parameters = body.get("workflow_engine_parameters", {})
+            project_uuid = None
+            if workflow_engine_parameters:
+                project_uuid = workflow_engine_parameters.get("project_uuid")
 
             threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"],
                                                                   workflow_url,
