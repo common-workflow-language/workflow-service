@@ -170,6 +170,7 @@ class ArvadosBackend(WESBackend):
 
         except subprocess.CalledProcessError as e:
             api.container_requests().update(uuid=cr_uuid, body={"priority": 0,
+                                                                "name": "Cancelled container request",
                                                                 "properties": {"arvados-cwl-runner-log": str(e)}}).execute()
 
     @catch_exceptions
@@ -201,12 +202,13 @@ class ArvadosBackend(WESBackend):
         try:
             tempdir, body = self.collect_attachments(cr["uuid"])
 
-            workflow_url = body.get("workflow_url")
-
-            project_uuid = body.get("workflow_engine_parameters", {}).get("project_uuid")
+            workflow_engine_parameters = body.get("workflow_engine_parameters", {})
+            project_uuid = None
+            if workflow_engine_parameters:
+                project_uuid = workflow_engine_parameters.get("project_uuid")
 
             threading.Thread(target=self.invoke_cwl_runner, args=(cr["uuid"],
-                                                                  workflow_url,
+                                                                  body["workflow_url"],
                                                                   body["workflow_params"],
                                                                   env,
                                                                   project_uuid,
@@ -215,15 +217,17 @@ class ArvadosBackend(WESBackend):
         except ValueError as e:
             self.log_for_run(cr["uuid"], "Bad request: " + str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
-                                                 body={"container_request":
-                                                       {"priority": 0}}).execute()
+                                                 body={"container_request": {
+                                                     "name": "Cancelled container request",
+                                                     "priority": 0}}).execute()
             return {"msg": str(e), "status_code": 400}, 400
         except Exception as e:
             logging.exception("Error")
             self.log_for_run(cr["uuid"], "An exception ocurred while handling your request: " + str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
-                                                 body={"container_request":
-                                                       {"priority": 0}}).execute()
+                                                 body={"container_request": {
+                                                     "name": "Cancelled container request",
+                                                     "priority": 0}}).execute()
             return {"msg": str(e), "status_code": 500}, 500
         else:
             return {"run_id": cr["uuid"]}

@@ -51,31 +51,39 @@ class WESBackend(object):
         body = {}
         has_attachments = False
         for k, ls in iterlists(connexion.request.files):
-            for v in ls:
-                if k == "workflow_attachment":
-                    sp = v.filename.split("/")
-                    fn = []
-                    for p in sp:
-                        if p not in ("", ".", ".."):
-                            fn.append(secure_filename(p))
-                    dest = os.path.join(tempdir, *fn)
-                    if not os.path.isdir(os.path.dirname(dest)):
-                        os.makedirs(os.path.dirname(dest))
-                    self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
-                    v.save(dest)
-                    has_attachments = True
-                    body[k] = "file://%s" % tempdir  # Reference to temp working dir.
-                elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                    content = v.read()
-                    body[k] = json.loads(content.decode("utf-8"))
-                else:
-                    body[k] = v.read().decode()
+            try:
+                for v in ls:
+                    if k == "workflow_attachment":
+                        sp = v.filename.split("/")
+                        fn = []
+                        for p in sp:
+                            if p not in ("", ".", ".."):
+                                fn.append(secure_filename(p))
+                        dest = os.path.join(tempdir, *fn)
+                        if not os.path.isdir(os.path.dirname(dest)):
+                            os.makedirs(os.path.dirname(dest))
+                        self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
+                        v.save(dest)
+                        has_attachments = True
+                        body[k] = "file://%s" % tempdir  # Reference to temp working dir.
+                    elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                        content = v.read()
+                        body[k] = json.loads(content.decode("utf-8"))
+                    else:
+                        body[k] = v.read().decode()
+            except Exception as e:
+                raise ValueError("Error reading parameter '%s': %s" % (k, e))
         for k, ls in iterlists(connexion.request.form):
-            for v in ls:
-                if k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                    body[k] = json.loads(v)
-                else:
-                    body[k] = v
+            try:
+                for v in ls:
+                    if not v:
+                        continue
+                    if k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                        body[k] = json.loads(v)
+                    else:
+                        body[k] = v
+            except Exception as e:
+                raise ValueError("Error reading parameter '%s': %s" % (k, e))
 
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:
@@ -85,5 +93,8 @@ class WESBackend(object):
             self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
         else:
             raise ValueError("Missing 'workflow_url' in submission")
+
+        if "workflow_params" not in body:
+            raise ValueError("Missing 'workflow_params' in submission")
 
         return tempdir, body
