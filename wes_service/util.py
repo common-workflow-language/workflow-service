@@ -76,7 +76,9 @@ class WESBackend(object):
         for k, ls in iterlists(connexion.request.form):
             try:
                 for v in ls:
-                    if k in ("workflow_params", "tags", "workflow_engine_parameters") and v != "":
+                    if not v:
+                        continue
+                    if k in ("workflow_params", "tags", "workflow_engine_parameters"):
                         body[k] = json.loads(v)
                     else:
                         body[k] = v
@@ -91,5 +93,8 @@ class WESBackend(object):
             self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
         else:
             raise ValueError("Missing 'workflow_url' in submission")
+
+        if "workflow_params" not in body:
+            raise ValueError("Missing 'workflow_params' in submission")
 
         return tempdir, body
