@@ -198,7 +198,6 @@ class ArvadosBackend(WESBackend):
                                                     "output_path": "n/a",
                                                     "priority": 500}}).execute()
 
-        success = False
         try:
             tempdir, body = self.collect_attachments(cr["uuid"])
 
@@ -213,7 +212,6 @@ class ArvadosBackend(WESBackend):
                                                                   env,
                                                                   project_uuid,
                                                                   tempdir)).start()
-            success = True
         except ValueError as e:
             self.log_for_run(cr["uuid"], "Bad request: " + str(e))
             cr = api.container_requests().update(uuid=cr["uuid"],
