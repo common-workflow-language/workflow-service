@@ -24,7 +24,7 @@ setup(name='wes-service',
       include_package_data=True,
       install_requires=[
           'future',
-          'connexion==1.4.2',
+          'connexion >= 2.0.2, < 3',
           'ruamel.yaml >= 0.12.4, <= 0.15.77',
           'schema-salad',
           'subprocess32==3.5.2'
@@ -37,7 +37,20 @@ setup(name='wes-service',
           "cwltool": ['cwlref-runner'],
           "arvados": ["arvados-cwl-runner"
                       ],
-          "toil": ["toil[all]==3.18.0"
+          "toil": ["toil[all]==3.20.0"
                    ]},
-      zip_safe=False
+      zip_safe=False,
+      platforms=['MacOS X', 'Posix'],
+      classifiers=[
+          'Intended Audience :: Developers',
+          'License :: OSI Approved :: Apache Software License',
+          'Operating System :: MacOS :: MacOS X',
+          'Operating System :: POSIX',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Topic :: Software Development :: Libraries :: Python Modules'
+        ]
       )
