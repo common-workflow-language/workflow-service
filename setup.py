@@ -39,5 +39,18 @@ setup(name='wes-service',
                       ],
           "toil": ["toil[all]==3.20.0"
                    ]},
-      zip_safe=False
+      zip_safe=False,
+      platforms=['MacOS X', 'Posix'],
+      classifiers=[
+          'Intended Audience :: Developers',
+          'License :: OSI Approved :: Apache Software License',
+          'Operating System :: MacOS :: MacOS X',
+          'Operating System :: POSIX',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Topic :: Software Development :: Libraries :: Python Modules'
+        ]
       )

@@ -3,7 +3,6 @@ python:
 - '2.7'
 - '3.5'
 - '3.6'
-- '3.7'
 before_install:
 - sudo apt-get update -qq
 - pip install toil[all]==3.20.0
