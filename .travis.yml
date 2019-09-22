@@ -6,7 +6,7 @@ python:
 - '3.7'
 before_install:
 - sudo apt-get update -qq
-- pip install toil[all]==3.17.0
+- pip install toil[all]==3.20.0
 - pip install . --process-dependency-links
 - pip install -r dev-requirements.txt
 script:
