@@ -44,7 +44,7 @@ class Job(threading.Thread):
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
         if self.proc.returncode == 0:
-            outobj = yaml.load(self.stdoutdata)
+            outobj = yaml.load(self.stdoutdata, Loader=yaml.FullLoader)
             with self.updatelock:
                 self.status["state"] = "Success"
                 self.status["output"] = outobj
