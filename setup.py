@@ -25,7 +25,7 @@ setup(name='wes-service',
       install_requires=[
           'future',
           'connexion >= 2.0.2, < 3',
-          'ruamel.yaml >= 0.12.4, <= 0.15.77',
+          'ruamel.yaml >= 0.12.4, < 0.16.7',
           'schema-salad',
           'subprocess32==3.5.2'
                         ],
