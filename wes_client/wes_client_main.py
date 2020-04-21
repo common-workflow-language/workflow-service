@@ -66,7 +66,9 @@ def main(argv=sys.argv[1:]):
 
     if args.log:
         response = client.get_run_log(run_id=args.log)
-        sys.stdout.write(requests.get(response["run_log"]["stderr"], headers=auth).text)
+        json.dump(response, sys.stdout, indent=4)
+        # sys.stdout.write(requests.get(response['workflowLog']["task_logs"][0]["stderr"], headers=auth).text)
+        # sys.stdout.write(requests.get(response["run_log"]["stderr"], headers=auth).text)
         return 0
 
     if args.get:
@@ -96,38 +98,57 @@ def main(argv=sys.argv[1:]):
 
     args.attachments = "" if not args.attachments else args.attachments.split(',')
     r = client.run(args.workflow_url, job_order, args.attachments)
-
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])
     else:
         sys.stdout.write(r["run_id"] + "\n")
         exit(0)
 
-    r = client.get_run_status(run_id=r["run_id"])
-    while r["state"] in ("QUEUED", "INITIALIZING", "RUNNING"):
-        time.sleep(8)
-        r = client.get_run_status(run_id=r["run_id"])
+    stat = client.get_run_status(run_id=r["run_id"])
 
-    logging.info("State is %s", r["state"])
+    while stat.get("state") in ("QUEUED", "INITIALIZING", "RUNNING", None):
+        time.sleep(8)
+        stat = client.get_run_status(run_id=r["run_id"])
+
+    logging.info("State is %s", stat["state"])
 
     s = client.get_run_log(run_id=r["run_id"])
-
-    try:
-        # TODO: Only works with Arvados atm
-        logging.info(str(s["run_log"]["stderr"]))
-        logs = requests.get(s["run_log"]["stderr"], headers=auth).text
-        logging.info("Run log:\n" + logs)
-    except InvalidSchema:
-        logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
-    except MissingSchema:
-        logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
+    # This is for cromwell
+    logs = s['workflowLog']
+    # try:
+    #     # TODO: Only works with Arvados atm
+    #     stderr = logs["task_logs"][0]["stderr"]
+    #     stdout = logs["task_logs"][0]["stdout"]
+    #     logging.info(str(logs["task_logs"][0]["stderr"]))
+    #     logs = requests.get(s["run_log"]["stderr"], headers=auth).text
+    #     logging.info("Run log:\n" + logs)
+    # except InvalidSchema:
+    #     logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
+    # except MissingSchema:
+    #     logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
 
     # print the output json
-    if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
-        del s["outputs"]["fields"]
-    json.dump(s["outputs"], sys.stdout, indent=4)
+    if "fields" in logs["outputs"] and logs["outputs"]["fields"] is None:
+        del logs["outputs"]["fields"]
+    json.dump(logs["outputs"], sys.stdout, indent=4)
+    ## Edd cromwell
 
-    if r["state"] == "COMPLETE":
+    # try:
+    #     # TODO: Only works with Arvados atm
+    #     logging.info(str(s["run_log"]["stderr"]))
+    #     logs = requests.get(s["run_log"]["stderr"], headers=auth).text
+    #     logging.info("Run log:\n" + logs)
+    # except InvalidSchema:
+    #     logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
+    # except MissingSchema:
+    #     logging.info("Run log:\n" + str(s["run_log"]["stderr"]))
+
+    # print the output json
+    # if "fields" in s["outputs"] and s["outputs"]["fields"] is None:
+    #     del s["outputs"]["fields"]
+    # json.dump(s["outputs"], sys.stdout, indent=4)
+
+    if stat["state"] == "COMPLETE":
         return 0
     else:
         return 1
