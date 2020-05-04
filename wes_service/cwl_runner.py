@@ -1,6 +1,7 @@
 from __future__ import print_function
 import json
 import os
+import signal
 import subprocess
 import uuid
 
@@ -110,6 +111,8 @@ class Workflow(object):
 
         if exit_code == 0:
             state = "COMPLETE"
+        elif exit_code == 15:
+            state = "CANCELLED"
         elif exit_code != -1:
             state = "EXECUTOR_ERROR"
 
@@ -155,7 +158,22 @@ class Workflow(object):
         }
 
     def cancel(self):
-        pass
+        state, _ = self.getstate()
+        pid_file = os.path.join(self.workdir, "pid")
+        exitcode_file = os.path.join(self.workdir, "exit_code")
+        if state == "RUNNING":
+            if os.path.exists(pid_file):
+                with open(pid_file, "r") as pid:
+                    pid = int(pid.read())
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    exit_code = 15
+                    with open(exitcode_file, "w") as f:
+                        f.write(str(exit_code))
+                    os.unlink(pid_file)
+                except ProcessLookupError:
+                    os.unlink(pid_file)
+                    exit_code = 255
 
 
 class CWLRunnerBackend(WESBackend):

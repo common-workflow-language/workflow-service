@@ -32,6 +32,8 @@ def main(argv=sys.argv[1:]):
                          help="Specify a <workflow-id>.  Example: '--get=<workflow-id>'")
     exgroup.add_argument("--log", type=str, default=None,
                          help="Specify a <workflow-id>.  Example: '--log=<workflow-id>'")
+    exgroup.add_argument("--cancel", type=str, default=None,
+                         help="Specify a <workflow-id>.  Example: '--cancel=<workflow-id>'")
     exgroup.add_argument("--list", action="store_true", default=False)
     exgroup.add_argument("--info", action="store_true", default=False)
     exgroup.add_argument("--version", action="store_true", default=False)
@@ -71,6 +73,11 @@ def main(argv=sys.argv[1:]):
 
     if args.get:
         response = client.get_run_log(run_id=args.get)
+        json.dump(response, sys.stdout, indent=4)
+        return 0
+
+    if args.cancel:
+        response = client.cancel(run_id=args.cancel)
         json.dump(response, sys.stdout, indent=4)
         return 0
 
