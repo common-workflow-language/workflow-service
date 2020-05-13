@@ -1,7 +1,7 @@
 import os
 import json
 import schema_salad.ref_resolver
-from subprocess32 import check_call, DEVNULL, CalledProcessError
+from subprocess import check_call, DEVNULL, CalledProcessError
 import yaml
 import glob
 import requests

@@ -1,7 +1,7 @@
 import unittest
 import time
 import os
-import subprocess32 as subprocess
+import subprocess
 import signal
 import shutil
 import logging
