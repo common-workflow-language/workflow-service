@@ -11,7 +11,7 @@ with open("README.pypi.rst") as readmeFile:
     long_description = readmeFile.read()
 
 setup(name='wes-service',
-      version='3.3',
+      version='4.0',
       description='GA4GH Workflow Execution Service reference implementation',
       long_description=long_description,
       author='GA4GH Containers and Workflows task team',
@@ -19,11 +19,11 @@ setup(name='wes-service',
       url="https://github.com/common-workflow-language/cwltool-service",
       download_url="https://github.com/common-workflow-language/cwltool-service",
       license='Apache 2.0',
+      python_requires='~=3.5',
       packages=["wes_service", "wes_client"],
       package_data={'wes_service': ['openapi/workflow_execution_service.swagger.yaml']},
       include_package_data=True,
       install_requires=[
-          'future',
           'connexion >= 2.0.2, < 3',
           'ruamel.yaml >= 0.12.4, <= 0.15.77',
           'schema-salad',
@@ -37,7 +37,7 @@ setup(name='wes-service',
           "cwltool": ['cwlref-runner'],
           "arvados": ["arvados-cwl-runner"
                       ],
-          "toil": ["toil[all]==3.20.0"
+          "toil": ["toil[cwl]==3.20.0"
                    ]},
       zip_safe=False,
       platforms=['MacOS X', 'Posix'],
@@ -47,10 +47,10 @@ setup(name='wes-service',
           'Operating System :: MacOS :: MacOS X',
           'Operating System :: POSIX',
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
           'Topic :: Software Development :: Libraries :: Python Modules'
         ]
       )

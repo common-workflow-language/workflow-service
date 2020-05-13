@@ -3,7 +3,6 @@ import json
 import os
 import logging
 
-from six import itervalues, iterlists
 import connexion
 from werkzeug.utils import secure_filename
 
@@ -15,7 +14,7 @@ def visit(d, op):
         for i in d:
             visit(i, op)
     elif isinstance(d, dict):
-        for i in itervalues(d):
+        for i in d.values():
             visit(i, op)
 
 
@@ -50,7 +49,7 @@ class WESBackend(object):
         tempdir = tempfile.mkdtemp()
         body = {}
         has_attachments = False
-        for k, ls in iterlists(connexion.request.files):
+        for k, ls in connexion.request.files.lists():
             try:
                 for v in ls:
                     if k == "workflow_attachment":
@@ -73,7 +72,7 @@ class WESBackend(object):
                         body[k] = v.read().decode()
             except Exception as e:
                 raise ValueError("Error reading parameter '%s': %s" % (k, e))
-        for k, ls in iterlists(connexion.request.form):
+        for k, ls in connexion.request.form.lists():
             try:
                 for v in ls:
                     if not v:

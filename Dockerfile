@@ -12,8 +12,8 @@ RUN apt-get update && \
     sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger stretch main > /etc/apt/sources.list.d/passenger.list'
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends passenger python-setuptools build-essential python-dev python-pip git && \
-    pip install pip==9.0.3
+    apt-get install -y --no-install-recommends passenger python3-setuptools build-essential python3-dev python3-pip git && \
+    pip3 install pip==9.0.3
 
 RUN apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl1.0-dev
 
