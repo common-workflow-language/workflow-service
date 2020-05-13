@@ -71,9 +71,15 @@ class ToilWorkflow(object):
 
         # link the cwl and json into the cwd
         if workflow_url.startswith("file://"):
-            os.link(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
+            try:
+                os.link(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
+            except OSError:
+                os.symlink(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
             workflow_url = os.path.join(cwd, "wes_workflow." + wftype)
-        os.link(self.input_json, os.path.join(cwd, "wes_input.json"))
+        try:
+            os.link(self.input_json, os.path.join(cwd, "wes_input.json"))
+        except OSError:
+            os.symlink(self.input_json, os.path.join(cwd, "wes_input.json"))
         self.input_json = os.path.join(cwd, "wes_input.json")
 
         extra_options = self.sort_toil_options(opts.getoptlist("extra"))
