@@ -21,6 +21,8 @@ setup(
     download_url="https://github.com/common-workflow-language/cwltool-service",
     license="Apache 2.0",
     python_requires="~=3.5",
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
     packages=["wes_service", "wes_client"],
     package_data={"wes_service": ["openapi/workflow_execution_service.swagger.yaml"]},
     include_package_data=True,
