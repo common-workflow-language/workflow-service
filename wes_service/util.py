@@ -20,6 +20,7 @@ def visit(d, op):
 
 class WESBackend(object):
     """Stores and retrieves options.  Intended to be inherited."""
+
     def __init__(self, opts):
         """Parse and store options as a list of tuples."""
         self.pairs = []
@@ -61,10 +62,15 @@ class WESBackend(object):
                         dest = os.path.join(tempdir, *fn)
                         if not os.path.isdir(os.path.dirname(dest)):
                             os.makedirs(os.path.dirname(dest))
-                        self.log_for_run(run_id, "Staging attachment '%s' to '%s'" % (v.filename, dest))
+                        self.log_for_run(
+                            run_id,
+                            "Staging attachment '%s' to '%s'" % (v.filename, dest),
+                        )
                         v.save(dest)
                         has_attachments = True
-                        body[k] = "file://%s" % tempdir  # Reference to temp working dir.
+                        body[k] = (
+                            "file://%s" % tempdir
+                        )  # Reference to temp working dir.
                     elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
                         content = v.read()
                         body[k] = json.loads(content.decode("utf-8"))
@@ -87,9 +93,15 @@ class WESBackend(object):
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:
                 if not has_attachments:
-                    raise ValueError("Relative 'workflow_url' but missing 'workflow_attachment'")
-                body["workflow_url"] = "file://%s" % os.path.join(tempdir, secure_filename(body["workflow_url"]))
-            self.log_for_run(run_id, "Using workflow_url '%s'" % body.get("workflow_url"))
+                    raise ValueError(
+                        "Relative 'workflow_url' but missing 'workflow_attachment'"
+                    )
+                body["workflow_url"] = "file://%s" % os.path.join(
+                    tempdir, secure_filename(body["workflow_url"])
+                )
+            self.log_for_run(
+                run_id, "Using workflow_url '%s'" % body.get("workflow_url")
+            )
         else:
             raise ValueError("Missing 'workflow_url' in submission")
 

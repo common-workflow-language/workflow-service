@@ -18,24 +18,28 @@ with hooks():
 def two_seven_compatible(filePath):
     """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
     try:
-        check_call(['python2', '-m', 'py_compile', filePath], stderr=DEVNULL)
+        check_call(["python2", "-m", "py_compile", filePath], stderr=DEVNULL)
     except CalledProcessError:
-        raise RuntimeError('Python files must be 2.7 compatible')
+        raise RuntimeError("Python files must be 2.7 compatible")
     return True
 
 
 def get_version(extension, workflow_file):
-    '''Determines the version of a .py, .wdl, or .cwl file.'''
-    if extension == 'py' and two_seven_compatible(workflow_file):
-        return '2.7'
-    elif extension == 'cwl':
-        return yaml.load(open(workflow_file))['cwlVersion']
+    """Determines the version of a .py, .wdl, or .cwl file."""
+    if extension == "py" and two_seven_compatible(workflow_file):
+        return "2.7"
+    elif extension == "cwl":
+        return yaml.load(open(workflow_file))["cwlVersion"]
     else:  # Must be a wdl file.
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
         try:
-            return [l.lstrip('version') for l in workflow_file.splitlines() if 'version' in l.split(' ')][0]
+            return [
+                l.lstrip("version")
+                for l in workflow_file.splitlines()
+                if "version" in l.split(" ")
+            ][0]
         except IndexError:
-            return 'draft-2'
+            return "draft-2"
 
 
 def wf_info(workflow_path):
@@ -47,25 +51,39 @@ def wf_info(workflow_path):
     enable our approach to version checking, then removed after version is extracted.
     """
 
-    supported_formats = ['py', 'wdl', 'cwl']
-    file_type = workflow_path.lower().split('.')[-1]  # Grab the file extension
-    workflow_path = workflow_path if ':' in workflow_path else 'file://' + workflow_path
+    supported_formats = ["py", "wdl", "cwl"]
+    file_type = workflow_path.lower().split(".")[-1]  # Grab the file extension
+    workflow_path = workflow_path if ":" in workflow_path else "file://" + workflow_path
 
     if file_type in supported_formats:
-        if workflow_path.startswith('file://'):
+        if workflow_path.startswith("file://"):
             version = get_version(file_type, workflow_path[7:])
-        elif workflow_path.startswith('https://') or workflow_path.startswith('http://'):
+        elif workflow_path.startswith("https://") or workflow_path.startswith(
+            "http://"
+        ):
             # If file not local go fetch it.
             html = urlopen(workflow_path).read()
-            local_loc = os.path.join(os.getcwd(), 'fetchedFromRemote.' + file_type)
-            with open(local_loc, 'w') as f:
+            local_loc = os.path.join(os.getcwd(), "fetchedFromRemote." + file_type)
+            with open(local_loc, "w") as f:
                 f.write(html.decode())
-            version = wf_info('file://' + local_loc)[0]  # Don't take the file_type here, found it above.
-            os.remove(local_loc)  # TODO: Find a way to avoid recreating file before version determination.
+            version = wf_info("file://" + local_loc)[
+                0
+            ]  # Don't take the file_type here, found it above.
+            os.remove(
+                local_loc
+            )  # TODO: Find a way to avoid recreating file before version determination.
         else:
-            raise NotImplementedError('Unsupported workflow file location: {}. Must be local or HTTP(S).'.format(workflow_path))
+            raise NotImplementedError(
+                "Unsupported workflow file location: {}. Must be local or HTTP(S).".format(
+                    workflow_path
+                )
+            )
     else:
-        raise TypeError('Unsupported workflow type: .{}. Must be {}.'.format(file_type, '.py, .cwl, or .wdl'))
+        raise TypeError(
+            "Unsupported workflow type: .{}. Must be {}.".format(
+                file_type, ".py, .cwl, or .wdl"
+            )
+        )
     return version, file_type.upper()
 
 
@@ -76,10 +94,9 @@ def modify_jsonyaml_paths(jsonyaml_file):
 
     :param jsonyaml_file: Path to a json/yaml file.
     """
-    loader = schema_salad.ref_resolver.Loader({
-        "location": {"@type": "@id"},
-        "path": {"@type": "@id"}
-    })
+    loader = schema_salad.ref_resolver.Loader(
+        {"location": {"@type": "@id"}, "path": {"@type": "@id"}}
+    )
     input_dict, _ = loader.resolve_ref(jsonyaml_file, checklinks=False)
     basedir = os.path.dirname(jsonyaml_file)
 
@@ -88,7 +105,9 @@ def modify_jsonyaml_paths(jsonyaml_file):
         if isinstance(d, dict):
             if "path" in d:
                 if ":" not in d["path"]:
-                    local_path = os.path.normpath(os.path.join(os.getcwd(), basedir, d["path"]))
+                    local_path = os.path.normpath(
+                        os.path.join(os.getcwd(), basedir, d["path"])
+                    )
                     d["location"] = pathname2url(local_path)
                 else:
                     d["location"] = d["path"]
@@ -106,7 +125,9 @@ def build_wes_request(workflow_file, json_path, attachments=None):
 
     :return: A list of tuples formatted to be sent in a post to the wes-server (Swagger API).
     """
-    workflow_file = "file://" + workflow_file if ":" not in workflow_file else workflow_file
+    workflow_file = (
+        "file://" + workflow_file if ":" not in workflow_file else workflow_file
+    )
     wfbase = None
     if json_path.startswith("file://"):
         wfbase = os.path.dirname(json_path[7:])
@@ -119,14 +140,21 @@ def build_wes_request(workflow_file, json_path, attachments=None):
         wf_params = json_path
     wf_version, wf_type = wf_info(workflow_file)
 
-    parts = [("workflow_params", wf_params),
-             ("workflow_type", wf_type),
-             ("workflow_type_version", wf_version)]
+    parts = [
+        ("workflow_params", wf_params),
+        ("workflow_type", wf_type),
+        ("workflow_type_version", wf_version),
+    ]
 
     if workflow_file.startswith("file://"):
         if wfbase is None:
             wfbase = os.path.dirname(workflow_file[7:])
-        parts.append(("workflow_attachment", (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb"))))
+        parts.append(
+            (
+                "workflow_attachment",
+                (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb")),
+            )
+        )
         parts.append(("workflow_url", os.path.basename(workflow_file[7:])))
     else:
         parts.append(("workflow_url", workflow_file))
@@ -151,12 +179,12 @@ def build_wes_request(workflow_file, json_path, attachments=None):
 def expand_globs(attachments):
     expanded_list = []
     for filepath in attachments:
-        if 'file://' in filepath:
+        if "file://" in filepath:
             for f in glob.glob(filepath[7:]):
-                expanded_list += ['file://' + os.path.abspath(f)]
-        elif ':' not in filepath:
+                expanded_list += ["file://" + os.path.abspath(f)]
+        elif ":" not in filepath:
             for f in glob.glob(filepath):
-                expanded_list += ['file://' + os.path.abspath(f)]
+                expanded_list += ["file://" + os.path.abspath(f)]
         else:
             expanded_list += [filepath]
     return set(expanded_list)
@@ -173,9 +201,9 @@ def wes_reponse(postresult):
 
 class WESClient(object):
     def __init__(self, service):
-        self.auth = service['auth']
-        self.proto = service['proto']
-        self.host = service['host']
+        self.auth = service["auth"]
+        self.proto = service["proto"]
+        self.host = service["host"]
 
     def get_service_info(self):
         """
@@ -190,8 +218,10 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get("%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
-                                  headers=self.auth)
+        postresult = requests.get(
+            "%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
+            headers=self.auth,
+        )
         return wes_reponse(postresult)
 
     def list_runs(self):
@@ -206,8 +236,9 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                  headers=self.auth)
+        postresult = requests.get(
+            "%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host), headers=self.auth
+        )
         return wes_reponse(postresult)
 
     def run(self, wf, jsonyaml, attachments):
@@ -225,9 +256,11 @@ class WESClient(object):
         """
         attachments = list(expand_globs(attachments))
         parts = build_wes_request(wf, jsonyaml, attachments)
-        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
-                                   files=parts,
-                                   headers=self.auth)
+        postresult = requests.post(
+            "%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+            files=parts,
+            headers=self.auth,
+        )
         return wes_reponse(postresult)
 
     def cancel(self, run_id):
@@ -240,8 +273,10 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the delete result as a dictionary.
         """
-        postresult = requests.post("%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
-                                   headers=self.auth)
+        postresult = requests.post(
+            "%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
+            headers=self.auth,
+        )
         return wes_reponse(postresult)
 
     def get_run_log(self, run_id):
@@ -254,8 +289,10 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
-                                  headers=self.auth)
+        postresult = requests.get(
+            "%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+            headers=self.auth,
+        )
         return wes_reponse(postresult)
 
     def get_run_status(self, run_id):
@@ -268,6 +305,8 @@ class WESClient(object):
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get("%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
-                                  headers=self.auth)
+        postresult = requests.get(
+            "%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
+            headers=self.auth,
+        )
         return wes_reponse(postresult)
