@@ -34,9 +34,9 @@ def get_version(extension, workflow_file):
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
         try:
             return [
-                l.lstrip("version")
-                for l in workflow_file.splitlines()
-                if "version" in l.split(" ")
+                entry.lstrip("version")
+                for entry in workflow_file.splitlines()
+                if "version" in entry.split(" ")
             ][0]
         except IndexError:
             return "draft-2"

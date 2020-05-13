@@ -175,9 +175,9 @@ class CWLRunnerBackend(WESBackend):
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
         wf = []
-        for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
-            if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
-                wf.append(Workflow(l))
+        for entry in os.listdir(os.path.join(os.getcwd(), "workflows")):
+            if os.path.isdir(os.path.join(os.getcwd(), "workflows", entry)):
+                wf.append(Workflow(entry))
 
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
