@@ -29,7 +29,7 @@ def get_version(extension, workflow_file):
     if extension == "py" and two_seven_compatible(workflow_file):
         return "2.7"
     elif extension == "cwl":
-        return yaml.load(open(workflow_file))["cwlVersion"]
+        return yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
     else:  # Must be a wdl file.
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
         try:
