@@ -5,7 +5,6 @@ python:
 - '3.7'
 - '3.8'
 before_install:
-- sudo apt-get update -qq
 - pip install .[toil]
 - pip install -r dev-requirements.txt
 script:
