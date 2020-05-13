@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "connexion >= 2.0.2, < 3",
-        "ruamel.yaml >= 0.12.4, <= 0.15.77",
+        "ruamel.yaml >= 0.15.78, < 0.16",
         "schema-salad",
         "subprocess32==3.5.2",
     ],
