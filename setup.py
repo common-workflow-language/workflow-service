@@ -37,7 +37,7 @@ setup(name='wes-service',
           "cwltool": ['cwlref-runner'],
           "arvados": ["arvados-cwl-runner"
                       ],
-          "toil": ["toil[cwl]==3.20.0"
+          "toil": ["toil[cwl]==4.1.0"
                    ]},
       zip_safe=False,
       platforms=['MacOS X', 'Posix'],
