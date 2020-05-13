@@ -34,7 +34,12 @@ def main(args=None):
 
         t = StringIO.StringIO(msg)
         err = StringIO.StringIO()
-        if cwltool.main.main(["--outdir="+outdir] + args + ["-"], stdin=t, stderr=err) != 0:
+        if (
+            cwltool.main.main(
+                ["--outdir=" + outdir] + args + ["-"], stdin=t, stderr=err
+            )
+            != 0
+        ):
             sys.stdout.write(json.dumps({"cwl:error": err.getvalue()}))
         sys.stdout.write("\n\n")
         sys.stdout.flush()

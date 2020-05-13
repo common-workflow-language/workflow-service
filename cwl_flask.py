@@ -27,24 +27,27 @@ class Job(threading.Thread):
         loghandle, self.logname = tempfile.mkstemp()
         with self.updatelock:
             self.outdir = tempfile.mkdtemp()
-            self.proc = subprocess.Popen(["cwl-runner", self.path, "-"],
-                                         stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE,
-                                         stderr=loghandle,
-                                         close_fds=True,
-                                         cwd=self.outdir)
+            self.proc = subprocess.Popen(
+                ["cwl-runner", self.path, "-"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=loghandle,
+                close_fds=True,
+                cwd=self.outdir,
+            )
             self.status = {
                 "id": "%sjobs/%i" % (request.url_root, self.jobid),
                 "log": "%sjobs/%i/log" % (request.url_root, self.jobid),
                 "run": self.path,
                 "state": "Running",
                 "input": json.loads(self.inputobj),
-                "output": None}
+                "output": None,
+            }
 
     def run(self):
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
         if self.proc.returncode == 0:
-            outobj = yaml.load(self.stdoutdata)
+            outobj = yaml.load(self.stdoutdata, Loader=yaml.FullLoader)
             with self.updatelock:
                 self.status["state"] = "Success"
                 self.status["output"] = outobj
@@ -75,7 +78,7 @@ class Job(threading.Thread):
                 self.status["state"] = "Running"
 
 
-@app.route("/run", methods=['POST'])
+@app.route("/run", methods=["POST"])
 def runworkflow():
     path = request.args["wf"]
     with jobs_lock:
@@ -86,11 +89,11 @@ def runworkflow():
     return redirect("/jobs/%i" % jobid, code=303)
 
 
-@app.route("/jobs/<int:jobid>", methods=['GET', 'POST'])
+@app.route("/jobs/<int:jobid>", methods=["GET", "POST"])
 def jobcontrol(jobid):
     with jobs_lock:
         job = jobs[jobid]
-    if request.method == 'POST':
+    if request.method == "POST":
         action = request.args.get("action")
         if action:
             if action == "cancel":
@@ -117,14 +120,14 @@ def logspooler(job):
                 time.sleep(1)
 
 
-@app.route("/jobs/<int:jobid>/log", methods=['GET'])
+@app.route("/jobs/<int:jobid>/log", methods=["GET"])
 def getlog(jobid):
     with jobs_lock:
         job = jobs[jobid]
     return Response(logspooler(job))
 
 
-@app.route("/jobs", methods=['GET'])
+@app.route("/jobs", methods=["GET"])
 def getjobs():
     with jobs_lock:
         jobscopy = copy.copy(jobs)
@@ -139,6 +142,7 @@ def getjobs():
             else:
                 yield ", " + json.dumps(j.getstatus(), indent=4)
         yield "]"
+
     return Response(spool(jobscopy))
 
 

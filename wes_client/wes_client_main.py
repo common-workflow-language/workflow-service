@@ -13,25 +13,50 @@ from wes_client.util import modify_jsonyaml_paths, WESClient
 
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
-    parser.add_argument("--host", type=str, default=os.environ.get("WES_API_HOST"),
-                        help="Example: '--host=localhost:8080'.  Defaults to WES_API_HOST.")
-    parser.add_argument("--auth", type=str, default=os.environ.get("WES_API_AUTH"), help="Format is 'Header: value' or just 'value'.  If header name is not provided, value goes in the 'Authorization'.  Defaults to WES_API_AUTH.")
-    parser.add_argument("--proto", type=str, default=os.environ.get("WES_API_PROTO", "https"),
-                        help="Options: [http, https].  Defaults to WES_API_PROTO (https).")
+    parser.add_argument(
+        "--host",
+        type=str,
+        default=os.environ.get("WES_API_HOST"),
+        help="Example: '--host=localhost:8080'.  Defaults to WES_API_HOST.",
+    )
+    parser.add_argument(
+        "--auth",
+        type=str,
+        default=os.environ.get("WES_API_AUTH"),
+        help="Format is 'Header: value' or just 'value'.  If header name is not provided, value goes in the 'Authorization'.  Defaults to WES_API_AUTH.",
+    )
+    parser.add_argument(
+        "--proto",
+        type=str,
+        default=os.environ.get("WES_API_PROTO", "https"),
+        help="Options: [http, https].  Defaults to WES_API_PROTO (https).",
+    )
     parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument("--outdir", type=str)
-    parser.add_argument("--attachments", type=str, default=None,
-                        help='A comma separated list of attachments to include.  Example: '
-                             '--attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input"')
+    parser.add_argument(
+        "--attachments",
+        type=str,
+        default=None,
+        help="A comma separated list of attachments to include.  Example: "
+        '--attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input"',
+    )
     parser.add_argument("--page", type=str, default=None)
     parser.add_argument("--page-size", type=int, default=None)
 
     exgroup = parser.add_mutually_exclusive_group()
     exgroup.add_argument("--run", action="store_true", default=False)
-    exgroup.add_argument("--get", type=str, default=None,
-                         help="Specify a <workflow-id>.  Example: '--get=<workflow-id>'")
-    exgroup.add_argument("--log", type=str, default=None,
-                         help="Specify a <workflow-id>.  Example: '--log=<workflow-id>'")
+    exgroup.add_argument(
+        "--get",
+        type=str,
+        default=None,
+        help="Specify a <workflow-id>.  Example: '--get=<workflow-id>'",
+    )
+    exgroup.add_argument(
+        "--log",
+        type=str,
+        default=None,
+        help="Specify a <workflow-id>.  Example: '--log=<workflow-id>'",
+    )
     exgroup.add_argument("--list", action="store_true", default=False)
     exgroup.add_argument("--info", action="store_true", default=False)
     exgroup.add_argument("--version", action="store_true", default=False)
@@ -57,10 +82,12 @@ def main(argv=sys.argv[1:]):
         else:
             auth["Authorization"] = args.auth
 
-    client = WESClient({'auth': auth, 'proto': args.proto, 'host': args.host})
+    client = WESClient({"auth": auth, "proto": args.proto, "host": args.host})
 
     if args.list:
-        response = client.list_runs()  # how to include: page_token=args.page, page_size=args.page_size ?
+        response = (
+            client.list_runs()
+        )  # how to include: page_token=args.page, page_size=args.page_size ?
         json.dump(response, sys.stdout, indent=4)
         return 0
 
@@ -94,7 +121,7 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    args.attachments = "" if not args.attachments else args.attachments.split(',')
+    args.attachments = "" if not args.attachments else args.attachments.split(",")
     r = client.run(args.workflow_url, job_order, args.attachments)
 
     if args.wait:

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import json
 import os
 import subprocess
@@ -12,7 +11,7 @@ class Workflow(object):
         super(Workflow, self).__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
-        self.outdir = os.path.join(self.workdir, 'outdir')
+        self.outdir = os.path.join(self.workdir, "outdir")
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
@@ -43,7 +42,9 @@ class Workflow(object):
         with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
-        workflow_url = request.get("workflow_url")  # Will always be local path to descriptor cwl, or url.
+        workflow_url = request.get(
+            "workflow_url"
+        )  # Will always be local path to descriptor cwl, or url.
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
@@ -53,12 +54,12 @@ class Workflow(object):
 
         # replace any locally specified outdir with the default
         for e in extra:
-            if e.startswith('--outdir='):
+            if e.startswith("--outdir="):
                 extra.remove(e)
-        extra.append('--outdir=' + self.outdir)
+        extra.append("--outdir=" + self.outdir)
 
         # link the cwl and json into the tempdir/cwd
-        if workflow_url.startswith('file://'):
+        if workflow_url.startswith("file://"):
             os.symlink(workflow_url[7:], os.path.join(tempdir, "wes_workflow.cwl"))
             workflow_url = os.path.join(tempdir, "wes_workflow.cwl")
         os.symlink(inputtemp.name, os.path.join(tempdir, "cwl.input.json"))
@@ -66,11 +67,9 @@ class Workflow(object):
 
         # build args and run
         command_args = [runner] + extra + [workflow_url, jsonpath]
-        proc = subprocess.Popen(command_args,
-                                stdout=output,
-                                stderr=stderr,
-                                close_fds=True,
-                                cwd=tempdir)
+        proc = subprocess.Popen(
+            command_args, stdout=output, stderr=stderr, close_fds=True, cwd=tempdir
+        )
         output.close()
         stderr.close()
         with open(os.path.join(self.workdir, "pid"), "w") as pid:
@@ -118,10 +117,7 @@ class Workflow(object):
     def getstatus(self):
         state, exit_code = self.getstate()
 
-        return {
-            "run_id": self.run_id,
-            "state": state
-        }
+        return {"run_id": self.run_id, "state": state}
 
     def getlog(self):
         state, exit_code = self.getstate()
@@ -148,10 +144,10 @@ class Workflow(object):
                 "end_time": "",
                 "stdout": "",
                 "stderr": stderr,
-                "exit_code": exit_code
+                "exit_code": exit_code,
             },
             "task_logs": [],
-            "outputs": outputobj
+            "outputs": outputobj,
         }
 
     def cancel(self):
@@ -161,18 +157,16 @@ class Workflow(object):
 class CWLRunnerBackend(WESBackend):
     def GetServiceInfo(self):
         runner = self.getopt("runner", default="cwl-runner")
-        stdout, stderr = subprocess.Popen([runner, "--version"], stderr=subprocess.PIPE).communicate()
+        stdout, stderr = subprocess.Popen(
+            [runner, "--version"], stderr=subprocess.PIPE
+        ).communicate()
         r = {
-            "workflow_type_versions": {
-                "CWL": {"workflow_type_version": ["v1.0"]}
-            },
+            "workflow_type_versions": {"CWL": {"workflow_type_version": ["v1.0"]}},
             "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["file", "http", "https"],
-            "workflow_engine_versions": {
-                "cwl-runner": str(stderr)
-            },
+            "workflow_engine_versions": {"cwl-runner": str(stderr)},
             "system_state_counts": {},
-            "tags": {}
+            "tags": {},
         }
         return r
 
@@ -181,15 +175,12 @@ class CWLRunnerBackend(WESBackend):
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
         wf = []
-        for l in os.listdir(os.path.join(os.getcwd(), "workflows")):
-            if os.path.isdir(os.path.join(os.getcwd(), "workflows", l)):
-                wf.append(Workflow(l))
+        for entry in os.listdir(os.path.join(os.getcwd(), "workflows")):
+            if os.path.isdir(os.path.join(os.getcwd(), "workflows", entry)):
+                wf.append(Workflow(entry))
 
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
-        return {
-            "workflows": workflows,
-            "next_page_token": ""
-        }
+        return {"workflows": workflows, "next_page_token": ""}
 
     def RunWorkflow(self, **args):
         tempdir, body = self.collect_attachments()
