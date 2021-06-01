@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "connexion >= 2.0.2, < 3",
-        "ruamel.yaml >= 0.15.78, <= 0.16.5",
+        "ruamel.yaml >= 0.15.78, < 0.17.8",
         "schema-salad < 6",
     ],
     entry_points={
