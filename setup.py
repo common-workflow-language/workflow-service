@@ -29,7 +29,7 @@ setup(
     install_requires=[
         "connexion >= 2.0.2, < 3",
         "ruamel.yaml >= 0.15.78, <= 0.16.5",
-        "schema-salad < 6",
+        "schema-salad < 9",
     ],
     entry_points={
         "console_scripts": [
