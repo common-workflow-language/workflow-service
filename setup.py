@@ -20,7 +20,7 @@ setup(
     url="https://github.com/common-workflow-language/cwltool-service",
     download_url="https://github.com/common-workflow-language/cwltool-service",
     license="Apache 2.0",
-    python_requires="~=3.5",
+    python_requires="~=3.6",
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     packages=["wes_service", "wes_client"],
@@ -53,6 +53,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
 )

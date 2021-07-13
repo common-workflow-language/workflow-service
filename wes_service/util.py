@@ -18,7 +18,7 @@ def visit(d, op):
             visit(i, op)
 
 
-class WESBackend(object):
+class WESBackend:
     """Stores and retrieves options.  Intended to be inherited."""
 
     def __init__(self, opts):
@@ -64,7 +64,7 @@ class WESBackend(object):
                             os.makedirs(os.path.dirname(dest))
                         self.log_for_run(
                             run_id,
-                            "Staging attachment '%s' to '%s'" % (v.filename, dest),
+                            f"Staging attachment '{v.filename}' to '{dest}'",
                         )
                         v.save(dest)
                         has_attachments = True
@@ -77,7 +77,7 @@ class WESBackend(object):
                     else:
                         body[k] = v.read().decode()
             except Exception as e:
-                raise ValueError("Error reading parameter '%s': %s" % (k, e))
+                raise ValueError(f"Error reading parameter '{k}': {e}")
         for k, ls in connexion.request.form.lists():
             try:
                 for v in ls:
@@ -88,7 +88,7 @@ class WESBackend(object):
                     else:
                         body[k] = v
             except Exception as e:
-                raise ValueError("Error reading parameter '%s': %s" % (k, e))
+                raise ValueError(f"Error reading parameter '{k}': {e}")
 
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:

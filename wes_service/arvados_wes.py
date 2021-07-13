@@ -85,7 +85,9 @@ class ArvadosBackend(WESBackend):
             ["arvados-cwl-runner", "--version"], stderr=subprocess.PIPE
         ).communicate()
         return {
-            "workflow_type_versions": {"CWL": {"workflow_type_version": ["v1.0"]}},
+            "workflow_type_versions": {
+                "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]}
+            },
             "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["http", "https", "keep"],
             "workflow_engine_versions": {"arvados-cwl-runner": str(stderr)},
@@ -175,7 +177,7 @@ class ArvadosBackend(WESBackend):
 
                 self.log_for_run(
                     cr_uuid,
-                    "Contents of %s:\n%s" % (tempdir, msg),
+                    f"Contents of {tempdir}:\n{msg}",
                     env["ARVADOS_API_TOKEN"],
                 )
 
@@ -367,7 +369,7 @@ class ArvadosBackend(WESBackend):
 
                 def keepref(d):
                     if isinstance(d, dict) and "location" in d:
-                        d["location"] = "%sc=%s/_/%s" % (
+                        d["location"] = "{}c={}/_/{}".format(
                             api._resourceDesc["keepWebServiceUrl"],
                             c.portable_data_hash(),
                             d["location"],
@@ -395,12 +397,12 @@ class ArvadosBackend(WESBackend):
                 "exit_code": containerlog["exit_code"] or 0,
             }
             if containerlog["log"]:
-                r["stdout_keep"] = "%sc=%s/_/%s" % (
+                r["stdout_keep"] = "{}c={}/_/{}".format(
                     api._resourceDesc["keepWebServiceUrl"],
                     containerlog["log"],
                     "stdout.txt",
                 )  # NOQA
-                r["stderr_keep"] = "%sc=%s/_/%s" % (
+                r["stderr_keep"] = "{}c={}/_/{}".format(
                     api._resourceDesc["keepWebServiceUrl"],
                     containerlog["log"],
                     "stderr.txt",

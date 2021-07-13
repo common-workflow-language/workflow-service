@@ -12,7 +12,7 @@ from wes_service.util import WESBackend
 logging.basicConfig(level=logging.INFO)
 
 
-class ToilWorkflow(object):
+class ToilWorkflow:
     def __init__(self, run_id):
         """
         Represents a toil workflow.
@@ -20,7 +20,7 @@ class ToilWorkflow(object):
         :param str run_id: A uuid string.  Used to name the folder that contains
             all of the files containing this particular workflow instance's information.
         """
-        super(ToilWorkflow, self).__init__()
+        super().__init__()
         self.run_id = run_id
 
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
@@ -121,7 +121,12 @@ class ToilWorkflow(object):
             f.write(str(cmd))
         stdout = open(self.outfile, "w")
         stderr = open(self.errfile, "w")
-        logging.info("Calling: " + " ".join(cmd))
+        logging.info(
+            "Calling: %s, with outfile: %s and errfile: %s",
+            (" ".join(cmd)),
+            self.outfile,
+            self.errfile,
+        )
         process = subprocess.Popen(
             cmd, stdout=stdout, stderr=stderr, close_fds=True, cwd=cwd
         )
@@ -135,17 +140,17 @@ class ToilWorkflow(object):
 
     def fetch(self, filename):
         if os.path.exists(filename):
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 return f.read()
         return ""
 
     def getlog(self):
         state, exit_code = self.getstate()
 
-        with open(self.request_json, "r") as f:
+        with open(self.request_json) as f:
             request = json.load(f)
 
-        with open(self.jobstorefile, "r") as f:
+        with open(self.jobstorefile) as f:
             self.jobstore = f.read()
 
         stderr = self.fetch(self.errfile)
@@ -208,10 +213,10 @@ class ToilWorkflow(object):
         wftype = request["workflow_type"].lower().strip()
         version = request["workflow_type_version"]
 
-        if version != "v1.0" and wftype == "cwl":
+        if wftype == "cwl" and version not in ("v1.0", "v1.1", "v1.2"):
             raise RuntimeError(
                 'workflow_type "cwl" requires '
-                '"workflow_type_version" to be "v1.0": ' + str(version)
+                '"workflow_type_version" to be "v1.[012]": ' + str(version)
             )
         if version != "2.7" and wftype == "py":
             raise RuntimeError(
@@ -267,18 +272,20 @@ class ToilWorkflow(object):
             logging.info("Workflow " + self.run_id + ": INITIALIZING")
             return "INITIALIZING", -1
 
-        # TODO: Query with "toil status"
         completed = False
-        with open(self.errfile, "r") as f:
+        with open(self.errfile) as f:
             for line in f:
                 if "Traceback (most recent call last)" in line:
                     logging.info("Workflow " + self.run_id + ": EXECUTOR_ERROR")
                     open(self.staterrorfile, "a").close()
                     return "EXECUTOR_ERROR", 255
-                # run can complete successfully but fail to upload outputs to cloud buckets
-                # so save the completed status and make sure there was no error elsewhere
-                if "Finished toil run successfully." in line:
-                    completed = True
+        if (
+            subprocess.run(
+                ["toil", "status", "--failIfNotComplete", self.jobstorefile]
+            ).returncode
+            == 0
+        ):
+            completed = True
         if completed:
             logging.info("Workflow " + self.run_id + ": COMPLETE")
             open(self.statcompletefile, "a").close()
@@ -299,7 +306,7 @@ class ToilBackend(WESBackend):
     def GetServiceInfo(self):
         return {
             "workflow_type_versions": {
-                "CWL": {"workflow_type_version": ["v1.0"]},
+                "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]},
                 "WDL": {"workflow_type_version": ["draft-2"]},
                 "PY": {"workflow_type_version": ["2.7"]},
             },

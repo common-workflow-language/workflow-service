@@ -19,7 +19,7 @@ def setup(args=None):
     configfile = "config.yml"
     if os.path.isfile(configfile):
         logging.info("Loading %s", configfile)
-        with open(configfile, "r") as f:
+        with open(configfile) as f:
             config = ruamel.yaml.safe_load(f)
         for c in config:
             setattr(args, c, config[c])
@@ -69,7 +69,7 @@ def main(argv=sys.argv[1:]):
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
-        print(u"%s %s" % (sys.argv[0], pkg[0].version))
+        print(f"{sys.argv[0]} {pkg[0].version}")
         exit(0)
 
     app = setup(args)
