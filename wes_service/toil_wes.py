@@ -121,7 +121,7 @@ class ToilWorkflow:
             f.write(str(cmd))
         stdout = open(self.outfile, "w")
         stderr = open(self.errfile, "w")
-        logging.info("Calling: " + " ".join(cmd))
+        logging.info("Calling: %s, with outfile: %s and errfile: %s", (" ".join(cmd)), self.outfile, self.errfile)
         process = subprocess.Popen(
             cmd, stdout=stdout, stderr=stderr, close_fds=True, cwd=cwd
         )
@@ -267,7 +267,6 @@ class ToilWorkflow:
             logging.info("Workflow " + self.run_id + ": INITIALIZING")
             return "INITIALIZING", -1
 
-        # TODO: Query with "toil status"
         completed = False
         with open(self.errfile) as f:
             for line in f:
@@ -275,10 +274,8 @@ class ToilWorkflow:
                     logging.info("Workflow " + self.run_id + ": EXECUTOR_ERROR")
                     open(self.staterrorfile, "a").close()
                     return "EXECUTOR_ERROR", 255
-                # run can complete successfully but fail to upload outputs to cloud buckets
-                # so save the completed status and make sure there was no error elsewhere
-                if "Finished toil run successfully." in line:
-                    completed = True
+        if subprocess.run(["toil", "status", "--failIfNotComplete", self.jobstorefile]).returncode == 0:
+            completed = True
         if completed:
             logging.info("Workflow " + self.run_id + ": COMPLETE")
             open(self.statcompletefile, "a").close()

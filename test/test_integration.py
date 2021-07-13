@@ -88,7 +88,9 @@ class IntegrationTest(unittest.TestCase):
         )
 
     # See https://ga4gh.github.io/workflow-execution-service-schemas/docs/#operation/GetRunLog
-    @pytest.mark.skip("workflow_attachment is not part of WES spec for the log.request body")
+    @pytest.mark.skip(
+        "workflow_attachment is not part of WES spec for the log.request body"
+    )
     def test_run_attachments(self):
         """LOCAL md5sum cwl to the wes-service server, check for attachments."""
         outfile_path, run_id = self.run_md5sum(
@@ -256,21 +258,6 @@ class ToilTest(IntegrationTest):
                 self.check_for_file(outfile_path),
                 "Output file was not found: " + str(outfile_path),
             )
-
-    def test_dockstore_md5sum(self):
-        # TODO: currently not working after update on Sept. 22, 2019
-        # see: https://github.com/common-workflow-language/workflow-service/issues/73
-        pass
-
-    def test_local_md5sum(self):
-        # TODO: currently not working after update on Sept. 22, 2019
-        # see: https://github.com/common-workflow-language/workflow-service/issues/73
-        pass
-
-    def test_run_attachments(self):
-        # TODO: currently not working after update on Sept. 22, 2019
-        # see: https://github.com/common-workflow-language/workflow-service/issues/73
-        pass
 
 
 @pytest.mark.skipif(
