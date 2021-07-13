@@ -74,7 +74,9 @@ class ToilWorkflow(object):
             try:
                 os.link(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
             except OSError:
-                os.symlink(workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype))
+                os.symlink(
+                    workflow_url[7:], os.path.join(cwd, "wes_workflow." + wftype)
+                )
             workflow_url = os.path.join(cwd, "wes_workflow." + wftype)
         try:
             os.link(self.input_json, os.path.join(cwd, "wes_input.json"))
