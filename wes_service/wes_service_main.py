@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 def setup(args=None):
     if args is None:
-        args = argparse.Namespace()
+        args = get_parser().parse_args([])  # grab the defaults
 
     configfile = "config.yml"
     if os.path.isfile(configfile):
@@ -43,7 +43,7 @@ def setup(args=None):
     return app
 
 
-def main(argv=sys.argv[1:]):
+def get_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(
         "--backend",
@@ -61,7 +61,11 @@ def main(argv=sys.argv[1:]):
     )
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--version", action="store_true", default=False)
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv=sys.argv[1:]):
+    args = get_parser.parse_args(argv)
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
