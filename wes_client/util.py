@@ -9,10 +9,7 @@ import logging
 
 from wes_service.util import visit
 
-from future.standard_library import hooks
-
-with hooks():
-    from urllib.request import urlopen, pathname2url
+from urllib.request import urlopen, pathname2url
 
 
 def two_seven_compatible(filePath):
