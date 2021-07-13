@@ -121,7 +121,12 @@ class ToilWorkflow:
             f.write(str(cmd))
         stdout = open(self.outfile, "w")
         stderr = open(self.errfile, "w")
-        logging.info("Calling: %s, with outfile: %s and errfile: %s", (" ".join(cmd)), self.outfile, self.errfile)
+        logging.info(
+            "Calling: %s, with outfile: %s and errfile: %s",
+            (" ".join(cmd)),
+            self.outfile,
+            self.errfile,
+        )
         process = subprocess.Popen(
             cmd, stdout=stdout, stderr=stderr, close_fds=True, cwd=cwd
         )
@@ -208,10 +213,10 @@ class ToilWorkflow:
         wftype = request["workflow_type"].lower().strip()
         version = request["workflow_type_version"]
 
-        if version != "v1.0" and wftype == "cwl":
+        if wftype == "cwl" and version not in ("v1.0", "v1.1", "v1.2"):
             raise RuntimeError(
                 'workflow_type "cwl" requires '
-                '"workflow_type_version" to be "v1.0": ' + str(version)
+                '"workflow_type_version" to be "v1.[012]": ' + str(version)
             )
         if version != "2.7" and wftype == "py":
             raise RuntimeError(
@@ -274,7 +279,12 @@ class ToilWorkflow:
                     logging.info("Workflow " + self.run_id + ": EXECUTOR_ERROR")
                     open(self.staterrorfile, "a").close()
                     return "EXECUTOR_ERROR", 255
-        if subprocess.run(["toil", "status", "--failIfNotComplete", self.jobstorefile]).returncode == 0:
+        if (
+            subprocess.run(
+                ["toil", "status", "--failIfNotComplete", self.jobstorefile]
+            ).returncode
+            == 0
+        ):
             completed = True
         if completed:
             logging.info("Workflow " + self.run_id + ": COMPLETE")
@@ -296,7 +306,7 @@ class ToilBackend(WESBackend):
     def GetServiceInfo(self):
         return {
             "workflow_type_versions": {
-                "CWL": {"workflow_type_version": ["v1.0"]},
+                "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]},
                 "WDL": {"workflow_type_version": ["draft-2"]},
                 "PY": {"workflow_type_version": ["2.7"]},
             },
