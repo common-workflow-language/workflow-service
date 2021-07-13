@@ -1,4 +1,4 @@
-FROM debian:9
+FROM debian:buster
 
 # Package signing keys for Docker Engine and Phusion Passenger
 ADD keys/58118E89F3A912897C070ADBF76221572C52609D.asc keys/561F9B9CAC40B2F7.asc /tmp/
