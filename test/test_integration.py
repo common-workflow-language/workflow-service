@@ -22,7 +22,7 @@ class IntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # cwl
-        cls.cwl_dockstore_url = 'https://dockstore.org:8443/api/ga4gh/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/master/plain-CWL/descriptor/%2FDockstore.cwl'
+        cls.cwl_dockstore_url = 'https://dockstore.org/api/ga4gh/trs/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/1.0.4/plain-CWL/descriptor//Dockstore.cwl'
         cls.cwl_local_path = "file://" + os.path.abspath('testdata/md5sum.cwl')
         cls.cwl_json_input = "file://" + os.path.abspath('testdata/md5sum.json')
         cls.cwl_attachments = ['file://' + os.path.abspath('testdata/md5sum.input'),
