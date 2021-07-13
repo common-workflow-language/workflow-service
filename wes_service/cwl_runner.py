@@ -6,9 +6,9 @@ import uuid
 from wes_service.util import WESBackend
 
 
-class Workflow(object):
+class Workflow:
     def __init__(self, run_id):
-        super(Workflow, self).__init__()
+        super().__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
         self.outdir = os.path.join(self.workdir, "outdir")
@@ -94,7 +94,7 @@ class Workflow(object):
             with open(exitcode_file) as f:
                 exit_code = int(f.read())
         elif os.path.exists(pid_file):
-            with open(pid_file, "r") as pid:
+            with open(pid_file) as pid:
                 pid = int(pid.read())
             try:
                 (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
@@ -122,16 +122,16 @@ class Workflow(object):
     def getlog(self):
         state, exit_code = self.getstate()
 
-        with open(os.path.join(self.workdir, "request.json"), "r") as f:
+        with open(os.path.join(self.workdir, "request.json")) as f:
             request = json.load(f)
 
-        with open(os.path.join(self.workdir, "stderr"), "r") as f:
+        with open(os.path.join(self.workdir, "stderr")) as f:
             stderr = f.read()
 
         outputobj = {}
         if state == "COMPLETE":
             output_path = os.path.join(self.workdir, "cwl.output.json")
-            with open(output_path, "r") as outputtemp:
+            with open(output_path) as outputtemp:
                 outputobj = json.load(outputtemp)
 
         return {

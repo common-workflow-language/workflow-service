@@ -16,7 +16,7 @@ jobs = []
 
 class Job(threading.Thread):
     def __init__(self, jobid, path, inputobj):
-        super(Job, self).__init__()
+        super().__init__()
         self.jobid = jobid
         self.path = path
         self.inputobj = inputobj
@@ -108,7 +108,7 @@ def jobcontrol(jobid):
 
 
 def logspooler(job):
-    with open(job.logname, "r") as f:
+    with open(job.logname) as f:
         while True:
             r = f.read(4096)
             if r:

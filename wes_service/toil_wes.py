@@ -12,7 +12,7 @@ from wes_service.util import WESBackend
 logging.basicConfig(level=logging.INFO)
 
 
-class ToilWorkflow(object):
+class ToilWorkflow:
     def __init__(self, run_id):
         """
         Represents a toil workflow.
@@ -20,7 +20,7 @@ class ToilWorkflow(object):
         :param str run_id: A uuid string.  Used to name the folder that contains
             all of the files containing this particular workflow instance's information.
         """
-        super(ToilWorkflow, self).__init__()
+        super().__init__()
         self.run_id = run_id
 
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
@@ -135,17 +135,17 @@ class ToilWorkflow(object):
 
     def fetch(self, filename):
         if os.path.exists(filename):
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 return f.read()
         return ""
 
     def getlog(self):
         state, exit_code = self.getstate()
 
-        with open(self.request_json, "r") as f:
+        with open(self.request_json) as f:
             request = json.load(f)
 
-        with open(self.jobstorefile, "r") as f:
+        with open(self.jobstorefile) as f:
             self.jobstore = f.read()
 
         stderr = self.fetch(self.errfile)
@@ -269,7 +269,7 @@ class ToilWorkflow(object):
 
         # TODO: Query with "toil status"
         completed = False
-        with open(self.errfile, "r") as f:
+        with open(self.errfile) as f:
             for line in f:
                 if "Traceback (most recent call last)" in line:
                     logging.info("Workflow " + self.run_id + ": EXECUTOR_ERROR")

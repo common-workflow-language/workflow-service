@@ -196,7 +196,7 @@ def wes_reponse(postresult):
     return json.loads(postresult.text)
 
 
-class WESClient(object):
+class WESClient:
     def __init__(self, service):
         self.auth = service["auth"]
         self.proto = service["proto"]
@@ -216,7 +216,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get(
-            "%s://%s/ga4gh/wes/v1/service-info" % (self.proto, self.host),
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/service-info",
             headers=self.auth,
         )
         return wes_reponse(postresult)
@@ -234,7 +234,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get(
-            "%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host), headers=self.auth
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/runs", headers=self.auth
         )
         return wes_reponse(postresult)
 
@@ -254,7 +254,7 @@ class WESClient(object):
         attachments = list(expand_globs(attachments))
         parts = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post(
-            "%s://%s/ga4gh/wes/v1/runs" % (self.proto, self.host),
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/runs",
             files=parts,
             headers=self.auth,
         )
@@ -271,7 +271,7 @@ class WESClient(object):
         :return: The body of the delete result as a dictionary.
         """
         postresult = requests.post(
-            "%s://%s/ga4gh/wes/v1/runs/%s/cancel" % (self.proto, self.host, run_id),
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/cancel",
             headers=self.auth,
         )
         return wes_reponse(postresult)
@@ -287,7 +287,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get(
-            "%s://%s/ga4gh/wes/v1/runs/%s" % (self.proto, self.host, run_id),
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}",
             headers=self.auth,
         )
         return wes_reponse(postresult)
@@ -303,7 +303,7 @@ class WESClient(object):
         :return: The body of the get result as a dictionary.
         """
         postresult = requests.get(
-            "%s://%s/ga4gh/wes/v1/runs/%s/status" % (self.proto, self.host, run_id),
+            f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/status",
             headers=self.auth,
         )
         return wes_reponse(postresult)

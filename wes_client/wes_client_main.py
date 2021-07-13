@@ -71,7 +71,7 @@ def main(argv=sys.argv[1:]):
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
-        print(u"%s %s" % (sys.argv[0], pkg[0].version))
+        print(f"{sys.argv[0]} {pkg[0].version}")
         exit(0)
 
     auth = {}
