@@ -72,6 +72,8 @@ class IntegrationTest(unittest.TestCase):
         self.check_complete(run_id)
         self.assertTrue(self.check_for_file(outfile_path), 'Output file was not found: ' + str(outfile_path))
 
+    # See https://ga4gh.github.io/workflow-execution-service-schemas/docs/#operation/GetRunLog
+    @pytest.skip("workflow_attachment is not part of WES spec for the log.request body")
     def test_run_attachments(self):
         """LOCAL md5sum cwl to the wes-service server, check for attachments."""
         outfile_path, run_id = self.run_md5sum(wf_input=self.cwl_local_path,
