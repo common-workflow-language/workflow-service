@@ -65,7 +65,7 @@ def get_parser() -> argparse.Namespace:
 
 
 def main(argv=sys.argv[1:]):
-    args = get_parser.parse_args(argv)
+    args = get_parser().parse_args(argv)
 
     if args.version:
         pkg = pkg_resources.require("wes_service")
