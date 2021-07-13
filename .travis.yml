@@ -8,6 +8,7 @@ python:
 - '3.8'
 - '3.9'
 before_install:
+- pip install -U pip wheel
 - pip install .[toil]
 - pip install -r dev-requirements.txt
 script:
