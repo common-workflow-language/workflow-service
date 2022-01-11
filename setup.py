@@ -40,7 +40,7 @@ setup(
     extras_require={
         "cwltool": ["cwlref-runner"],
         "arvados": ["arvados-cwl-runner"],
-        "toil": ["toil[cwl]==5.4.0"],
+        "toil": ["toil[cwl]==5.6.0"],
     },
     zip_safe=False,
     platforms=["MacOS X", "Posix"],
