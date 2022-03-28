@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "connexion >= 2.0.2, < 3",
-        "ruamel.yaml >= 0.15.78, < 0.17.11",
+        "ruamel.yaml >= 0.15.78",
         "schema-salad",
     ],
     entry_points={
@@ -40,7 +40,7 @@ setup(
     extras_require={
         "cwltool": ["cwlref-runner"],
         "arvados": ["arvados-cwl-runner"],
-        "toil": ["toil[cwl]==5.4.0"],
+        "toil": ["toil[cwl]==5.6.0"],
     },
     zip_safe=False,
     platforms=["MacOS X", "Posix"],
