@@ -1,2 +1,4 @@
 [flake8]
-max-line-length = 888
+ignore = E203, E266, E501, W503, E211, E731
+max-line-length = 88
+select = B,C,E,F,W,T4,B9
