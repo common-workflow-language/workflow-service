@@ -1,12 +1,12 @@
 import json
+import logging
 import os
+import shutil
 import subprocess
 import time
-import logging
 import uuid
-import shutil
-
 from multiprocessing import Process
+
 from wes_service.util import WESBackend
 
 logging.basicConfig(level=logging.INFO)

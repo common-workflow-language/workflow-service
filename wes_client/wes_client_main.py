@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-import pkg_resources  # part of setuptools
-import json
-import time
-import sys
-import os
 import argparse
+import json
 import logging
+import os
+import sys
+import time
+
+import pkg_resources  # part of setuptools
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
-from wes_client.util import modify_jsonyaml_paths, WESClient
+
+from wes_client.util import WESClient, modify_jsonyaml_paths
 
 
 def main(argv=sys.argv[1:]):

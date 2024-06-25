@@ -1,18 +1,19 @@
-import arvados
-import arvados.util
-import arvados.collection
-import arvados.errors
-import os
-import connexion
+import functools
 import json
+import logging
+import os
+import shutil
 import subprocess
 import tempfile
-import functools
 import threading
-import logging
-import shutil
 
-from wes_service.util import visit, WESBackend
+import arvados
+import arvados.collection
+import arvados.errors
+import arvados.util
+import connexion
+
+from wes_service.util import WESBackend, visit
 
 
 class MissingAuthorization(Exception):

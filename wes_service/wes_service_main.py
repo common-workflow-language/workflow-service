@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 import argparse
-import pkg_resources  # part of setuptools
-import sys
-import ruamel.yaml
-import os
 import logging
+import os
+import sys
+
 import connexion
 import connexion.utils as utils
+import pkg_resources  # part of setuptools
+import ruamel.yaml
 from connexion.resolver import Resolver
 
 logging.basicConfig(level=logging.INFO)

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import sys
-import cwltool.main
-import tempfile
-import logging
-import StringIO
 import json
+import logging
+import sys
+import tempfile
+
+import cwltool.main
+import StringIO
 
 _logger = logging.getLogger("cwltool")
 _logger.setLevel(logging.ERROR)
