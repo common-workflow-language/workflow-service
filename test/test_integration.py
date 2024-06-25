@@ -22,7 +22,7 @@ class IntegrationTest(unittest.TestCase):
         # cwl
         cls.cwl_dockstore_url = (
             "https://dockstore.org/api/ga4gh/trs/v2/tools/"
-            "github.com%2Fbrianoconnor%2Fdockstore-tool-md5sum/versions/"
+            "github.com%2Fmr-c%2Fdockstore-tool-md5sum/versions/"
             "master/PLAIN_CWL/descriptor//Dockstore.cwl"
         )
         cls.cwl_local_path = "file://" + os.path.abspath("testdata/md5sum.cwl")
