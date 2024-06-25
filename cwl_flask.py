@@ -1,22 +1,25 @@
 import copy
 import json
+import shutil
 import signal
 import subprocess
 import tempfile
 import threading
 import time
+from typing import Any, Dict, Generator, List, Tuple
 
+import werkzeug.wrappers.response
 import yaml
 from flask import Flask, Response, redirect, request
 
 app = Flask(__name__)
 
 jobs_lock = threading.Lock()
-jobs = []
+jobs: List["Job"] = []
 
 
 class Job(threading.Thread):
-    def __init__(self, jobid, path, inputobj):
+    def __init__(self, jobid: int, path: str, inputobj: bytes) -> None:
         super().__init__()
         self.jobid = jobid
         self.path = path
@@ -24,12 +27,12 @@ class Job(threading.Thread):
         self.updatelock = threading.Lock()
         self.begin()
 
-    def begin(self):
+    def begin(self) -> None:
         loghandle, self.logname = tempfile.mkstemp()
         with self.updatelock:
             self.outdir = tempfile.mkdtemp()
             self.proc = subprocess.Popen(
-                ["cwl-runner", self.path, "-"],
+                [shutil.which("cwl-runner") or "cwl-runner", self.path, "-"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=loghandle,
@@ -45,7 +48,7 @@ class Job(threading.Thread):
                 "output": None,
             }
 
-    def run(self):
+    def run(self) -> None:
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
         if self.proc.returncode == 0:
             outobj = yaml.load(self.stdoutdata, Loader=yaml.FullLoader)
@@ -56,23 +59,23 @@ class Job(threading.Thread):
             with self.updatelock:
                 self.status["state"] = "Failed"
 
-    def getstatus(self):
+    def getstatus(self) -> Dict[str, Any]:
         with self.updatelock:
             return self.status.copy()
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self.status["state"] == "Running":
             self.proc.send_signal(signal.SIGQUIT)
             with self.updatelock:
                 self.status["state"] = "Canceled"
 
-    def pause(self):
+    def pause(self) -> None:
         if self.status["state"] == "Running":
             self.proc.send_signal(signal.SIGTSTP)
             with self.updatelock:
                 self.status["state"] = "Paused"
 
-    def resume(self):
+    def resume(self) -> None:
         if self.status["state"] == "Paused":
             self.proc.send_signal(signal.SIGCONT)
             with self.updatelock:
@@ -80,7 +83,7 @@ class Job(threading.Thread):
 
 
 @app.route("/run", methods=["POST"])
-def runworkflow():
+def runworkflow() -> werkzeug.wrappers.response.Response:
     path = request.args["wf"]
     with jobs_lock:
         jobid = len(jobs)
@@ -91,7 +94,7 @@ def runworkflow():
 
 
 @app.route("/jobs/<int:jobid>", methods=["GET", "POST"])
-def jobcontrol(jobid):
+def jobcontrol(jobid: int) -> Tuple[str, int]:
     with jobs_lock:
         job = jobs[jobid]
     if request.method == "POST":
@@ -105,10 +108,10 @@ def jobcontrol(jobid):
                 job.resume()
 
     status = job.getstatus()
-    return json.dumps(status, indent=4), 200, ""
+    return json.dumps(status, indent=4), 200
 
 
-def logspooler(job):
+def logspooler(job: Job) -> Generator[str, None, None]:
     with open(job.logname) as f:
         while True:
             r = f.read(4096)
@@ -122,18 +125,18 @@ def logspooler(job):
 
 
 @app.route("/jobs/<int:jobid>/log", methods=["GET"])
-def getlog(jobid):
+def getlog(jobid: int) -> Response:
     with jobs_lock:
         job = jobs[jobid]
     return Response(logspooler(job))
 
 
 @app.route("/jobs", methods=["GET"])
-def getjobs():
+def getjobs() -> Response:
     with jobs_lock:
         jobscopy = copy.copy(jobs)
 
-    def spool(jc):
+    def spool(jc: List[Job]) -> Generator[str, None, None]:
         yield "["
         first = True
         for j in jc:

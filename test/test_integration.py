@@ -5,6 +5,7 @@ import signal
 import subprocess
 import time
 import unittest
+from typing import List, Optional, Tuple, cast
 
 import pytest
 import requests
@@ -17,8 +18,19 @@ logging.basicConfig(level=logging.INFO)
 class IntegrationTest(unittest.TestCase):
     """A baseclass that's inherited for use with different cwl backends."""
 
+    cwl_dockstore_url: str
+    cwl_local_path: str
+    cwl_json_input: str
+    cwl_attachments: List[str]
+    wdl_local_path: str
+    wdl_json_input: str
+    wdl_attachments: List[str]
+    client: WESClient
+    manual: bool
+    wes_server_process: "subprocess.Popen[bytes]"
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # cwl
         cls.cwl_dockstore_url = (
             "https://dockstore.org/api/ga4gh/trs/v2/tools/"
@@ -44,23 +56,25 @@ class IntegrationTest(unittest.TestCase):
         # manual test (wdl only working locally atm)
         cls.manual = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Start a (local) wes-service server to make requests against."""
         raise NotImplementedError
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Kill the wes-service server."""
         os.kill(self.wes_server_process.pid, signal.SIGTERM)
-        while get_server_pids():
-            for pid in get_server_pids():
+        pids = get_server_pids()
+        while pids is not None:
+            for pid in pids:
                 try:
                     os.kill(int(pid), signal.SIGKILL)
                     time.sleep(3)
                 except OSError as e:
                     print(e)
+            pids = get_server_pids()
         unittest.TestCase.tearDown(self)
 
-    def test_dockstore_md5sum(self):
+    def test_dockstore_md5sum(self) -> None:
         """HTTP md5sum cwl (dockstore), run it on the wes-service server, and check for the correct output."""
         outfile_path, run_id = self.run_md5sum(
             wf_input=self.cwl_dockstore_url,
@@ -74,7 +88,7 @@ class IntegrationTest(unittest.TestCase):
             "Output file was not found: " + str(outfile_path),
         )
 
-    def test_local_md5sum(self):
+    def test_local_md5sum(self) -> None:
         """LOCAL md5sum cwl to the wes-service server, and check for the correct output."""
         outfile_path, run_id = self.run_md5sum(
             wf_input=self.cwl_local_path,
@@ -92,7 +106,7 @@ class IntegrationTest(unittest.TestCase):
     @pytest.mark.skip(
         "workflow_attachment is not part of WES spec for the log.request body"
     )
-    def test_run_attachments(self):
+    def test_run_attachments(self) -> None:
         """LOCAL md5sum cwl to the wes-service server, check for attachments."""
         outfile_path, run_id = self.run_md5sum(
             wf_input=self.cwl_local_path,
@@ -114,7 +128,7 @@ class IntegrationTest(unittest.TestCase):
             "Attachment file was not found: " + get_response["workflow_attachment"],
         )
 
-    def test_get_service_info(self):
+    def test_get_service_info(self) -> None:
         """
         Test wes_client.util.WESClient.get_service_info()
 
@@ -126,7 +140,7 @@ class IntegrationTest(unittest.TestCase):
         assert "supported_filesystem_protocols" in r
         assert "workflow_engine_versions" in r
 
-    def test_list_runs(self):
+    def test_list_runs(self) -> None:
         """
         Test wes_client.util.WESClient.list_runs()
 
@@ -135,7 +149,7 @@ class IntegrationTest(unittest.TestCase):
         r = self.client.list_runs()
         assert "workflows" in r
 
-    def test_get_run_status(self):
+    def test_get_run_status(self) -> None:
         """
         Test wes_client.util.WESClient.run_status()
 
@@ -150,20 +164,25 @@ class IntegrationTest(unittest.TestCase):
         assert "state" in r
         assert "run_id" in r
 
-    def run_md5sum(self, wf_input, json_input, workflow_attachment=None):
+    def run_md5sum(
+        self,
+        wf_input: str,
+        json_input: str,
+        workflow_attachment: Optional[List[str]] = None,
+    ) -> Tuple[str, str]:
         """
         Pass a local md5sum cwl to the wes-service server.
 
         :return: the path of the output file that was created.
         """
         response = self.client.run(wf_input, json_input, workflow_attachment)
-        assert "run_id" in response, str(response.json())
+        assert "run_id" in response, str(response)
         output_dir = os.path.abspath(
             os.path.join("workflows", response["run_id"], "outdir")
         )
         return os.path.join(output_dir, "md5sum.txt"), response["run_id"]
 
-    def wait_for_finish(self, run_id, seconds=120):
+    def wait_for_finish(self, run_id: str, seconds: int = 120) -> Optional[str]:
         """Return True if a file exists within a certain amount of time."""
         wait_counter = 0
         r = self.client.get_run_status(run_id)
@@ -173,9 +192,9 @@ class IntegrationTest(unittest.TestCase):
             if wait_counter > seconds:
                 return None
             r = self.client.get_run_status(run_id)
-        return r["state"]
+        return cast(str, r["state"])
 
-    def check_complete(self, run_id):
+    def check_complete(self, run_id: str) -> None:
         s = self.client.get_run_log(run_id)
         if s["state"] != "COMPLETE":
             logging.info(str(s["run_log"]["stderr"]))
@@ -186,7 +205,7 @@ class IntegrationTest(unittest.TestCase):
                 logging.info("Run log:\n" + logs)
         assert s["state"] == "COMPLETE"
 
-    def check_for_file(self, filepath, seconds=120):
+    def check_for_file(self, filepath: str, seconds: int = 120) -> bool:
         """Return True if a file exists within a certain amount of time."""
         wait_counter = 0
         while not os.path.exists(filepath):
@@ -197,7 +216,7 @@ class IntegrationTest(unittest.TestCase):
         return True
 
 
-def get_server_pids():
+def get_server_pids() -> Optional[List[bytes]]:
     try:
         pids = (
             subprocess.check_output(["pgrep", "-f", "wes_service_main.py"])
@@ -212,7 +231,7 @@ def get_server_pids():
 class CwltoolTest(IntegrationTest):
     """Test using cwltool."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """
         Start a (local) wes-service server to make requests against.
         Use cwltool as the wes-service server 'backend'.
@@ -236,7 +255,7 @@ class CwltoolTest(IntegrationTest):
 class ToilTest(IntegrationTest):
     """Test using Toil."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """
         Start a (local) wes-service server to make requests against.
         Use toil as the wes-service server 'backend'.
@@ -250,7 +269,7 @@ class ToilTest(IntegrationTest):
         )
         time.sleep(5)
 
-    def test_local_wdl(self):
+    def test_local_wdl(self) -> None:
         """LOCAL md5sum wdl to the wes-service server, and check for the correct output."""
         # Working locally but not on travis... >.<;
         if self.manual:
@@ -271,7 +290,7 @@ class ToilTest(IntegrationTest):
 class ArvadosTest(IntegrationTest):
     """Test using arvados-cwl-runner."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """
         Start a (local) wes-service server to make requests against.
         Use arvados-cwl-runner as the wes-service server 'backend'.
@@ -293,7 +312,7 @@ class ArvadosTest(IntegrationTest):
         }
         time.sleep(5)
 
-    def check_for_file(self, filepath, seconds=120):
+    def check_for_file(self, filepath: str, seconds: int = 120) -> bool:
         # Doesn't make sense for arvados
         return True
 

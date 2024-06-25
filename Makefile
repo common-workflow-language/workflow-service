@@ -23,7 +23,7 @@
 MODULE1=wes_client
 MODULE2=wes_service
 PACKAGE=wes-service
-EXTRAS=[toil,arvados]
+EXTRAS=[toil]
 
 # `SHELL=bash` doesn't work for some, so don't use BASH-isms like
 # `[[` conditional expressions.

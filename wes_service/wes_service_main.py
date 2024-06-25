@@ -3,17 +3,18 @@ import argparse
 import logging
 import os
 import sys
+from typing import List, Optional, cast
 
-import connexion
-import connexion.utils as utils
+import connexion  # type: ignore[import-untyped]
+import connexion.utils as utils  # type: ignore[import-untyped]
 import pkg_resources  # part of setuptools
 import ruamel.yaml
-from connexion.resolver import Resolver
+from connexion.resolver import Resolver  # type: ignore[import-untyped]
 
 logging.basicConfig(level=logging.INFO)
 
 
-def setup(args=None):
+def setup(args: Optional[argparse.Namespace] = None) -> connexion.App:
     if args is None:
         args = get_parser().parse_args([])  # grab the defaults
 
@@ -34,8 +35,8 @@ def setup(args=None):
         app, args.opt
     )
 
-    def rs(x):
-        return getattr(backend, x.split(".")[-1])
+    def rs(x: str) -> str:
+        return cast(str, getattr(backend, x.split(".")[-1]))
 
     app.add_api(
         "openapi/workflow_execution_service.swagger.yaml", resolver=Resolver(rs)
@@ -44,7 +45,7 @@ def setup(args=None):
     return app
 
 
-def get_parser() -> argparse.Namespace:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(
         "--backend",
@@ -65,7 +66,7 @@ def get_parser() -> argparse.Namespace:
     return parser
 
 
-def main(argv=sys.argv[1:]):
+def main(argv: List[str] = sys.argv[1:]) -> None:
     args = get_parser().parse_args(argv)
 
     if args.version:

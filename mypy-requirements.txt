@@ -1,1 +1,5 @@
-mypy==1.10.1
+mypy==1.15
+types-PyYAML
+types-requests
+types-setuptools
+arvados-cwl-runner

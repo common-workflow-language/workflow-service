@@ -11,7 +11,7 @@ PRE = "https://raw.githubusercontent.com/common-workflow-language/workflow-servi
 
 
 class IntegrationTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         dirname, filename = os.path.split(os.path.abspath(__file__))
         self.testdata_dir = dirname + "data"
         self.local = {
@@ -37,26 +37,28 @@ class IntegrationTest(unittest.TestCase):
             "pyWithPrefix": ("3", "PY"),
         }
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         unittest.TestCase.tearDown(self)
 
-    def test_expand_globs(self):
+    def test_expand_globs(self) -> None:
         """Asserts that wes_client.expand_globs() sees the same files in the cwd as 'ls'."""
         files = subprocess.check_output(["ls", "-1", "."])
 
         # python 2/3 bytestring/utf-8 compatibility
         if isinstance(files, str):
-            files = files.split("\n")
+            files2 = files.split("\n")
         else:
-            files = files.decode("utf-8").split("\n")
+            files2 = files.decode("utf-8").split("\n")
 
-        if "" in files:
-            files.remove("")
-        files = ["file://" + os.path.abspath(f) for f in files]
+        if "" in files2:
+            files2.remove("")
+        files2 = ["file://" + os.path.abspath(f) for f in files2]
         glob_files = expand_globs("*")
-        assert set(files) == glob_files, "\n" + str(set(files)) + "\n" + str(glob_files)
+        assert set(files2) == glob_files, (
+            "\n" + str(set(files2)) + "\n" + str(glob_files)
+        )
 
-    def testSupportedFormatChecking(self):
+    def testSupportedFormatChecking(self) -> None:
         """
         Check that non-wdl, -python, -cwl files are rejected.
 
@@ -75,7 +77,7 @@ class IntegrationTest(unittest.TestCase):
                 with self.assertRaises(TypeError):
                     wf_info(location)
 
-    def testFileLocationChecking(self):
+    def testFileLocationChecking(self) -> None:
         """
         Check that the function rejects unsupported file locations.
 

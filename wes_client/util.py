@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from subprocess import DEVNULL, CalledProcessError, check_call
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 from urllib.request import pathname2url, urlopen
 
 import requests
@@ -14,7 +15,7 @@ import yaml
 from wes_service.util import visit
 
 
-def py3_compatible(filePath):
+def py3_compatible(filePath: str) -> bool:
     """Determines if a python file is 3.x compatible by seeing if it compiles in a subprocess"""
     try:
         check_call(["python3", "-m", "py_compile", filePath], stderr=DEVNULL)
@@ -23,12 +24,14 @@ def py3_compatible(filePath):
     return True
 
 
-def get_version(extension, workflow_file):
+def get_version(extension: str, workflow_file: str) -> str:
     """Determines the version of a .py, .wdl, or .cwl file."""
     if extension == "py" and py3_compatible(workflow_file):
         return "3"
     elif extension == "cwl":
-        return yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
+        return cast(
+            str, yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
+        )
     else:  # Must be a wdl file.
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/
         #               blob/develop/synorchestrator/util.py#L142
@@ -42,7 +45,7 @@ def get_version(extension, workflow_file):
             return "draft-2"
 
 
-def wf_info(workflow_path):
+def wf_info(workflow_path: str) -> Tuple[str, str]:
     """
     Returns the version of the file and the file extension.
 
@@ -88,7 +91,7 @@ def wf_info(workflow_path):
     return version, file_type.upper()
 
 
-def modify_jsonyaml_paths(jsonyaml_file):
+def modify_jsonyaml_paths(jsonyaml_file: str) -> str:
     """
     Changes relative paths in a json/yaml file to be relative
     to where the json/yaml file is located.
@@ -101,7 +104,7 @@ def modify_jsonyaml_paths(jsonyaml_file):
     input_dict, _ = loader.resolve_ref(jsonyaml_file, checklinks=False)
     basedir = os.path.dirname(jsonyaml_file)
 
-    def fixpaths(d):
+    def fixpaths(d: Any) -> None:
         """Make sure all paths have a URI scheme."""
         if isinstance(d, dict):
             if "path" in d:
@@ -118,9 +121,11 @@ def modify_jsonyaml_paths(jsonyaml_file):
     return json.dumps(input_dict)
 
 
-def build_wes_request(workflow_file, json_path, attachments=None):
+def build_wes_request(
+    workflow_file: str, json_path: str, attachments: Optional[List[str]] = None
+) -> List[Tuple[str, Any]]:
     """
-    :param str workflow_file: Path to cwl/wdl file.  Can be http/https/file.
+    :param workflow_file: Path to cwl/wdl file.  Can be http/https/file.
     :param json_path: Path to accompanying json file.
     :param attachments: Any other files needing to be uploaded to the server.
 
@@ -141,7 +146,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
         wf_params = json_path
     wf_version, wf_type = wf_info(workflow_file)
 
-    parts = [
+    parts: List[Tuple[str, Any]] = [
         ("workflow_params", wf_params),
         ("workflow_type", wf_type),
         ("workflow_type_version", wf_version),
@@ -166,7 +171,7 @@ def build_wes_request(workflow_file, json_path, attachments=None):
         for attachment in attachments:
             if attachment.startswith("file://"):
                 attachment = attachment[7:]
-                attach_f = open(attachment, "rb")
+                attach_f: Any = open(attachment, "rb")
                 relpath = os.path.relpath(attachment, wfbase)
             elif attachment.startswith("http"):
                 attach_f = urlopen(attachment)
@@ -177,8 +182,10 @@ def build_wes_request(workflow_file, json_path, attachments=None):
     return parts
 
 
-def expand_globs(attachments):
+def expand_globs(attachments: Optional[Union[List[str], str]]) -> Set[str]:
     expanded_list = []
+    if attachments is None:
+        attachments = []
     for filepath in attachments:
         if "file://" in filepath:
             for f in glob.glob(filepath[7:]):
@@ -191,22 +198,22 @@ def expand_globs(attachments):
     return set(expanded_list)
 
 
-def wes_reponse(postresult):
+def wes_reponse(postresult: requests.Response) -> Dict[str, Any]:
     if postresult.status_code != 200:
         error = str(json.loads(postresult.text))
         logging.error(error)
         raise Exception(error)
 
-    return json.loads(postresult.text)
+    return cast(Dict[str, Any], json.loads(postresult.text))
 
 
 class WESClient:
-    def __init__(self, service):
+    def __init__(self, service: Dict[str, Any]):
         self.auth = service["auth"]
         self.proto = service["proto"]
         self.host = service["host"]
 
-    def get_service_info(self):
+    def get_service_info(self) -> Dict[str, Any]:
         """
         Get information about Workflow Execution Service. May
         include information related (but not limited to) the
@@ -225,7 +232,7 @@ class WESClient:
         )
         return wes_reponse(postresult)
 
-    def list_runs(self):
+    def list_runs(self) -> Dict[str, Any]:
         """
         List the workflows, this endpoint will list the workflows
         in order of oldest to newest. There is no guarantee of
@@ -242,12 +249,14 @@ class WESClient:
         )
         return wes_reponse(postresult)
 
-    def run(self, wf, jsonyaml, attachments):
+    def run(
+        self, wf: str, jsonyaml: str, attachments: Optional[List[str]]
+    ) -> Dict[str, Any]:
         """
         Composes and sends a post request that signals the wes server to run a workflow.
 
-        :param str workflow_file: A local/http/https path to a cwl/wdl/python workflow file.
-        :param str jsonyaml: A local path to a json or yaml file.
+        :param wf: A local/http/https path to a cwl/wdl/python workflow file.
+        :param jsonyaml: A local path to a json or yaml file.
         :param list attachments: A list of local paths to files that will be uploaded to the server.
         :param str auth: String to send in the auth header.
         :param proto: Schema where the server resides (http, https)
@@ -264,7 +273,7 @@ class WESClient:
         )
         return wes_reponse(postresult)
 
-    def cancel(self, run_id):
+    def cancel(self, run_id: str) -> Dict[str, Any]:
         """
         Cancel a running workflow.
 
@@ -280,7 +289,7 @@ class WESClient:
         )
         return wes_reponse(postresult)
 
-    def get_run_log(self, run_id):
+    def get_run_log(self, run_id: str) -> Dict[str, Any]:
         """
         Get detailed info about a running workflow.
 
@@ -296,7 +305,7 @@ class WESClient:
         )
         return wes_reponse(postresult)
 
-    def get_run_status(self, run_id):
+    def get_run_status(self, run_id: str) -> Dict[str, Any]:
         """
         Get quick status info about a running workflow.
 
