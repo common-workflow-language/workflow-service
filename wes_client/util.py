@@ -1,15 +1,15 @@
-import os
-import json
-import schema_salad.ref_resolver
-from subprocess import check_call, DEVNULL, CalledProcessError
-import yaml
 import glob
-import requests
+import json
 import logging
+import os
+from subprocess import DEVNULL, CalledProcessError, check_call
+from urllib.request import pathname2url, urlopen
+
+import requests
+import schema_salad.ref_resolver
+import yaml
 
 from wes_service.util import visit
-
-from urllib.request import urlopen, pathname2url
 
 
 def two_seven_compatible(filePath):

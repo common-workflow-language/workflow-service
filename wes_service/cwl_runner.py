@@ -161,7 +161,9 @@ class CWLRunnerBackend(WESBackend):
             [runner, "--version"], stderr=subprocess.PIPE
         ).communicate()
         r = {
-            "workflow_type_versions": {"CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]}},
+            "workflow_type_versions": {
+                "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]}
+            },
             "supported_wes_versions": ["0.3.0", "1.0.0"],
             "supported_filesystem_protocols": ["file", "http", "https"],
             "workflow_engine_versions": {"cwl-runner": str(stderr)},

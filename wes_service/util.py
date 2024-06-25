@@ -1,7 +1,7 @@
-import tempfile
 import json
-import os
 import logging
+import os
+import tempfile
 
 import connexion
 from werkzeug.utils import secure_filename

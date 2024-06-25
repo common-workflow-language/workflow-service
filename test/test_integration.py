@@ -1,13 +1,14 @@
-import unittest
-import time
-import os
-import subprocess
-import signal
-import shutil
 import logging
+import os
+import shutil
+import signal
+import subprocess
 import sys
-import requests
+import time
+import unittest
+
 import pytest
+import requests
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # noqa
 sys.path.insert(0, pkg_root)  # noqa

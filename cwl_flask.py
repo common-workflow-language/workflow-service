@@ -1,12 +1,13 @@
-from flask import Flask, Response, request, redirect
+import copy
+import json
+import signal
 import subprocess
 import tempfile
-import json
-import yaml
-import signal
 import threading
 import time
-import copy
+
+import yaml
+from flask import Flask, Response, redirect, request
 
 app = Flask(__name__)
 
