@@ -4,9 +4,6 @@ import subprocess
 import sys
 import unittest
 
-pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # noqa
-sys.path.insert(0, pkg_root)  # noqa
-
 from wes_client.util import expand_globs, wf_info
 
 logging.basicConfig(level=logging.INFO)
@@ -34,8 +31,8 @@ class IntegrationTest(unittest.TestCase):
         self.expected = {
             "cwl": ("v1.0", "CWL"),
             "wdl": ("draft-2", "WDL"),
-            "py": ("2.7", "PY"),
-            "pyWithPrefix": ("2.7", "PY"),
+            "py": ("3", "PY"),
+            "pyWithPrefix": ("3", "PY"),
         }
 
     def tearDown(self):

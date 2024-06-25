@@ -12,19 +12,19 @@ import yaml
 from wes_service.util import visit
 
 
-def two_seven_compatible(filePath):
-    """Determines if a python file is 2.7 compatible by seeing if it compiles in a subprocess"""
+def py3_compatible(filePath):
+    """Determines if a python file is 3.x compatible by seeing if it compiles in a subprocess"""
     try:
-        check_call(["python2", "-m", "py_compile", filePath], stderr=DEVNULL)
+        check_call(["python3", "-m", "py_compile", filePath], stderr=DEVNULL)
     except CalledProcessError:
-        raise RuntimeError("Python files must be 2.7 compatible")
+        raise RuntimeError("Python files must be 3.x compatible")
     return True
 
 
 def get_version(extension, workflow_file):
     """Determines the version of a .py, .wdl, or .cwl file."""
-    if extension == "py" and two_seven_compatible(workflow_file):
-        return "2.7"
+    if extension == "py" and py3_compatible(workflow_file):
+        return "3"
     elif extension == "cwl":
         return yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
     else:  # Must be a wdl file.
