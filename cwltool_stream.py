@@ -4,28 +4,25 @@ import json
 import logging
 import sys
 import tempfile
+from io import StringIO
+from typing import List, Union
 
 import cwltool.main
-import StringIO
 
 _logger = logging.getLogger("cwltool")
 _logger.setLevel(logging.ERROR)
 
 
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
-
+def main(args: List[str] = sys.argv[1:]) -> int:
     if len(args) == 0:
         print("Workflow must be on command line")
         return 1
 
-    parser = cwltool.main.arg_parser()
+    parser = cwltool.argparser.arg_parser()
     parsedargs = parser.parse_args(args)
 
-    a = True
+    a: Union[bool, str] = True
     while a:
-        a = True
         msg = ""
         while a and a != "\n":
             a = sys.stdin.readline()
@@ -33,8 +30,8 @@ def main(args=None):
 
         outdir = tempfile.mkdtemp("", parsedargs.tmp_outdir_prefix)
 
-        t = StringIO.StringIO(msg)
-        err = StringIO.StringIO()
+        t = StringIO(msg)
+        err = StringIO()
         if (
             cwltool.main.main(
                 ["--outdir=" + outdir] + args + ["-"], stdin=t, stderr=err
@@ -44,6 +41,8 @@ def main(args=None):
             sys.stdout.write(json.dumps({"cwl:error": err.getvalue()}))
         sys.stdout.write("\n\n")
         sys.stdout.flush()
+        a = True
+    return 0
 
 
 if __name__ == "__main__":

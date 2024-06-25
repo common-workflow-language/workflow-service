@@ -6,12 +6,13 @@ import shutil
 import subprocess
 import tempfile
 import threading
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
-import arvados
-import arvados.collection
-import arvados.errors
-import arvados.util
-import connexion
+import arvados  # type: ignore[import-untyped]
+import arvados.collection  # type: ignore[import-untyped]
+import arvados.errors  # type: ignore[import-untyped]
+import arvados.util  # type: ignore[import-untyped]
+import connexion  # type: ignore[import-untyped]
 
 from wes_service.util import WESBackend, visit
 
@@ -20,7 +21,7 @@ class MissingAuthorization(Exception):
     pass
 
 
-def get_api(authtoken=None):
+def get_api(authtoken: Optional[str] = None) -> Any:
     if authtoken is None:
         if not connexion.request.headers.get("Authorization"):
             raise MissingAuthorization()
@@ -49,11 +50,11 @@ statemap = {
 }
 
 
-def catch_exceptions(orig_func):
+def catch_exceptions(orig_func: Callable[..., Any]) -> Callable[..., Any]:
     """Catch uncaught exceptions and turn them into http errors"""
 
     @functools.wraps(orig_func)
-    def catch_exceptions_wrapper(self, *args, **kwargs):
+    def catch_exceptions_wrapper(self: Any, *args: str, **kwargs: str) -> Any:
         try:
             return orig_func(self, *args, **kwargs)
         except arvados.errors.ApiError as e:
@@ -81,7 +82,7 @@ def catch_exceptions(orig_func):
 
 
 class ArvadosBackend(WESBackend):
-    def GetServiceInfo(self):
+    def GetServiceInfo(self) -> Dict[str, Any]:
         stdout, stderr = subprocess.Popen(
             ["arvados-cwl-runner", "--version"], stderr=subprocess.PIPE
         ).communicate()
@@ -99,7 +100,12 @@ class ArvadosBackend(WESBackend):
         }
 
     @catch_exceptions
-    def ListRuns(self, page_size=None, page_token=None, state_search=None):
+    def ListRuns(
+        self,
+        page_size: Any = None,
+        page_token: Optional[str] = None,
+        state_search: Any = None,
+    ) -> Dict[str, Any]:
         api = get_api()
 
         paging = []
@@ -141,7 +147,9 @@ class ArvadosBackend(WESBackend):
             "next_page_token": workflow_list[-1]["run_id"] if workflow_list else "",
         }
 
-    def log_for_run(self, run_id, message, authtoken=None):
+    def log_for_run(
+        self, run_id: Optional[str], message: str, authtoken: Optional[str] = None
+    ) -> None:
         get_api(authtoken).logs().create(
             body={
                 "log": {
@@ -153,8 +161,14 @@ class ArvadosBackend(WESBackend):
         ).execute()
 
     def invoke_cwl_runner(
-        self, cr_uuid, workflow_url, workflow_params, env, project_uuid, tempdir
-    ):
+        self,
+        cr_uuid: str,
+        workflow_url: str,
+        workflow_params: Any,
+        env: Dict[str, str],
+        project_uuid: str,
+        tempdir: str,
+    ) -> None:
         api = arvados.api_from_config(
             version="v1",
             apiconfig={
@@ -235,7 +249,9 @@ class ArvadosBackend(WESBackend):
             ).execute()
 
     @catch_exceptions
-    def RunWorkflow(self, **args):
+    def RunWorkflow(
+        self, **args: str
+    ) -> Union[Tuple[Dict[str, Any], int], Dict[str, Any]]:
         if not connexion.request.headers.get("Authorization"):
             raise MissingAuthorization()
 
@@ -273,7 +289,9 @@ class ArvadosBackend(WESBackend):
         try:
             tempdir, body = self.collect_attachments(cr["uuid"])
 
-            workflow_engine_parameters = body.get("workflow_engine_parameters", {})
+            workflow_engine_parameters = cast(
+                Dict[str, Any], body.get("workflow_engine_parameters", {})
+            )
             project_uuid = None
             if workflow_engine_parameters:
                 project_uuid = workflow_engine_parameters.get("project_uuid")
@@ -329,7 +347,7 @@ class ArvadosBackend(WESBackend):
             return {"run_id": cr["uuid"]}
 
     @catch_exceptions
-    def GetRunLog(self, run_id):
+    def GetRunLog(self, run_id: str) -> Dict[str, str]:
         api = get_api()
 
         request = api.container_requests().get(uuid=run_id).execute()
@@ -368,7 +386,7 @@ class ArvadosBackend(WESBackend):
                 except ValueError:
                     pass
 
-                def keepref(d):
+                def keepref(d: Any) -> None:
                     if isinstance(d, dict) and "location" in d:
                         d["location"] = "{}c={}/_/{}".format(
                             api._resourceDesc["keepWebServiceUrl"],
@@ -378,7 +396,7 @@ class ArvadosBackend(WESBackend):
 
                 visit(outputobj, keepref)
 
-        def log_object(cr):
+        def log_object(cr: Dict[str, Any]) -> Dict[str, Any]:
             if cr["container_uuid"]:
                 containerlog = containers_map[cr["container_uuid"]]
             else:
@@ -430,7 +448,7 @@ class ArvadosBackend(WESBackend):
         return r
 
     @catch_exceptions
-    def CancelRun(self, run_id):  # NOQA
+    def CancelRun(self, run_id: str) -> Dict[str, Any]:  # NOQA
         api = get_api()
         request = (
             api.container_requests().update(uuid=run_id, body={"priority": 0}).execute()
@@ -438,7 +456,7 @@ class ArvadosBackend(WESBackend):
         return {"run_id": request["uuid"]}
 
     @catch_exceptions
-    def GetRunStatus(self, run_id):
+    def GetRunStatus(self, run_id: str) -> Dict[str, Any]:
         api = get_api()
         request = api.container_requests().get(uuid=run_id).execute()
         if request["container_uuid"]:
@@ -452,7 +470,7 @@ class ArvadosBackend(WESBackend):
         return {"run_id": request["uuid"], "state": statemap[container["state"]]}
 
 
-def dynamic_logs(run_id, logstream):
+def dynamic_logs(run_id: str, logstream: str) -> str:
     api = get_api()
     cr = api.container_requests().get(uuid=run_id).execute()
     l1 = [
@@ -484,7 +502,7 @@ def dynamic_logs(run_id, logstream):
     return "".join(reversed(l1)) + "".join(reversed(l2))
 
 
-def create_backend(app, opts):
+def create_backend(app: Any, opts: List[str]) -> ArvadosBackend:
     ab = ArvadosBackend(opts)
     app.app.route("/ga4gh/wes/v1/runs/<run_id>/x-dynamic-logs/<logstream>")(
         dynamic_logs

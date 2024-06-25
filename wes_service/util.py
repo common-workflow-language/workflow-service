@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import tempfile
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import connexion
+import connexion  # type: ignore[import-untyped]
 from werkzeug.utils import secure_filename
 
 
-def visit(d, op):
+def visit(d: Any, op: Callable[[Any], Any]) -> None:
     """Recursively call op(d) for all list subelements and dictionary 'values' that d may have."""
     op(d)
     if isinstance(d, list):
@@ -21,21 +22,21 @@ def visit(d, op):
 class WESBackend:
     """Stores and retrieves options.  Intended to be inherited."""
 
-    def __init__(self, opts):
+    def __init__(self, opts: List[str]) -> None:
         """Parse and store options as a list of tuples."""
-        self.pairs = []
+        self.pairs: List[Tuple[str, str]] = []
         for o in opts if opts else []:
             k, v = o.split("=", 1)
             self.pairs.append((k, v))
 
-    def getopt(self, p, default=None):
+    def getopt(self, p: str, default: Optional[str] = None) -> Optional[str]:
         """Returns the first option value stored that matches p or default."""
         for k, v in self.pairs:
             if k == p:
                 return v
         return default
 
-    def getoptlist(self, p):
+    def getoptlist(self, p: str) -> List[str]:
         """Returns all option values stored that match p as a list."""
         optlist = []
         for k, v in self.pairs:
@@ -43,12 +44,14 @@ class WESBackend:
                 optlist.append(v)
         return optlist
 
-    def log_for_run(self, run_id, message):
+    def log_for_run(self, run_id: Optional[str], message: str) -> None:
         logging.info("Workflow %s: %s", run_id, message)
 
-    def collect_attachments(self, run_id=None):
+    def collect_attachments(
+        self, run_id: Optional[str] = None
+    ) -> Tuple[str, Dict[str, str]]:
         tempdir = tempfile.mkdtemp()
-        body = {}
+        body: Dict[str, str] = {}
         has_attachments = False
         for k, ls in connexion.request.files.lists():
             try:

@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import time
+from typing import List
 
 import pkg_resources  # part of setuptools
 import requests
@@ -13,7 +14,7 @@ from requests.exceptions import InvalidSchema, MissingSchema
 from wes_client.util import WESClient, modify_jsonyaml_paths
 
 
-def main(argv=sys.argv[1:]):
+def main(argv: List[str] = sys.argv[1:]) -> int:
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(
         "--host",
@@ -124,8 +125,8 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    args.attachments = "" if not args.attachments else args.attachments.split(",")
-    r = client.run(args.workflow_url, job_order, args.attachments)
+    attachments = None if not args.attachments else args.attachments.split(",")
+    r = client.run(args.workflow_url, job_order, attachments)
 
     if args.wait:
         logging.info("Workflow run id is %s", r["run_id"])

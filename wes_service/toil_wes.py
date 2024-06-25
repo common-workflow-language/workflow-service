@@ -6,6 +6,7 @@ import subprocess
 import time
 import uuid
 from multiprocessing import Process
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from wes_service.util import WESBackend
 
@@ -13,11 +14,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ToilWorkflow:
-    def __init__(self, run_id):
+    def __init__(self, run_id: str) -> None:
         """
         Represents a toil workflow.
 
-        :param str run_id: A uuid string.  Used to name the folder that contains
+        :param run_id: A uuid string.  Used to name the folder that contains
             all of the files containing this particular workflow instance's information.
         """
         super().__init__()
@@ -40,9 +41,9 @@ class ToilWorkflow:
         self.request_json = os.path.join(self.workdir, "request.json")
         self.input_json = os.path.join(self.workdir, "wes_input.json")
         self.jobstore_default = "file:" + os.path.join(self.workdir, "toiljobstore")
-        self.jobstore = None
+        self.jobstore: Optional[str] = None
 
-    def sort_toil_options(self, extra):
+    def sort_toil_options(self, extra: List[str]) -> List[str]:
         # determine jobstore and set a new default if the user did not set one
         cloud = False
         extra2 = []
@@ -65,10 +66,12 @@ class ToilWorkflow:
 
         return extra2
 
-    def write_workflow(self, request, opts, cwd, wftype="cwl"):
+    def write_workflow(
+        self, request: Dict[str, Any], opts: WESBackend, cwd: str, wftype: str = "cwl"
+    ) -> List[str]:
         """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
 
-        workflow_url = request.get("workflow_url")
+        workflow_url = cast(str, request.get("workflow_url"))
 
         # link the cwl and json into the cwd
         if workflow_url.startswith("file://"):
@@ -103,13 +106,13 @@ class ToilWorkflow:
 
         return command_args
 
-    def write_json(self, request_dict):
+    def write_json(self, request_dict: Dict[str, Any]) -> str:
         input_json = os.path.join(self.workdir, "input.json")
         with open(input_json, "w") as f:
             json.dump(request_dict["workflow_params"], f)
         return input_json
 
-    def call_cmd(self, cmd, cwd):
+    def call_cmd(self, cmd: Union[List[str], str], cwd: str) -> int:
         """
         Calls a command with Popen.
         Writes stdout, stderr, and the command to separate files.
@@ -136,16 +139,16 @@ class ToilWorkflow:
 
         return process.pid
 
-    def cancel(self):
+    def cancel(self) -> None:
         pass
 
-    def fetch(self, filename):
+    def fetch(self, filename: str) -> str:
         if os.path.exists(filename):
             with open(filename) as f:
                 return f.read()
         return ""
 
-    def getlog(self):
+    def getlog(self) -> Dict[str, Any]:
         state, exit_code = self.getstate()
 
         with open(self.request_json) as f:
@@ -163,13 +166,13 @@ class ToilWorkflow:
         if state == "COMPLETE":
             # only tested locally
             if self.jobstore.startswith("file:"):
-                for f in os.listdir(self.outdir):
-                    if f.startswith("out_tmpdir"):
-                        shutil.rmtree(os.path.join(self.outdir, f))
-                for f in os.listdir(self.outdir):
-                    outputobj[f] = {
-                        "location": os.path.join(self.outdir, f),
-                        "size": os.stat(os.path.join(self.outdir, f)).st_size,
+                for f2 in os.listdir(self.outdir):
+                    if f2.startswith("out_tmpdir"):
+                        shutil.rmtree(os.path.join(self.outdir, f2))
+                for f3 in os.listdir(self.outdir):
+                    outputobj[f3] = {
+                        "location": os.path.join(self.outdir, f3),
+                        "size": os.stat(os.path.join(self.outdir, f3)).st_size,
                         "class": "File",
                     }
 
@@ -189,7 +192,9 @@ class ToilWorkflow:
             "outputs": outputobj,
         }
 
-    def run(self, request, tempdir, opts):
+    def run(
+        self, request: Dict[str, Any], tempdir: str, opts: WESBackend
+    ) -> Dict[str, str]:
         """
         Constructs a command to run a cwl/json from requests and opts,
         runs it, and deposits the outputs in outdir.
@@ -206,9 +211,9 @@ class ToilWorkflow:
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)
 
-        :param dict request: A dictionary containing the cwl/json information.
-        :param str tempdir: Folder where input files have been staged and the cwd to run at.
-        :param wes_service.util.WESBackend opts: contains the user's arguments;
+        :param request: A dictionary containing the cwl/json information.
+        :param tempdir: Folder where input files have been staged and the cwd to run at.
+        :param opts: contains the user's arguments;
                                                  specifically the runner and runner options
         :return: {"run_id": self.run_id, "state": state}
         """
@@ -245,7 +250,7 @@ class ToilWorkflow:
 
         return self.getstatus()
 
-    def getstate(self):
+    def getstate(self) -> Tuple[str, int]:
         """
         Returns QUEUED,          -1
                 INITIALIZING,    -1
@@ -296,16 +301,16 @@ class ToilWorkflow:
         logging.info("Workflow " + self.run_id + ": RUNNING")
         return "RUNNING", -1
 
-    def getstatus(self):
+    def getstatus(self) -> Dict[str, Any]:
         state, exit_code = self.getstate()
 
         return {"run_id": self.run_id, "state": state}
 
 
 class ToilBackend(WESBackend):
-    processes = {}
+    processes: Dict[str, Process] = {}
 
-    def GetServiceInfo(self):
+    def GetServiceInfo(self) -> Dict[str, Any]:
         return {
             "workflow_type_versions": {
                 "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]},
@@ -319,7 +324,9 @@ class ToilBackend(WESBackend):
             "key_values": {},
         }
 
-    def ListRuns(self, page_size=None, page_token=None, state_search=None):
+    def ListRuns(
+        self, page_size: Any = None, page_token: Any = None, state_search: Any = None
+    ) -> Dict[str, Any]:
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
@@ -331,7 +338,7 @@ class ToilBackend(WESBackend):
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
 
-    def RunWorkflow(self):
+    def RunWorkflow(self) -> Dict[str, str]:
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
@@ -341,20 +348,20 @@ class ToilBackend(WESBackend):
         self.processes[run_id] = p
         return {"run_id": run_id}
 
-    def GetRunLog(self, run_id):
+    def GetRunLog(self, run_id: str) -> Dict[str, Any]:
         job = ToilWorkflow(run_id)
         return job.getlog()
 
-    def CancelRun(self, run_id):
+    def CancelRun(self, run_id: str) -> Dict[str, str]:
         # should this block with `p.is_alive()`?
         if run_id in self.processes:
             self.processes[run_id].terminate()
         return {"run_id": run_id}
 
-    def GetRunStatus(self, run_id):
+    def GetRunStatus(self, run_id: str) -> Dict[str, str]:
         job = ToilWorkflow(run_id)
         return job.getstatus()
 
 
-def create_backend(app, opts):
+def create_backend(app: Any, opts: List[str]) -> ToilBackend:
     return ToilBackend(opts)

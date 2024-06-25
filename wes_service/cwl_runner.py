@@ -2,12 +2,13 @@ import json
 import os
 import subprocess
 import uuid
+from typing import Any, Dict, List, Tuple, cast
 
 from wes_service.util import WESBackend
 
 
 class Workflow:
-    def __init__(self, run_id):
+    def __init__(self, run_id: str) -> None:
         super().__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
@@ -15,7 +16,9 @@ class Workflow:
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
-    def run(self, request, tempdir, opts):
+    def run(
+        self, request: Dict[str, str], tempdir: str, opts: WESBackend
+    ) -> Dict[str, str]:
         """
         Constructs a command to run a cwl/json from requests and opts,
         runs it, and deposits the outputs in outdir.
@@ -32,9 +35,9 @@ class Workflow:
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)
 
-        :param dict request: A dictionary containing the cwl/json information.
-        :param wes_service.util.WESBackend opts: contains the user's arguments;
-                                                 specifically the runner and runner options
+        :param request: A dictionary containing the cwl/json information.
+        :param opts: contains the user's arguments;
+                     specifically the runner and runner options
         :return: {"run_id": self.run_id, "state": state}
         """
         with open(os.path.join(self.workdir, "request.json"), "w") as f:
@@ -43,14 +46,14 @@ class Workflow:
         with open(os.path.join(self.workdir, "cwl.input.json"), "w") as inputtemp:
             json.dump(request["workflow_params"], inputtemp)
 
-        workflow_url = request.get(
-            "workflow_url"
+        workflow_url = cast(
+            str, request.get("workflow_url")
         )  # Will always be local path to descriptor cwl, or url.
 
         output = open(os.path.join(self.workdir, "cwl.output.json"), "w")
         stderr = open(os.path.join(self.workdir, "stderr"), "w")
 
-        runner = opts.getopt("runner", default="cwl-runner")
+        runner = cast(str, opts.getopt("runner", default="cwl-runner"))
         extra = opts.getoptlist("extra")
 
         # replace any locally specified outdir with the default
@@ -68,7 +71,7 @@ class Workflow:
         jsonpath = os.path.join(tempdir, "cwl.input.json")
 
         # build args and run
-        command_args = [runner] + extra2 + [workflow_url, jsonpath]
+        command_args: List[str] = [runner] + extra2 + [workflow_url, jsonpath]
         proc = subprocess.Popen(
             command_args, stdout=output, stderr=stderr, close_fds=True, cwd=tempdir
         )
@@ -79,7 +82,7 @@ class Workflow:
 
         return self.getstatus()
 
-    def getstate(self):
+    def getstate(self) -> Tuple[str, int]:
         """
         Returns RUNNING, -1
                 COMPLETE, 0
@@ -96,8 +99,8 @@ class Workflow:
             with open(exitcode_file) as f:
                 exit_code = int(f.read())
         elif os.path.exists(pid_file):
-            with open(pid_file) as pid:
-                pid = int(pid.read())
+            with open(pid_file) as pid_fh:
+                pid = int(pid_fh.read())
             try:
                 (_pid, exit_status) = os.waitpid(pid, os.WNOHANG)
                 if _pid != 0:
@@ -116,12 +119,12 @@ class Workflow:
 
         return state, exit_code
 
-    def getstatus(self):
+    def getstatus(self) -> Dict[str, str]:
         state, exit_code = self.getstate()
 
         return {"run_id": self.run_id, "state": state}
 
-    def getlog(self):
+    def getlog(self) -> Dict[str, Any]:
         state, exit_code = self.getstate()
 
         with open(os.path.join(self.workdir, "request.json")) as f:
@@ -152,13 +155,13 @@ class Workflow:
             "outputs": outputobj,
         }
 
-    def cancel(self):
+    def cancel(self) -> None:
         pass
 
 
 class CWLRunnerBackend(WESBackend):
-    def GetServiceInfo(self):
-        runner = self.getopt("runner", default="cwl-runner")
+    def GetServiceInfo(self) -> Dict[str, Any]:
+        runner = cast(str, self.getopt("runner", default="cwl-runner"))
         stdout, stderr = subprocess.Popen(
             [runner, "--version"], stderr=subprocess.PIPE
         ).communicate()
@@ -174,7 +177,9 @@ class CWLRunnerBackend(WESBackend):
         }
         return r
 
-    def ListRuns(self, page_size=None, page_token=None, state_search=None):
+    def ListRuns(
+        self, page_size: Any = None, page_token: Any = None, state_search: Any = None
+    ) -> Dict[str, Any]:
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
@@ -186,7 +191,7 @@ class CWLRunnerBackend(WESBackend):
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
 
-    def RunWorkflow(self, **args):
+    def RunWorkflow(self, **args: str) -> Dict[str, str]:
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
@@ -195,19 +200,19 @@ class CWLRunnerBackend(WESBackend):
         job.run(body, tempdir, self)
         return {"run_id": run_id}
 
-    def GetRunLog(self, run_id):
+    def GetRunLog(self, run_id: str) -> Dict[str, Any]:
         job = Workflow(run_id)
         return job.getlog()
 
-    def CancelRun(self, run_id):
+    def CancelRun(self, run_id: str) -> Dict[str, str]:
         job = Workflow(run_id)
         job.cancel()
         return {"run_id": run_id}
 
-    def GetRunStatus(self, run_id):
+    def GetRunStatus(self, run_id: str) -> Dict[str, str]:
         job = Workflow(run_id)
         return job.getstatus()
 
 
-def create_backend(app, opts):
+def create_backend(app: Any, opts: List[str]) -> CWLRunnerBackend:
     return CWLRunnerBackend(opts)
