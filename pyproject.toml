@@ -1,3 +1,59 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = [
+    "setuptools>=61.2"
+]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "wes-service"
+version = "4.0"
+authors = [{name = "GA4GH Containers and Workflows task team", email = "common-workflow-language@googlegroups.com"}]
+description = "GA4GH Workflow Execution Service reference implementation"
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "programming language :: python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = "~=3.7"
+dependencies = [
+    "connexion >= 2.0.2, < 3",
+    "ruamel.yaml >= 0.15.78",
+    "schema-salad",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/common-workflow-language/cwltool-service"
+Download = "https://github.com/common-workflow-language/cwltool-service/releases"
+"Bug Tracker" = "https://github.com/common-workflow-language/cwltool-service/issues"
+
+[project.optional-dependencies]
+cwltool = ["cwlref-runner"]
+arvados = ["arvados-cwl-runner"]
+toil = ["toil[cwl]==5.6.0"]
+
+[project.scripts]
+wes-server = "wes_service.wes_service_main:main"
+wes-client = "wes_client.wes_client_main:main"
+
+[tool.setuptools]
+packages = ["wes_service", "wes_client"]
+include-package-data = true
+zip-safe = false
+platforms = ['"MacOS X"', '"Posix"']
+
+[tool.setuptools.package-data]
+wes_service = ["openapi/workflow_execution_service.swagger.yaml"]
+
+[tool.isort]
+profile = "black"
