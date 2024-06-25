@@ -26,7 +26,8 @@ class Workflow:
         CWL (url):
         request["workflow_url"] == a url to a cwl file
         or
-        request["workflow_attachment"] == input cwl text (written to a file and a url constructed for that file)
+        request["workflow_attachment"] == input cwl text
+        (written to a file and a url constructed for that file)
 
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)
@@ -53,10 +54,11 @@ class Workflow:
         extra = opts.getoptlist("extra")
 
         # replace any locally specified outdir with the default
+        extra2 = []
         for e in extra:
-            if e.startswith("--outdir="):
-                extra.remove(e)
-        extra.append("--outdir=" + self.outdir)
+            if not e.startswith("--outdir="):
+                extra2.append(e)
+        extra2.append("--outdir=" + self.outdir)
 
         # link the cwl and json into the tempdir/cwd
         if workflow_url.startswith("file://"):
@@ -66,7 +68,7 @@ class Workflow:
         jsonpath = os.path.join(tempdir, "cwl.input.json")
 
         # build args and run
-        command_args = [runner] + extra + [workflow_url, jsonpath]
+        command_args = [runner] + extra2 + [workflow_url, jsonpath]
         proc = subprocess.Popen(
             command_args, stdout=output, stderr=stderr, close_fds=True, cwd=tempdir
         )

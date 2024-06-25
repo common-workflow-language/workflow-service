@@ -45,24 +45,25 @@ class ToilWorkflow:
     def sort_toil_options(self, extra):
         # determine jobstore and set a new default if the user did not set one
         cloud = False
+        extra2 = []
         for e in extra:
             if e.startswith("--jobStore="):
                 self.jobstore = e[11:]
                 if self.jobstore.startswith(("aws", "google", "azure")):
                     cloud = True
-            if e.startswith(("--outdir=", "-o=")):
-                extra.remove(e)
+            if not e.startswith(("--outdir=", "-o=")):
+                extra2.append(e)
         if not cloud:
-            extra.append("--outdir=" + self.outdir)
+            extra2.append("--outdir=" + self.outdir)
         if not self.jobstore:
-            extra.append("--jobStore=" + self.jobstore_default)
+            extra2.append("--jobStore=" + self.jobstore_default)
             self.jobstore = self.jobstore_default
 
         # store the jobstore location
         with open(self.jobstorefile, "w") as f:
             f.write(self.jobstore)
 
-        return extra
+        return extra2
 
     def write_workflow(self, request, opts, cwd, wftype="cwl"):
         """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
@@ -199,7 +200,8 @@ class ToilWorkflow:
         CWL (url):
         request["workflow_url"] == a url to a cwl file
         or
-        request["workflow_attachment"] == input cwl text (written to a file and a url constructed for that file)
+        request["workflow_attachment"] == input cwl text
+        (written to a file and a url constructed for that file)
 
         JSON File:
         request["workflow_params"] == input json text (to be written to a file)

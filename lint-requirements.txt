@@ -1,2 +1,4 @@
-flake8
-black
+flake8-bugbear < 24.5
+black ~= 25.0
+codespell
+isort >= 5

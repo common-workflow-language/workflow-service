@@ -1,12 +1,13 @@
 import logging
 import os
 import subprocess
-import sys
 import unittest
 
 from wes_client.util import expand_globs, wf_info
 
 logging.basicConfig(level=logging.INFO)
+
+PRE = "https://raw.githubusercontent.com/common-workflow-language/workflow-service/main"
 
 
 class IntegrationTest(unittest.TestCase):
@@ -21,10 +22,11 @@ class IntegrationTest(unittest.TestCase):
         }
 
         self.remote = {
-            "cwl": "https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.cwl",
-            "wdl": "https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/testdata/md5sum.wdl",
-            "py": "https://raw.githubusercontent.com/common-workflow-language/workflow-service/master/test/test_integration.py",
-            "unsupported": "gs://topmed_workflow_testing/topmed_aligner/small_test_files_sbg/example_human_known_snp.py",
+            "cwl": f"{PRE}/testdata/md5sum.cwl",
+            "wdl": f"{PRE}/testdata/md5sum.wdl",
+            "py": f"{PRE}/test/test_integration.py",
+            "unsupported": "gs://topmed_workflow_testing/topmed_aligner/"
+            "small_test_files_sbg/example_human_known_snp.py",
             "unreachable": "https://fake.py",
         }
 
@@ -63,7 +65,8 @@ class IntegrationTest(unittest.TestCase):
 
         for file_format, location in self.local.items():
             if file_format != "unsupported":
-                # Tests the behavior after receiving supported file types with and without the 'file://' prefix
+                # Tests the behavior after receiving supported file types with
+                # and without the 'file://' prefix
                 self.assertEqual(wf_info(location), self.expected[file_format])
                 self.assertEqual(wf_info(location[7:]), self.expected[file_format])
 

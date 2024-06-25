@@ -25,7 +25,8 @@ def main(argv=sys.argv[1:]):
         "--auth",
         type=str,
         default=os.environ.get("WES_API_AUTH"),
-        help="Format is 'Header: value' or just 'value'.  If header name is not provided, value goes in the 'Authorization'.  Defaults to WES_API_AUTH.",
+        help="Format is 'Header: value' or just 'value'.  If header name is not "
+        "provided, value goes in the 'Authorization'.  Defaults to WES_API_AUTH.",
     )
     parser.add_argument(
         "--proto",
