@@ -1,0 +1,111 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TOX_SKIP_MISSING_INTERPRETERS: False
+  # Rich (pip)
+  FORCE_COLOR: 1
+  # Tox
+  PY_COLORS: 1
+  # Mypy (see https://github.com/python/mypy/issues/7771)
+  TERM: xterm-color
+  MYPY_FORCE_COLOR: 1
+  MYPY_FORCE_TERMINAL_WIDTH: 200
+  # Pytest
+  PYTEST_ADDOPTS: --color=yes
+
+jobs:
+
+  tox:
+    name: Tox
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        py-ver-major: [3]
+        py-ver-minor: [8, 9, 10, 11, 12]
+        step: [lint, unit, bandit, mypy]
+
+    env:
+      py-semver: ${{ format('{0}.{1}', matrix.py-ver-major, matrix.py-ver-minor) }}
+      TOXENV: ${{ format('py{0}{1}-{2}', matrix.py-ver-major, matrix.py-ver-minor, matrix.step) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.py-semver }}
+          allow-prereleases: true
+          cache: pip
+
+      - name: Upgrade setuptools and install tox
+        run: |
+          pip install -U pip setuptools wheel
+          pip install "tox<4" "tox-gh-actions<3"
+
+      - name: MyPy cache
+        if: ${{ matrix.step == 'mypy' }}
+        uses: actions/cache@v4
+        with:
+          path: .mypy_cache/${{ env.py-semver }}
+          key: mypy-${{ env.py-semver }}
+
+      - name: Test with tox
+        run: tox
+
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.step == 'unit' }}
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  tox-style:
+    name: CI linters via Tox
+
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        step: [lint-readme, pydocstyle]
+
+    env:
+      py-semver: "3.12"
+      TOXENV: ${{ format('py312-{0}', matrix.step) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.py-semver }}
+          cache: pip
+
+      - name: Upgrade setuptools and install tox
+        run: |
+          pip install -U pip setuptools wheel
+          pip install "tox<4" "tox-gh-actions<3"
+
+      - if: ${{ matrix.step == 'pydocstyle' && github.event_name == 'pull_request'}}
+        name: Create local branch for diff-quality for PRs
+        run: git branch ${{github.base_ref}} origin/${{github.base_ref}}
+
+      - name: Test with tox
+        run: tox

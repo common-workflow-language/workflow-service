@@ -23,7 +23,7 @@
 MODULE1=wes_client
 MODULE2=wes_service
 PACKAGE=wes-service
-EXTRAS=
+EXTRAS=[toil,arvados]
 
 # `SHELL=bash` doesn't work for some, so don't use BASH-isms like
 # `[[` conditional expressions.
@@ -147,7 +147,7 @@ diff-cover.html: coverage.xml
 	diff-cover --compare-branch=main $^ --html-report $@
 
 ## test                   : run the wes-service test suite
-test: $(PYSOURCES)
+test: $(PYSOURCES) FORCE
 	python -m pytest -rsx ${PYTEST_EXTRA}
 
 ## testcov                : run the wes-service test suite and collect coverage
