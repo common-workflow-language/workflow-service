@@ -3,15 +3,11 @@ import os
 import shutil
 import signal
 import subprocess
-import sys
 import time
 import unittest
 
 import pytest
 import requests
-
-pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # noqa
-sys.path.insert(0, pkg_root)  # noqa
 
 from wes_client.util import WESClient
 
@@ -24,7 +20,11 @@ class IntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # cwl
-        cls.cwl_dockstore_url = "https://dockstore.org/api/ga4gh/trs/v2/tools/quay.io%2Fbriandoconnor%2Fdockstore-tool-md5sum/versions/1.0.4/plain-CWL/descriptor//Dockstore.cwl"
+        cls.cwl_dockstore_url = (
+            "https://dockstore.org/api/ga4gh/trs/v2/tools/"
+            "github.com%2Fbrianoconnor%2Fdockstore-tool-md5sum/versions/"
+            "master/PLAIN_CWL/descriptor//Dockstore.cwl"
+        )
         cls.cwl_local_path = "file://" + os.path.abspath("testdata/md5sum.cwl")
         cls.cwl_json_input = "file://" + os.path.abspath("testdata/md5sum.json")
         cls.cwl_attachments = [
@@ -67,7 +67,7 @@ class IntegrationTest(unittest.TestCase):
             json_input=self.cwl_json_input,
             workflow_attachment=self.cwl_attachments,
         )
-        state = self.wait_for_finish(run_id)
+        self.wait_for_finish(run_id)
         self.check_complete(run_id)
         self.assertTrue(
             self.check_for_file(outfile_path),
@@ -81,7 +81,7 @@ class IntegrationTest(unittest.TestCase):
             json_input=self.cwl_json_input,
             workflow_attachment=self.cwl_attachments,
         )
-        state = self.wait_for_finish(run_id)
+        self.wait_for_finish(run_id)
         self.check_complete(run_id)
         self.assertTrue(
             self.check_for_file(outfile_path),
@@ -100,7 +100,7 @@ class IntegrationTest(unittest.TestCase):
             workflow_attachment=self.cwl_attachments,
         )
         get_response = self.client.get_run_log(run_id)["request"]
-        state = self.wait_for_finish(run_id)
+        self.wait_for_finish(run_id)
         self.check_complete(run_id)
         self.assertTrue(
             self.check_for_file(outfile_path),
@@ -151,7 +151,11 @@ class IntegrationTest(unittest.TestCase):
         assert "run_id" in r
 
     def run_md5sum(self, wf_input, json_input, workflow_attachment=None):
-        """Pass a local md5sum cwl to the wes-service server, and return the path of the output file that was created."""
+        """
+        Pass a local md5sum cwl to the wes-service server.
+
+        :return: the path of the output file that was created.
+        """
         response = self.client.run(wf_input, json_input, workflow_attachment)
         assert "run_id" in response, str(response.json())
         output_dir = os.path.abspath(

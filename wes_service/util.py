@@ -64,7 +64,7 @@ class WESBackend:
                             os.makedirs(os.path.dirname(dest))
                         self.log_for_run(
                             run_id,
-                            f"Staging attachment '{v.filename}' to '{dest}'",
+                            f"Staging attachment {v.filename!r} to {dest!r}",
                         )
                         v.save(dest)
                         has_attachments = True
@@ -77,7 +77,7 @@ class WESBackend:
                     else:
                         body[k] = v.read().decode()
             except Exception as e:
-                raise ValueError(f"Error reading parameter '{k}': {e}")
+                raise ValueError(f"Error reading parameter {k!r}: {e}") from e
         for k, ls in connexion.request.form.lists():
             try:
                 for v in ls:
@@ -88,7 +88,7 @@ class WESBackend:
                     else:
                         body[k] = v
             except Exception as e:
-                raise ValueError(f"Error reading parameter '{k}': {e}")
+                raise ValueError(f"Error reading parameter {k!r}: {e}") from e
 
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:

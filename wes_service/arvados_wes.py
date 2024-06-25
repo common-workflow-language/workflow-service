@@ -172,7 +172,7 @@ class ArvadosBackend(WESBackend):
                 inputtemp.flush()
 
                 msg = ""
-                for dirpath, dirs, files in os.walk(tempdir):
+                for dirpath, _dirs, files in os.walk(tempdir):
                     for f in files:
                         msg += "  " + dirpath + "/" + f + "\n"
 

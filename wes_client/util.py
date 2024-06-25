@@ -1,3 +1,5 @@
+"""Client WES utilities."""
+
 import glob
 import json
 import logging
@@ -16,8 +18,8 @@ def py3_compatible(filePath):
     """Determines if a python file is 3.x compatible by seeing if it compiles in a subprocess"""
     try:
         check_call(["python3", "-m", "py_compile", filePath], stderr=DEVNULL)
-    except CalledProcessError:
-        raise RuntimeError("Python files must be 3.x compatible")
+    except CalledProcessError as e:
+        raise RuntimeError("Python files must be 3.x compatible") from e
     return True
 
 
@@ -28,7 +30,8 @@ def get_version(extension, workflow_file):
     elif extension == "cwl":
         return yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
     else:  # Must be a wdl file.
-        # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/blob/develop/synorchestrator/util.py#L142
+        # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/
+        #               blob/develop/synorchestrator/util.py#L142
         try:
             return [
                 entry.lstrip("version")
@@ -43,8 +46,9 @@ def wf_info(workflow_path):
     """
     Returns the version of the file and the file extension.
 
-    Assumes that the file path is to the file directly ie, ends with a valid file extension.Supports checking local
-    files as well as files at http:// and https:// locations. Files at these remote locations are recreated locally to
+    Assumes that the file path is to the file directly ie, ends with a valid
+    file extension. Supports checking local files as well as files at http://
+    and https:// locations. Files at these remote locations are recreated locally to
     enable our approach to version checking, then removed after version is extracted.
     """
 
