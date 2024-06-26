@@ -14,6 +14,7 @@ _logger.setLevel(logging.ERROR)
 
 
 def main(args: List[str] = sys.argv[1:]) -> int:
+    """Streaming execution of cwltool."""
     if len(args) == 0:
         print("Workflow must be on command line")
         return 1

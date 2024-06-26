@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def setup(args: Optional[argparse.Namespace] = None) -> connexion.App:
+    """Config a Connexion App using the provided arguments."""
     if args is None:
         args = get_parser().parse_args([])  # grab the defaults
 
@@ -46,6 +47,7 @@ def setup(args: Optional[argparse.Namespace] = None) -> connexion.App:
 
 
 def get_parser() -> argparse.ArgumentParser:
+    """Construct an argument parser."""
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(
         "--backend",
@@ -67,6 +69,7 @@ def get_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: List[str] = sys.argv[1:]) -> None:
+    """Run the WES Service app."""
     args = get_parser().parse_args(argv)
 
     if args.version:

@@ -1,3 +1,5 @@
+"""Simple webapp for running cwl-runner."""
+
 import copy
 import json
 import shutil
@@ -19,7 +21,10 @@ jobs: List["Job"] = []
 
 
 class Job(threading.Thread):
+    """cwl-runner webapp."""
+
     def __init__(self, jobid: int, path: str, inputobj: bytes) -> None:
+        """Initialize the execution Job."""
         super().__init__()
         self.jobid = jobid
         self.path = path
@@ -28,6 +33,7 @@ class Job(threading.Thread):
         self.begin()
 
     def begin(self) -> None:
+        """Star executing using cwl-runner."""
         loghandle, self.logname = tempfile.mkstemp()
         with self.updatelock:
             self.outdir = tempfile.mkdtemp()
@@ -49,6 +55,7 @@ class Job(threading.Thread):
             }
 
     def run(self) -> None:
+        """Wait for execution to finish and report the result."""
         self.stdoutdata, self.stderrdata = self.proc.communicate(self.inputobj)
         if self.proc.returncode == 0:
             outobj = yaml.load(self.stdoutdata, Loader=yaml.FullLoader)
@@ -60,22 +67,26 @@ class Job(threading.Thread):
                 self.status["state"] = "Failed"
 
     def getstatus(self) -> Dict[str, Any]:
+        """Report the current status."""
         with self.updatelock:
             return self.status.copy()
 
     def cancel(self) -> None:
+        """Cancel the excution thread, if any."""
         if self.status["state"] == "Running":
             self.proc.send_signal(signal.SIGQUIT)
             with self.updatelock:
                 self.status["state"] = "Canceled"
 
     def pause(self) -> None:
+        """Pause the execution thread, if any."""
         if self.status["state"] == "Running":
             self.proc.send_signal(signal.SIGTSTP)
             with self.updatelock:
                 self.status["state"] = "Paused"
 
     def resume(self) -> None:
+        """If paused, then resume the execution thread."""
         if self.status["state"] == "Paused":
             self.proc.send_signal(signal.SIGCONT)
             with self.updatelock:
@@ -84,6 +95,7 @@ class Job(threading.Thread):
 
 @app.route("/run", methods=["POST"])
 def runworkflow() -> werkzeug.wrappers.response.Response:
+    """Accept a workflow exection request and run it."""
     path = request.args["wf"]
     with jobs_lock:
         jobid = len(jobs)
@@ -95,6 +107,7 @@ def runworkflow() -> werkzeug.wrappers.response.Response:
 
 @app.route("/jobs/<int:jobid>", methods=["GET", "POST"])
 def jobcontrol(jobid: int) -> Tuple[str, int]:
+    """Accept a job related action and report the result."""
     with jobs_lock:
         job = jobs[jobid]
     if request.method == "POST":
@@ -112,6 +125,7 @@ def jobcontrol(jobid: int) -> Tuple[str, int]:
 
 
 def logspooler(job: Job) -> Generator[str, None, None]:
+    """Yield 4 kilobytes of log text at a time."""
     with open(job.logname) as f:
         while True:
             r = f.read(4096)
@@ -126,6 +140,7 @@ def logspooler(job: Job) -> Generator[str, None, None]:
 
 @app.route("/jobs/<int:jobid>/log", methods=["GET"])
 def getlog(jobid: int) -> Response:
+    """Dump the log."""
     with jobs_lock:
         job = jobs[jobid]
     return Response(logspooler(job))
@@ -133,6 +148,7 @@ def getlog(jobid: int) -> Response:
 
 @app.route("/jobs", methods=["GET"])
 def getjobs() -> Response:
+    """Report all known jobs."""
     with jobs_lock:
         jobscopy = copy.copy(jobs)
 

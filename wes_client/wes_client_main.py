@@ -15,6 +15,7 @@ from wes_client.util import WESClient, modify_jsonyaml_paths
 
 
 def main(argv: List[str] = sys.argv[1:]) -> int:
+    """Run the WES service."""
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(
         "--host",

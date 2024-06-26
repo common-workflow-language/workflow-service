@@ -45,11 +45,13 @@ class WESBackend:
         return optlist
 
     def log_for_run(self, run_id: Optional[str], message: str) -> None:
+        """Report the log for a given run."""
         logging.info("Workflow %s: %s", run_id, message)
 
     def collect_attachments(
         self, run_id: Optional[str] = None
     ) -> Tuple[str, Dict[str, str]]:
+        """Stage all attachments to a temporary directory."""
         tempdir = tempfile.mkdtemp()
         body: Dict[str, str] = {}
         has_attachments = False
