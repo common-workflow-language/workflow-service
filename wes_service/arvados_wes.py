@@ -1,3 +1,5 @@
+"""Arvados backed for the WES service."""
+
 import functools
 import json
 import logging
@@ -21,7 +23,8 @@ class MissingAuthorization(Exception):
     pass
 
 
-def get_api(authtoken: Optional[str] = None) -> Any:
+def get_api(authtoken: Optional[str] = None) -> arvados.api.api:
+    """Retrieve an Arvados API object."""
     if authtoken is None:
         if not connexion.request.headers.get("Authorization"):
             raise MissingAuthorization()
@@ -82,7 +85,10 @@ def catch_exceptions(orig_func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class ArvadosBackend(WESBackend):
+    """Arvados backend for the WES Service."""
+
     def GetServiceInfo(self) -> Dict[str, Any]:
+        """Report metadata about this WES endpoint."""
         stdout, stderr = subprocess.Popen(  # nosec B603
             [shutil.which("arvados-cwl-runner") or "arvados-cwl-runner", "--version"],
             stderr=subprocess.PIPE,
@@ -107,6 +113,7 @@ class ArvadosBackend(WESBackend):
         page_token: Optional[str] = None,
         state_search: Any = None,
     ) -> Dict[str, Any]:
+        """List the known workflow runs."""
         api = get_api()
 
         paging = []
@@ -151,6 +158,7 @@ class ArvadosBackend(WESBackend):
     def log_for_run(
         self, run_id: Optional[str], message: str, authtoken: Optional[str] = None
     ) -> None:
+        """Report the log for a given run."""
         get_api(authtoken).logs().create(
             body={
                 "log": {
@@ -170,6 +178,7 @@ class ArvadosBackend(WESBackend):
         project_uuid: str,
         tempdir: str,
     ) -> None:
+        """Submit the workflow using `arvados-cwl-runner`."""
         api = arvados.api_from_config(
             version="v1",
             apiconfig={
@@ -253,6 +262,7 @@ class ArvadosBackend(WESBackend):
     def RunWorkflow(
         self, **args: str
     ) -> Union[Tuple[Dict[str, Any], int], Dict[str, Any]]:
+        """Submit the workflow run request."""
         if not connexion.request.headers.get("Authorization"):
             raise MissingAuthorization()
 
@@ -349,6 +359,7 @@ class ArvadosBackend(WESBackend):
 
     @catch_exceptions
     def GetRunLog(self, run_id: str) -> Dict[str, str]:
+        """Get the log for a particular workflow run."""
         api = get_api()
 
         request = api.container_requests().get(uuid=run_id).execute()
@@ -450,6 +461,7 @@ class ArvadosBackend(WESBackend):
 
     @catch_exceptions
     def CancelRun(self, run_id: str) -> Dict[str, Any]:  # NOQA
+        """Cancel a submitted run."""
         api = get_api()
         request = (
             api.container_requests().update(uuid=run_id, body={"priority": 0}).execute()
@@ -458,6 +470,7 @@ class ArvadosBackend(WESBackend):
 
     @catch_exceptions
     def GetRunStatus(self, run_id: str) -> Dict[str, Any]:
+        """Determine the status for a given run."""
         api = get_api()
         request = api.container_requests().get(uuid=run_id).execute()
         if request["container_uuid"]:
@@ -472,6 +485,7 @@ class ArvadosBackend(WESBackend):
 
 
 def dynamic_logs(run_id: str, logstream: str) -> str:
+    """Retrienve logs, chasing down the container logs as well."""
     api = get_api()
     cr = api.container_requests().get(uuid=run_id).execute()
     l1 = [
@@ -504,6 +518,7 @@ def dynamic_logs(run_id: str, logstream: str) -> str:
 
 
 def create_backend(app: Any, opts: List[str]) -> ArvadosBackend:
+    """Instantiate an ArvadosBackend."""
     ab = ArvadosBackend(opts)
     app.app.route("/ga4gh/wes/v1/runs/<run_id>/x-dynamic-logs/<logstream>")(
         dynamic_logs

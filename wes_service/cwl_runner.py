@@ -9,6 +9,7 @@ from wes_service.util import WESBackend
 
 class Workflow:
     def __init__(self, run_id: str) -> None:
+        """Construct a workflow runner."""
         super().__init__()
         self.run_id = run_id
         self.workdir = os.path.join(os.getcwd(), "workflows", self.run_id)
@@ -120,11 +121,13 @@ class Workflow:
         return state, exit_code
 
     def getstatus(self) -> Dict[str, str]:
+        """Report the current status."""
         state, exit_code = self.getstate()
 
         return {"run_id": self.run_id, "state": state}
 
     def getlog(self) -> Dict[str, Any]:
+        """Dump the log."""
         state, exit_code = self.getstate()
 
         with open(os.path.join(self.workdir, "request.json")) as f:
@@ -156,11 +159,13 @@ class Workflow:
         }
 
     def cancel(self) -> None:
+        """Cancel the workflow, if possible."""
         pass
 
 
 class CWLRunnerBackend(WESBackend):
     def GetServiceInfo(self) -> Dict[str, Any]:
+        """Report metadata about this WES endpoint."""
         runner = cast(str, self.getopt("runner", default="cwl-runner"))
         stdout, stderr = subprocess.Popen(  # nosec B603
             [runner, "--version"], stderr=subprocess.PIPE
@@ -180,6 +185,7 @@ class CWLRunnerBackend(WESBackend):
     def ListRuns(
         self, page_size: Any = None, page_token: Any = None, state_search: Any = None
     ) -> Dict[str, Any]:
+        """List the known workflow runs."""
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
@@ -192,6 +198,7 @@ class CWLRunnerBackend(WESBackend):
         return {"workflows": workflows, "next_page_token": ""}
 
     def RunWorkflow(self, **args: str) -> Dict[str, str]:
+        """Submit the workflow run request."""
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
@@ -201,18 +208,22 @@ class CWLRunnerBackend(WESBackend):
         return {"run_id": run_id}
 
     def GetRunLog(self, run_id: str) -> Dict[str, Any]:
+        """Get the log for a particular workflow run."""
         job = Workflow(run_id)
         return job.getlog()
 
     def CancelRun(self, run_id: str) -> Dict[str, str]:
+        """Cancel a submitted run."""
         job = Workflow(run_id)
         job.cancel()
         return {"run_id": run_id}
 
     def GetRunStatus(self, run_id: str) -> Dict[str, str]:
+        """Determine the status for a given run."""
         job = Workflow(run_id)
         return job.getstatus()
 
 
 def create_backend(app: Any, opts: List[str]) -> CWLRunnerBackend:
+    """Instantiate the cwl-runner backend."""
     return CWLRunnerBackend(opts)

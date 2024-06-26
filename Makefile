@@ -88,10 +88,10 @@ remove_unused_imports: $(PYSOURCES)
 
 pep257: pydocstyle
 ## pydocstyle             : check Python docstring style
-pydocstyle: $(PYSOURCES)
+pydocstyle: $(PYSOURCES) FORCE
 	pydocstyle --add-ignore=D100,D101,D102,D103 $^ || true
 
-pydocstyle_report.txt: $(PYSOURCES)
+pydocstyle_report.txt: $(PYSOURCES) FORCE
 	pydocstyle $^ > $@ 2>&1 || true
 
 ## diff_pydocstyle_report : check Python docstring style for changed files only

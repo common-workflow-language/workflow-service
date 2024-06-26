@@ -44,6 +44,11 @@ class ToilWorkflow:
         self.jobstore: Optional[str] = None
 
     def sort_toil_options(self, extra: List[str]) -> List[str]:
+        """
+        Sort the options in a toil-aware manner.
+
+        Stores the jobstore location for later use.
+        """
         # determine jobstore and set a new default if the user did not set one
         cloud = False
         extra2 = []
@@ -107,6 +112,7 @@ class ToilWorkflow:
         return command_args
 
     def write_json(self, request_dict: Dict[str, Any]) -> str:
+        """Save the workflow_params to the input.json file and also return it."""
         input_json = os.path.join(self.workdir, "input.json")
         with open(input_json, "w") as f:
             json.dump(request_dict["workflow_params"], f)
@@ -140,15 +146,18 @@ class ToilWorkflow:
         return process.pid
 
     def cancel(self) -> None:
+        """Cancel the run (currently a no-op for Toil)."""
         pass
 
     def fetch(self, filename: str) -> str:
+        """Retrieve a files contents, if it exists."""
         if os.path.exists(filename):
             with open(filename) as f:
                 return f.read()
         return ""
 
     def getlog(self) -> Dict[str, Any]:
+        """Dump the log."""
         state, exit_code = self.getstate()
 
         with open(self.request_json) as f:
@@ -307,6 +316,7 @@ class ToilWorkflow:
         return "RUNNING", -1
 
     def getstatus(self) -> Dict[str, Any]:
+        """Report the current status."""
         state, exit_code = self.getstate()
 
         return {"run_id": self.run_id, "state": state}
@@ -316,6 +326,7 @@ class ToilBackend(WESBackend):
     processes: Dict[str, Process] = {}
 
     def GetServiceInfo(self) -> Dict[str, Any]:
+        """Report about this WES endpoint."""
         return {
             "workflow_type_versions": {
                 "CWL": {"workflow_type_version": ["v1.0", "v1.1", "v1.2"]},
@@ -332,6 +343,7 @@ class ToilBackend(WESBackend):
     def ListRuns(
         self, page_size: Any = None, page_token: Any = None, state_search: Any = None
     ) -> Dict[str, Any]:
+        """List the known workflow runs."""
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
             return {"workflows": [], "next_page_token": ""}
@@ -344,6 +356,7 @@ class ToilBackend(WESBackend):
         return {"workflows": workflows, "next_page_token": ""}
 
     def RunWorkflow(self) -> Dict[str, str]:
+        """Submit the workflow run request."""
         tempdir, body = self.collect_attachments()
 
         run_id = uuid.uuid4().hex
@@ -354,19 +367,23 @@ class ToilBackend(WESBackend):
         return {"run_id": run_id}
 
     def GetRunLog(self, run_id: str) -> Dict[str, Any]:
+        """Get the log for a particular workflow run."""
         job = ToilWorkflow(run_id)
         return job.getlog()
 
     def CancelRun(self, run_id: str) -> Dict[str, str]:
+        """Cancel a submitted run."""
         # should this block with `p.is_alive()`?
         if run_id in self.processes:
             self.processes[run_id].terminate()
         return {"run_id": run_id}
 
     def GetRunStatus(self, run_id: str) -> Dict[str, str]:
+        """Determine the status for a given run."""
         job = ToilWorkflow(run_id)
         return job.getstatus()
 
 
 def create_backend(app: Any, opts: List[str]) -> ToilBackend:
+    """Instantiate a ToilBackend."""
     return ToilBackend(opts)

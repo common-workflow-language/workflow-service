@@ -17,7 +17,11 @@ from wes_service.util import visit
 
 
 def py3_compatible(filePath: str) -> bool:
-    """Determines if a python file is 3.x compatible by seeing if it compiles in a subprocess"""
+    """
+    Check file for Python 3.x compatibity.
+
+    (By seeing if it compiles in a subprocess)
+    """
     try:
         check_call(
             [sys.executable, "-m", "py_compile", os.path.normpath(filePath)],
@@ -29,7 +33,7 @@ def py3_compatible(filePath: str) -> bool:
 
 
 def get_version(extension: str, workflow_file: str) -> str:
-    """Determines the version of a .py, .wdl, or .cwl file."""
+    """Determine the version of a .py, .wdl, or .cwl file."""
     if extension == "py" and py3_compatible(workflow_file):
         return "3"
     elif extension == "cwl":
@@ -49,14 +53,13 @@ def get_version(extension: str, workflow_file: str) -> str:
 
 def wf_info(workflow_path: str) -> Tuple[str, str]:
     """
-    Returns the version of the file and the file extension.
+    Return the version of the file and the file extension.
 
     Assumes that the file path is to the file directly ie, ends with a valid
     file extension. Supports checking local files as well as files at http://
     and https:// locations. Files at these remote locations are recreated locally to
     enable our approach to version checking, then removed after version is extracted.
     """
-
     supported_formats = ["py", "wdl", "cwl"]
     file_type = workflow_path.lower().split(".")[-1]  # Grab the file extension
     workflow_path = workflow_path if ":" in workflow_path else "file://" + workflow_path
@@ -185,6 +188,7 @@ def build_wes_request(
 
 
 def expand_globs(attachments: Optional[Union[List[str], str]]) -> Set[str]:
+    """Expand any globs present in the attachment list."""
     expanded_list = []
     if attachments is None:
         attachments = []
@@ -200,7 +204,8 @@ def expand_globs(attachments: Optional[Union[List[str], str]]) -> Set[str]:
     return set(expanded_list)
 
 
-def wes_reponse(postresult: requests.Response) -> Dict[str, Any]:
+def wes_response(postresult: requests.Response) -> Dict[str, Any]:
+    """Convert a Response object to JSON text."""
     if postresult.status_code != 200:
         error = str(json.loads(postresult.text))
         logging.error(error)
@@ -210,7 +215,10 @@ def wes_reponse(postresult: requests.Response) -> Dict[str, Any]:
 
 
 class WESClient:
+    """WES client."""
+
     def __init__(self, service: Dict[str, Any]):
+        """Initialize the cliet with the provided credentials and endpoint."""
         self.auth = service["auth"]
         self.proto = service["proto"]
         self.host = service["host"]
@@ -232,7 +240,7 @@ class WESClient:
             f"{self.proto}://{self.host}/ga4gh/wes/v1/service-info",
             headers=self.auth,
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
 
     def list_runs(self) -> Dict[str, Any]:
         """
@@ -249,7 +257,7 @@ class WESClient:
         postresult = requests.get(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs", headers=self.auth
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
 
     def run(
         self, wf: str, jsonyaml: str, attachments: Optional[List[str]]
@@ -273,7 +281,7 @@ class WESClient:
             files=parts,
             headers=self.auth,
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
 
     def cancel(self, run_id: str) -> Dict[str, Any]:
         """
@@ -289,7 +297,7 @@ class WESClient:
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/cancel",
             headers=self.auth,
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
 
     def get_run_log(self, run_id: str) -> Dict[str, Any]:
         """
@@ -305,7 +313,7 @@ class WESClient:
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}",
             headers=self.auth,
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
 
     def get_run_status(self, run_id: str) -> Dict[str, Any]:
         """
@@ -321,4 +329,4 @@ class WESClient:
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/status",
             headers=self.auth,
         )
-        return wes_reponse(postresult)
+        return wes_response(postresult)
