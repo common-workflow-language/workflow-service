@@ -69,9 +69,7 @@ dev: install-dep
 	pip install -e .$(EXTRAS)
 
 ## dist                   : create a module package for distribution
-dist: dist/${MODULE}-$(VERSION).tar.gz
-
-dist/${MODULE}-$(VERSION).tar.gz: $(SOURCES)
+dist: FORCE
 	python -m build
 
 ## clean                  : clean up all temporary / machine-generated files
