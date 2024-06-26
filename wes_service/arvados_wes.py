@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
@@ -83,8 +83,9 @@ def catch_exceptions(orig_func: Callable[..., Any]) -> Callable[..., Any]:
 
 class ArvadosBackend(WESBackend):
     def GetServiceInfo(self) -> Dict[str, Any]:
-        stdout, stderr = subprocess.Popen(
-            ["arvados-cwl-runner", "--version"], stderr=subprocess.PIPE
+        stdout, stderr = subprocess.Popen(  # nosec B603
+            [shutil.which("arvados-cwl-runner") or "arvados-cwl-runner", "--version"],
+            stderr=subprocess.PIPE,
         ).communicate()
         return {
             "workflow_type_versions": {
@@ -218,7 +219,7 @@ class ArvadosBackend(WESBackend):
                     cr_uuid, "Executing %s" % cmd, env["ARVADOS_API_TOKEN"]
                 )
 
-                proc = subprocess.Popen(
+                proc = subprocess.Popen(  # nosec B603
                     cmd,
                     env=env,
                     cwd=tempdir,

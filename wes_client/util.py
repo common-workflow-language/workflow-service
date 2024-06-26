@@ -4,7 +4,8 @@ import glob
 import json
 import logging
 import os
-from subprocess import DEVNULL, CalledProcessError, check_call
+import sys
+from subprocess import DEVNULL, CalledProcessError, check_call  # nosec B404
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 from urllib.request import pathname2url, urlopen
 
@@ -18,7 +19,10 @@ from wes_service.util import visit
 def py3_compatible(filePath: str) -> bool:
     """Determines if a python file is 3.x compatible by seeing if it compiles in a subprocess"""
     try:
-        check_call(["python3", "-m", "py_compile", filePath], stderr=DEVNULL)
+        check_call(
+            [sys.executable, "-m", "py_compile", os.path.normpath(filePath)],
+            stderr=DEVNULL,
+        )  # nosec B603
     except CalledProcessError as e:
         raise RuntimeError("Python files must be 3.x compatible") from e
     return True
@@ -29,9 +33,7 @@ def get_version(extension: str, workflow_file: str) -> str:
     if extension == "py" and py3_compatible(workflow_file):
         return "3"
     elif extension == "cwl":
-        return cast(
-            str, yaml.load(open(workflow_file), Loader=yaml.FullLoader)["cwlVersion"]
-        )
+        return cast(str, yaml.safe_load(open(workflow_file))["cwlVersion"])
     else:  # Must be a wdl file.
         # Borrowed from https://github.com/Sage-Bionetworks/synapse-orchestrator/
         #               blob/develop/synorchestrator/util.py#L142
@@ -66,7 +68,7 @@ def wf_info(workflow_path: str) -> Tuple[str, str]:
             "http://"
         ):
             # If file not local go fetch it.
-            html = urlopen(workflow_path).read()
+            html = urlopen(workflow_path).read()  # nosec B310
             local_loc = os.path.join(os.getcwd(), "fetchedFromRemote." + file_type)
             with open(local_loc, "w") as f:
                 f.write(html.decode())
@@ -174,7 +176,7 @@ def build_wes_request(
                 attach_f: Any = open(attachment, "rb")
                 relpath = os.path.relpath(attachment, wfbase)
             elif attachment.startswith("http"):
-                attach_f = urlopen(attachment)
+                attach_f = urlopen(attachment)  # nosec B310
                 relpath = os.path.basename(attach_f)
 
             parts.append(("workflow_attachment", (relpath, attach_f)))
@@ -226,7 +228,7 @@ class WESClient:
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get(
+        postresult = requests.get(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/service-info",
             headers=self.auth,
         )
@@ -244,7 +246,7 @@ class WESClient:
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get(
+        postresult = requests.get(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs", headers=self.auth
         )
         return wes_reponse(postresult)
@@ -266,7 +268,7 @@ class WESClient:
         """
         attachments = list(expand_globs(attachments))
         parts = build_wes_request(wf, jsonyaml, attachments)
-        postresult = requests.post(
+        postresult = requests.post(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs",
             files=parts,
             headers=self.auth,
@@ -283,7 +285,7 @@ class WESClient:
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the delete result as a dictionary.
         """
-        postresult = requests.post(
+        postresult = requests.post(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/cancel",
             headers=self.auth,
         )
@@ -299,7 +301,7 @@ class WESClient:
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get(
+        postresult = requests.get(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}",
             headers=self.auth,
         )
@@ -315,7 +317,7 @@ class WESClient:
         :param host: Port where the post request will be sent and the wes server listens at (default 8080)
         :return: The body of the get result as a dictionary.
         """
-        postresult = requests.get(
+        postresult = requests.get(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs/{run_id}/status",
             headers=self.auth,
         )

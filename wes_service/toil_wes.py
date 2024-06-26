@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import time
 import uuid
 from multiprocessing import Process
@@ -131,7 +131,7 @@ class ToilWorkflow:
             self.outfile,
             self.errfile,
         )
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # nosec B603
             cmd, stdout=stdout, stderr=stderr, close_fds=True, cwd=cwd
         )
         stdout.close()
@@ -287,8 +287,13 @@ class ToilWorkflow:
                     open(self.staterrorfile, "a").close()
                     return "EXECUTOR_ERROR", 255
         if (
-            subprocess.run(
-                ["toil", "status", "--failIfNotComplete", self.jobstorefile]
+            subprocess.run(  # nosec B603
+                [
+                    shutil.which("toil") or "toil",
+                    "status",
+                    "--failIfNotComplete",
+                    self.jobstorefile,
+                ]
             ).returncode
             == 0
         ):

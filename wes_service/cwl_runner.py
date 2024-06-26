@@ -1,6 +1,6 @@
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import uuid
 from typing import Any, Dict, List, Tuple, cast
 
@@ -72,7 +72,7 @@ class Workflow:
 
         # build args and run
         command_args: List[str] = [runner] + extra2 + [workflow_url, jsonpath]
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # nosec B603
             command_args, stdout=output, stderr=stderr, close_fds=True, cwd=tempdir
         )
         output.close()
@@ -162,7 +162,7 @@ class Workflow:
 class CWLRunnerBackend(WESBackend):
     def GetServiceInfo(self) -> Dict[str, Any]:
         runner = cast(str, self.getopt("runner", default="cwl-runner"))
-        stdout, stderr = subprocess.Popen(
+        stdout, stderr = subprocess.Popen(  # nosec B603
             [runner, "--version"], stderr=subprocess.PIPE
         ).communicate()
         r = {
