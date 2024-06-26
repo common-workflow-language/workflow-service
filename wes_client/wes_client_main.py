@@ -97,7 +97,9 @@ def main(argv: List[str] = sys.argv[1:]) -> int:
 
     if args.log:
         response = client.get_run_log(run_id=args.log)
-        sys.stdout.write(requests.get(response["run_log"]["stderr"], headers=auth).text)
+        sys.stdout.write(
+            requests.get(response["run_log"]["stderr"], headers=auth).text  # nosec B113
+        )
         return 0
 
     if args.get:
@@ -146,7 +148,7 @@ def main(argv: List[str] = sys.argv[1:]) -> int:
     try:
         # TODO: Only works with Arvados atm
         logging.info(str(s["run_log"]["stderr"]))
-        logs = requests.get(s["run_log"]["stderr"], headers=auth).text
+        logs = requests.get(s["run_log"]["stderr"], headers=auth).text  # nosec B113
         logging.info("Run log:\n" + logs)
     except InvalidSchema:
         logging.info("Run log:\n" + str(s["run_log"]["stderr"]))

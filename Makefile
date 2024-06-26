@@ -152,7 +152,7 @@ test: $(PYSOURCES) FORCE
 
 ## testcov                : run the wes-service test suite and collect coverage
 testcov: $(PYSOURCES)
-	pytest --cov ${PYTEST_EXTRA}
+	python -m pytest -rsx --cov ${PYTEST_EXTRA}
 
 sloccount.sc: $(PYSOURCES) Makefile
 	sloccount --duplicates --wide --details $^ > $@
