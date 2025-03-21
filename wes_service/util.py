@@ -4,7 +4,6 @@ import os
 import tempfile
 from typing import Any, Callable, Optional
 
-import connexion  # type: ignore[import-untyped]
 from werkzeug.utils import secure_filename
 
 
@@ -49,52 +48,37 @@ class WESBackend:
         logging.info("Workflow %s: %s", run_id, message)
 
     def collect_attachments(
-        self, run_id: Optional[str] = None
+        self, args: dict[str, Any], run_id: Optional[str] = None
     ) -> tuple[str, dict[str, str]]:
         """Stage all attachments to a temporary directory."""
         tempdir = tempfile.mkdtemp()
         body: dict[str, str] = {}
         has_attachments = False
-        for k, ls in connexion.request.files.lists():
-            try:
-                for v in ls:
-                    if k == "workflow_attachment":
-                        sp = v.filename.split("/")
-                        fn = []
-                        for p in sp:
-                            if p not in ("", ".", ".."):
-                                fn.append(secure_filename(p))
-                        dest = os.path.join(tempdir, *fn)
-                        if not os.path.isdir(os.path.dirname(dest)):
-                            os.makedirs(os.path.dirname(dest))
-                        self.log_for_run(
-                            run_id,
-                            f"Staging attachment {v.filename!r} to {dest!r}",
-                        )
-                        v.save(dest)
-                        has_attachments = True
-                        body[k] = (
-                            "file://%s" % tempdir
-                        )  # Reference to temp working dir.
-                    elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                        content = v.read()
-                        body[k] = json.loads(content.decode("utf-8"))
-                    else:
-                        body[k] = v.read().decode()
-            except Exception as e:
-                raise ValueError(f"Error reading parameter {k!r}: {e}") from e
-        for k, ls in connexion.request.form.lists():
-            try:
-                for v in ls:
-                    if not v:
-                        continue
-                    if k in ("workflow_params", "tags", "workflow_engine_parameters"):
-                        body[k] = json.loads(v)
-                    else:
-                        body[k] = v
-            except Exception as e:
-                raise ValueError(f"Error reading parameter {k!r}: {e}") from e
-
+        for k, v in args.items():
+            if k == "workflow_attachment":
+                for file in v or []:
+                    sp = file.filename.split("/")
+                    fn = []
+                    for p in sp:
+                        if p not in ("", ".", ".."):
+                            fn.append(secure_filename(p))
+                    dest = os.path.join(tempdir, *fn)
+                    if not os.path.isdir(os.path.dirname(dest)):
+                        os.makedirs(os.path.dirname(dest))
+                    self.log_for_run(
+                        run_id,
+                        f"Staging attachment {file.filename!r} to {dest!r}",
+                    )
+                    file.save(dest)
+                    has_attachments = True
+                    body["workflow_attachment"] = (
+                        "file://%s" % tempdir
+                    )  # Reference to temp working dir.
+            elif k in ("workflow_params", "tags", "workflow_engine_parameters"):
+                if v is not None:
+                    body[k] = json.loads(v)
+            else:
+                body[k] = v
         if "workflow_url" in body:
             if ":" not in body["workflow_url"]:
                 if not has_attachments:
