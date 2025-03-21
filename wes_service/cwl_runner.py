@@ -198,7 +198,7 @@ class CWLRunnerBackend(WESBackend):
 
     def RunWorkflow(self, **args: str) -> dict[str, str]:
         """Submit the workflow run request."""
-        tempdir, body = self.collect_attachments()
+        tempdir, body = self.collect_attachments(args)
 
         run_id = uuid.uuid4().hex
         job = Workflow(run_id)
