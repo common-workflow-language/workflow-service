@@ -9,7 +9,7 @@ RUN apt-get update && \
     apt-get install -y dirmngr gnupg && \
     apt-key add --no-tty /tmp/561F9B9CAC40B2F7.asc && \
     apt-get install -y apt-transport-https ca-certificates && \
-    sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger buster main > /etc/apt/sources.list.d/passenger.list'
+    sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger bullseye main > /etc/apt/sources.list.d/passenger.list'
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends passenger python3-setuptools build-essential python3-dev python3-pip python3-wheel git && \
@@ -21,9 +21,9 @@ RUN mv /tmp/docker-archive-keyring.gpg /usr/share/keyrings/docker-archive-keyrin
 RUN mkdir -p /etc/apt/sources.list.d && \
     echo \
         "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-        buster stable" > /etc/apt/sources.list.d/docker.list && \
+        bullseye stable" > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
-    apt-get -yq --no-install-recommends install docker-ce=5:20.10.7~3-0~debian-buster docker-ce-cli containerd.io && \
+    apt-get -yq --no-install-recommends install docker-ce docker-ce-cli containerd.io && \
     apt-get clean
 
 ARG arvversion
