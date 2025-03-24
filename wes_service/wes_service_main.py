@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from importlib.metadata import version
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 import connexion  # type: ignore[import-untyped]
 import connexion.utils as utils  # type: ignore[import-untyped]
@@ -68,7 +68,7 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: List[str] = sys.argv[1:]) -> None:
+def main(argv: list[str] = sys.argv[1:]) -> None:
     """Run the WES Service app."""
     args = get_parser().parse_args(argv)
 

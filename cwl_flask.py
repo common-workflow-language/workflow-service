@@ -8,7 +8,8 @@ import subprocess
 import tempfile
 import threading
 import time
-from typing import Any, Dict, Generator, List, Tuple
+from collections.abc import Generator
+from typing import Any
 
 import werkzeug.wrappers.response
 import yaml
@@ -17,7 +18,7 @@ from flask import Flask, Response, redirect, request
 app = Flask(__name__)
 
 jobs_lock = threading.Lock()
-jobs: List["Job"] = []
+jobs: list["Job"] = []
 
 
 class Job(threading.Thread):
@@ -66,7 +67,7 @@ class Job(threading.Thread):
             with self.updatelock:
                 self.status["state"] = "Failed"
 
-    def getstatus(self) -> Dict[str, Any]:
+    def getstatus(self) -> dict[str, Any]:
         """Report the current status."""
         with self.updatelock:
             return self.status.copy()
@@ -106,7 +107,7 @@ def runworkflow() -> werkzeug.wrappers.response.Response:
 
 
 @app.route("/jobs/<int:jobid>", methods=["GET", "POST"])
-def jobcontrol(jobid: int) -> Tuple[str, int]:
+def jobcontrol(jobid: int) -> tuple[str, int]:
     """Accept a job related action and report the result."""
     with jobs_lock:
         job = jobs[jobid]
@@ -152,7 +153,7 @@ def getjobs() -> Response:
     with jobs_lock:
         jobscopy = copy.copy(jobs)
 
-    def spool(jc: List[Job]) -> Generator[str, None, None]:
+    def spool(jc: list[Job]) -> Generator[str, None, None]:
         yield "["
         first = True
         for j in jc:

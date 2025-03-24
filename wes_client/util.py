@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from subprocess import DEVNULL, CalledProcessError, check_call  # nosec B404
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
 from urllib.request import pathname2url, urlopen
 
 import requests
@@ -51,7 +51,7 @@ def get_version(extension: str, workflow_file: str) -> str:
             return "draft-2"
 
 
-def wf_info(workflow_path: str) -> Tuple[str, str]:
+def wf_info(workflow_path: str) -> tuple[str, str]:
     """
     Return the version of the file and the file extension.
 
@@ -127,8 +127,8 @@ def modify_jsonyaml_paths(jsonyaml_file: str) -> str:
 
 
 def build_wes_request(
-    workflow_file: str, json_path: str, attachments: Optional[List[str]] = None
-) -> List[Tuple[str, Any]]:
+    workflow_file: str, json_path: str, attachments: Optional[list[str]] = None
+) -> list[tuple[str, Any]]:
     """
     :param workflow_file: Path to cwl/wdl file.  Can be http/https/file.
     :param json_path: Path to accompanying json file.
@@ -151,7 +151,7 @@ def build_wes_request(
         wf_params = json_path
     wf_version, wf_type = wf_info(workflow_file)
 
-    parts: List[Tuple[str, Any]] = [
+    parts: list[tuple[str, Any]] = [
         ("workflow_params", wf_params),
         ("workflow_type", wf_type),
         ("workflow_type_version", wf_version),
@@ -187,7 +187,7 @@ def build_wes_request(
     return parts
 
 
-def expand_globs(attachments: Optional[Union[List[str], str]]) -> Set[str]:
+def expand_globs(attachments: Optional[Union[list[str], str]]) -> set[str]:
     """Expand any globs present in the attachment list."""
     expanded_list = []
     if attachments is None:
@@ -204,26 +204,26 @@ def expand_globs(attachments: Optional[Union[List[str], str]]) -> Set[str]:
     return set(expanded_list)
 
 
-def wes_response(postresult: requests.Response) -> Dict[str, Any]:
+def wes_response(postresult: requests.Response) -> dict[str, Any]:
     """Convert a Response object to JSON text."""
     if postresult.status_code != 200:
         error = str(json.loads(postresult.text))
         logging.error(error)
         raise Exception(error)
 
-    return cast(Dict[str, Any], json.loads(postresult.text))
+    return cast(dict[str, Any], json.loads(postresult.text))
 
 
 class WESClient:
     """WES client."""
 
-    def __init__(self, service: Dict[str, Any]):
+    def __init__(self, service: dict[str, Any]):
         """Initialize the cliet with the provided credentials and endpoint."""
         self.auth = service["auth"]
         self.proto = service["proto"]
         self.host = service["host"]
 
-    def get_service_info(self) -> Dict[str, Any]:
+    def get_service_info(self) -> dict[str, Any]:
         """
         Get information about Workflow Execution Service. May
         include information related (but not limited to) the
@@ -242,7 +242,7 @@ class WESClient:
         )
         return wes_response(postresult)
 
-    def list_runs(self) -> Dict[str, Any]:
+    def list_runs(self) -> dict[str, Any]:
         """
         List the workflows, this endpoint will list the workflows
         in order of oldest to newest. There is no guarantee of
@@ -260,8 +260,8 @@ class WESClient:
         return wes_response(postresult)
 
     def run(
-        self, wf: str, jsonyaml: str, attachments: Optional[List[str]]
-    ) -> Dict[str, Any]:
+        self, wf: str, jsonyaml: str, attachments: Optional[list[str]]
+    ) -> dict[str, Any]:
         """
         Composes and sends a post request that signals the wes server to run a workflow.
 
@@ -283,7 +283,7 @@ class WESClient:
         )
         return wes_response(postresult)
 
-    def cancel(self, run_id: str) -> Dict[str, Any]:
+    def cancel(self, run_id: str) -> dict[str, Any]:
         """
         Cancel a running workflow.
 
@@ -299,7 +299,7 @@ class WESClient:
         )
         return wes_response(postresult)
 
-    def get_run_log(self, run_id: str) -> Dict[str, Any]:
+    def get_run_log(self, run_id: str) -> dict[str, Any]:
         """
         Get detailed info about a running workflow.
 
@@ -315,7 +315,7 @@ class WESClient:
         )
         return wes_response(postresult)
 
-    def get_run_status(self, run_id: str) -> Dict[str, Any]:
+    def get_run_status(self, run_id: str) -> dict[str, Any]:
         """
         Get quick status info about a running workflow.
 

@@ -5,7 +5,7 @@ import signal
 import subprocess
 import time
 import unittest
-from typing import List, Optional, Tuple, cast
+from typing import Optional, cast
 
 import pytest
 import requests
@@ -21,10 +21,10 @@ class IntegrationTest(unittest.TestCase):
     cwl_dockstore_url: str
     cwl_local_path: str
     cwl_json_input: str
-    cwl_attachments: List[str]
+    cwl_attachments: list[str]
     wdl_local_path: str
     wdl_json_input: str
-    wdl_attachments: List[str]
+    wdl_attachments: list[str]
     client: WESClient
     manual: bool
     wes_server_process: "subprocess.Popen[bytes]"
@@ -168,8 +168,8 @@ class IntegrationTest(unittest.TestCase):
         self,
         wf_input: str,
         json_input: str,
-        workflow_attachment: Optional[List[str]] = None,
-    ) -> Tuple[str, str]:
+        workflow_attachment: Optional[list[str]] = None,
+    ) -> tuple[str, str]:
         """
         Pass a local md5sum cwl to the wes-service server.
 
@@ -216,7 +216,7 @@ class IntegrationTest(unittest.TestCase):
         return True
 
 
-def get_server_pids() -> Optional[List[bytes]]:
+def get_server_pids() -> Optional[list[bytes]]:
     try:
         pids = (
             subprocess.check_output(["pgrep", "-f", "wes_service_main.py"])

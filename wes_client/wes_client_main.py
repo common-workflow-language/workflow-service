@@ -6,7 +6,6 @@ import os
 import sys
 import time
 from importlib.metadata import version
-from typing import List
 
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
@@ -14,7 +13,7 @@ from requests.exceptions import InvalidSchema, MissingSchema
 from wes_client.util import WESClient, modify_jsonyaml_paths
 
 
-def main(argv: List[str] = sys.argv[1:]) -> int:
+def main(argv: list[str] = sys.argv[1:]) -> int:
     """Run the WES service."""
     parser = argparse.ArgumentParser(description="Workflow Execution Service")
     parser.add_argument(

@@ -5,7 +5,7 @@ import logging
 import sys
 import tempfile
 from io import StringIO
-from typing import List, Union
+from typing import Union
 
 import cwltool.main
 
@@ -13,7 +13,7 @@ _logger = logging.getLogger("cwltool")
 _logger.setLevel(logging.ERROR)
 
 
-def main(args: List[str] = sys.argv[1:]) -> int:
+def main(args: list[str] = sys.argv[1:]) -> int:
     """Streaming execution of cwltool."""
     if len(args) == 0:
         print("Workflow must be on command line")

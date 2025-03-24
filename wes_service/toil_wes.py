@@ -6,7 +6,7 @@ import subprocess  # nosec B404
 import time
 import uuid
 from multiprocessing import Process
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
 
 from wes_service.util import WESBackend
 
@@ -43,7 +43,7 @@ class ToilWorkflow:
         self.jobstore_default = "file:" + os.path.join(self.workdir, "toiljobstore")
         self.jobstore: Optional[str] = None
 
-    def sort_toil_options(self, extra: List[str]) -> List[str]:
+    def sort_toil_options(self, extra: list[str]) -> list[str]:
         """
         Sort the options in a toil-aware manner.
 
@@ -72,8 +72,8 @@ class ToilWorkflow:
         return extra2
 
     def write_workflow(
-        self, request: Dict[str, Any], opts: WESBackend, cwd: str, wftype: str = "cwl"
-    ) -> List[str]:
+        self, request: dict[str, Any], opts: WESBackend, cwd: str, wftype: str = "cwl"
+    ) -> list[str]:
         """Writes a cwl, wdl, or python file as appropriate from the request dictionary."""
 
         workflow_url = cast(str, request.get("workflow_url"))
@@ -111,14 +111,14 @@ class ToilWorkflow:
 
         return command_args
 
-    def write_json(self, request_dict: Dict[str, Any]) -> str:
+    def write_json(self, request_dict: dict[str, Any]) -> str:
         """Save the workflow_params to the input.json file and also return it."""
         input_json = os.path.join(self.workdir, "input.json")
         with open(input_json, "w") as f:
             json.dump(request_dict["workflow_params"], f)
         return input_json
 
-    def call_cmd(self, cmd: Union[List[str], str], cwd: str) -> int:
+    def call_cmd(self, cmd: Union[list[str], str], cwd: str) -> int:
         """
         Calls a command with Popen.
         Writes stdout, stderr, and the command to separate files.
@@ -155,7 +155,7 @@ class ToilWorkflow:
                 return f.read()
         return ""
 
-    def getlog(self) -> Dict[str, Any]:
+    def getlog(self) -> dict[str, Any]:
         """Dump the log."""
         state, exit_code = self.getstate()
 
@@ -201,8 +201,8 @@ class ToilWorkflow:
         }
 
     def run(
-        self, request: Dict[str, Any], tempdir: str, opts: WESBackend
-    ) -> Dict[str, str]:
+        self, request: dict[str, Any], tempdir: str, opts: WESBackend
+    ) -> dict[str, str]:
         """
         Constructs a command to run a cwl/json from requests and opts,
         runs it, and deposits the outputs in outdir.
@@ -258,7 +258,7 @@ class ToilWorkflow:
 
         return self.getstatus()
 
-    def getstate(self) -> Tuple[str, int]:
+    def getstate(self) -> tuple[str, int]:
         """
         Returns QUEUED,          -1
                 INITIALIZING,    -1
@@ -314,7 +314,7 @@ class ToilWorkflow:
         logging.info("Workflow " + self.run_id + ": RUNNING")
         return "RUNNING", -1
 
-    def getstatus(self) -> Dict[str, Any]:
+    def getstatus(self) -> dict[str, Any]:
         """Report the current status."""
         state, exit_code = self.getstate()
 
@@ -322,9 +322,9 @@ class ToilWorkflow:
 
 
 class ToilBackend(WESBackend):
-    processes: Dict[str, Process] = {}
+    processes: dict[str, Process] = {}
 
-    def GetServiceInfo(self) -> Dict[str, Any]:
+    def GetServiceInfo(self) -> dict[str, Any]:
         """Report about this WES endpoint."""
         return {
             "workflow_type_versions": {
@@ -341,7 +341,7 @@ class ToilBackend(WESBackend):
 
     def ListRuns(
         self, page_size: Any = None, page_token: Any = None, state_search: Any = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """List the known workflow runs."""
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
@@ -354,7 +354,7 @@ class ToilBackend(WESBackend):
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
 
-    def RunWorkflow(self) -> Dict[str, str]:
+    def RunWorkflow(self) -> dict[str, str]:
         """Submit the workflow run request."""
         tempdir, body = self.collect_attachments()
 
@@ -365,24 +365,24 @@ class ToilBackend(WESBackend):
         self.processes[run_id] = p
         return {"run_id": run_id}
 
-    def GetRunLog(self, run_id: str) -> Dict[str, Any]:
+    def GetRunLog(self, run_id: str) -> dict[str, Any]:
         """Get the log for a particular workflow run."""
         job = ToilWorkflow(run_id)
         return job.getlog()
 
-    def CancelRun(self, run_id: str) -> Dict[str, str]:
+    def CancelRun(self, run_id: str) -> dict[str, str]:
         """Cancel a submitted run."""
         # should this block with `p.is_alive()`?
         if run_id in self.processes:
             self.processes[run_id].terminate()
         return {"run_id": run_id}
 
-    def GetRunStatus(self, run_id: str) -> Dict[str, str]:
+    def GetRunStatus(self, run_id: str) -> dict[str, str]:
         """Determine the status for a given run."""
         job = ToilWorkflow(run_id)
         return job.getstatus()
 
 
-def create_backend(app: Any, opts: List[str]) -> ToilBackend:
+def create_backend(app: Any, opts: list[str]) -> ToilBackend:
     """Instantiate a ToilBackend."""
     return ToilBackend(opts)

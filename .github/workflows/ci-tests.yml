@@ -30,9 +30,10 @@ jobs:
     name: Tox
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         py-ver-major: [3]
-        py-ver-minor: [8, 9, 10, 11, 12]
+        py-ver-minor: [9, 10, 11, 12]
         step: [lint, unit, bandit, mypy]
 
     env:
