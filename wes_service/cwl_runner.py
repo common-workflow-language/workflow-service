@@ -160,7 +160,6 @@ class Workflow:
 
     def cancel(self) -> None:
         """Cancel the workflow, if possible."""
-        pass
 
 
 class CWLRunnerBackend(WESBackend):

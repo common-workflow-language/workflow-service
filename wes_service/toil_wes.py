@@ -147,7 +147,6 @@ class ToilWorkflow:
 
     def cancel(self) -> None:
         """Cancel the run (currently a no-op for Toil)."""
-        pass
 
     def fetch(self, filename: str) -> str:
         """Retrieve a files contents, if it exists."""
