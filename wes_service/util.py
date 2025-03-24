@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import tempfile
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import connexion  # type: ignore[import-untyped]
 from werkzeug.utils import secure_filename
@@ -22,9 +22,9 @@ def visit(d: Any, op: Callable[[Any], Any]) -> None:
 class WESBackend:
     """Stores and retrieves options.  Intended to be inherited."""
 
-    def __init__(self, opts: List[str]) -> None:
+    def __init__(self, opts: list[str]) -> None:
         """Parse and store options as a list of tuples."""
-        self.pairs: List[Tuple[str, str]] = []
+        self.pairs: list[tuple[str, str]] = []
         for o in opts if opts else []:
             k, v = o.split("=", 1)
             self.pairs.append((k, v))
@@ -36,7 +36,7 @@ class WESBackend:
                 return v
         return default
 
-    def getoptlist(self, p: str) -> List[str]:
+    def getoptlist(self, p: str) -> list[str]:
         """Returns all option values stored that match p as a list."""
         optlist = []
         for k, v in self.pairs:
@@ -50,10 +50,10 @@ class WESBackend:
 
     def collect_attachments(
         self, run_id: Optional[str] = None
-    ) -> Tuple[str, Dict[str, str]]:
+    ) -> tuple[str, dict[str, str]]:
         """Stage all attachments to a temporary directory."""
         tempdir = tempfile.mkdtemp()
-        body: Dict[str, str] = {}
+        body: dict[str, str] = {}
         has_attachments = False
         for k, ls in connexion.request.files.lists():
             try:

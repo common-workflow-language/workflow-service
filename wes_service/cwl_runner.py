@@ -2,7 +2,7 @@ import json
 import os
 import subprocess  # nosec B404
 import uuid
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, cast
 
 from wes_service.util import WESBackend
 
@@ -18,8 +18,8 @@ class Workflow:
             os.makedirs(self.outdir)
 
     def run(
-        self, request: Dict[str, str], tempdir: str, opts: WESBackend
-    ) -> Dict[str, str]:
+        self, request: dict[str, str], tempdir: str, opts: WESBackend
+    ) -> dict[str, str]:
         """
         Constructs a command to run a cwl/json from requests and opts,
         runs it, and deposits the outputs in outdir.
@@ -72,7 +72,7 @@ class Workflow:
         jsonpath = os.path.join(tempdir, "cwl.input.json")
 
         # build args and run
-        command_args: List[str] = [runner] + extra2 + [workflow_url, jsonpath]
+        command_args: list[str] = [runner] + extra2 + [workflow_url, jsonpath]
         proc = subprocess.Popen(  # nosec B603
             command_args, stdout=output, stderr=stderr, close_fds=True, cwd=tempdir
         )
@@ -83,7 +83,7 @@ class Workflow:
 
         return self.getstatus()
 
-    def getstate(self) -> Tuple[str, int]:
+    def getstate(self) -> tuple[str, int]:
         """
         Returns RUNNING, -1
                 COMPLETE, 0
@@ -120,13 +120,13 @@ class Workflow:
 
         return state, exit_code
 
-    def getstatus(self) -> Dict[str, str]:
+    def getstatus(self) -> dict[str, str]:
         """Report the current status."""
         state, exit_code = self.getstate()
 
         return {"run_id": self.run_id, "state": state}
 
-    def getlog(self) -> Dict[str, Any]:
+    def getlog(self) -> dict[str, Any]:
         """Dump the log."""
         state, exit_code = self.getstate()
 
@@ -163,7 +163,7 @@ class Workflow:
 
 
 class CWLRunnerBackend(WESBackend):
-    def GetServiceInfo(self) -> Dict[str, Any]:
+    def GetServiceInfo(self) -> dict[str, Any]:
         """Report metadata about this WES endpoint."""
         runner = cast(str, self.getopt("runner", default="cwl-runner"))
         stdout, stderr = subprocess.Popen(  # nosec B603
@@ -183,7 +183,7 @@ class CWLRunnerBackend(WESBackend):
 
     def ListRuns(
         self, page_size: Any = None, page_token: Any = None, state_search: Any = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """List the known workflow runs."""
         # FIXME #15 results don't page
         if not os.path.exists(os.path.join(os.getcwd(), "workflows")):
@@ -196,7 +196,7 @@ class CWLRunnerBackend(WESBackend):
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
 
-    def RunWorkflow(self, **args: str) -> Dict[str, str]:
+    def RunWorkflow(self, **args: str) -> dict[str, str]:
         """Submit the workflow run request."""
         tempdir, body = self.collect_attachments()
 
@@ -206,23 +206,23 @@ class CWLRunnerBackend(WESBackend):
         job.run(body, tempdir, self)
         return {"run_id": run_id}
 
-    def GetRunLog(self, run_id: str) -> Dict[str, Any]:
+    def GetRunLog(self, run_id: str) -> dict[str, Any]:
         """Get the log for a particular workflow run."""
         job = Workflow(run_id)
         return job.getlog()
 
-    def CancelRun(self, run_id: str) -> Dict[str, str]:
+    def CancelRun(self, run_id: str) -> dict[str, str]:
         """Cancel a submitted run."""
         job = Workflow(run_id)
         job.cancel()
         return {"run_id": run_id}
 
-    def GetRunStatus(self, run_id: str) -> Dict[str, str]:
+    def GetRunStatus(self, run_id: str) -> dict[str, str]:
         """Determine the status for a given run."""
         job = Workflow(run_id)
         return job.getstatus()
 
 
-def create_backend(app: Any, opts: List[str]) -> CWLRunnerBackend:
+def create_backend(app: Any, opts: list[str]) -> CWLRunnerBackend:
     """Instantiate the cwl-runner backend."""
     return CWLRunnerBackend(opts)
