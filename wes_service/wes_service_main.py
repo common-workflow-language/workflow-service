@@ -3,11 +3,11 @@ import argparse
 import logging
 import os
 import sys
+from importlib.metadata import version
 from typing import List, Optional, cast
 
 import connexion  # type: ignore[import-untyped]
 import connexion.utils as utils  # type: ignore[import-untyped]
-import pkg_resources  # part of setuptools
 import ruamel.yaml
 from connexion.resolver import Resolver  # type: ignore[import-untyped]
 
@@ -73,8 +73,7 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
     args = get_parser().parse_args(argv)
 
     if args.version:
-        pkg = pkg_resources.require("wes_service")
-        print(f"{sys.argv[0]} {pkg[0].version}")
+        print(version("wes_service"))
         exit(0)
 
     app = setup(args)

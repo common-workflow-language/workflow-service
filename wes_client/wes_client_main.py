@@ -5,9 +5,9 @@ import logging
 import os
 import sys
 import time
+from importlib.metadata import version
 from typing import List
 
-import pkg_resources  # part of setuptools
 import requests
 from requests.exceptions import InvalidSchema, MissingSchema
 
@@ -75,8 +75,7 @@ def main(argv: List[str] = sys.argv[1:]) -> int:
     args = parser.parse_args(argv)
 
     if args.version:
-        pkg = pkg_resources.require("wes_service")
-        print(f"{sys.argv[0]} {pkg[0].version}")
+        print(version("wes_service"))
         exit(0)
 
     auth = {}
