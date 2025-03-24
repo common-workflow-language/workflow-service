@@ -12,7 +12,7 @@ RUN apt-get update && \
     sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger buster main > /etc/apt/sources.list.d/passenger.list'
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends passenger python3-setuptools build-essential python3-dev python3-pip git && \
+    apt-get install -y --no-install-recommends passenger python3-setuptools build-essential python3-dev python3-pip python3-wheel git && \
     pip3 install pip==21.1.3
 
 RUN apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev

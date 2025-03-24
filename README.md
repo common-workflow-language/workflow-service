@@ -5,7 +5,7 @@ Execution Service](https://github.com/ga4gh/workflow-execution-schemas) 1.0.0 AP
 
 It provides [Arvados](https://arvados.org/) and [Toil](http://toil.ucsc-cgl.org/) backends.  It
 also works with any `cwl-runner` that supports the CWL standard command line
-interface: http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_documents_as_scripts
+interface: <http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_documents_as_scripts>
 
 ## Installation:
 
@@ -42,7 +42,9 @@ $ wes-client --info
 Attachments must be accessible from the filesystem.  Workflow runners may also support http URLs or other storage systems.
 
 ```
-$ wes-client --attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input" testdata/md5sum.cwl testdata/md5sum.cwl.json
+$ wes-client --host localhost:8080 --proto http                             \
+   --attachments="testdata/dockstore-tool-md5sum.cwl,testdata/md5sum.input" \
+   testdata/md5sum.cwl testdata/md5sum.cwl.json
 ```
 
 ### List workflows
@@ -89,7 +91,7 @@ $ wes-server --backend=wes_service.toil_wes --opt extra=--clean=never
 
 ```
 $ pip install cwltool
-$ wes-server --backend=wes_service.cwl_runner --opt runner=cwltool --opt extra=--logLevel=CRITICAL
+$ wes-server --backend=wes_service.cwl_runner --opt runner=cwltool --opt extra=--debug
 ```
 
 ### Pass parameters to cwl-runner
