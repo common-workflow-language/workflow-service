@@ -1,6 +1,6 @@
 #!/bin/sh
 set -ex
-python setup.py sdist
+make dist
 docker build --build-arg version=4.0 --build-arg arvversion=2.2.1 -t commonworkflowlanguage/workflow-service .
 docker run -ti -p 127.0.0.1:3000:3000/tcp \
        -v$PWD/config.yml:/var/www/wes-server/config.yml \
