@@ -298,7 +298,7 @@ class ArvadosBackend(WESBackend):
         )
 
         try:
-            tempdir, body = self.collect_attachments(cr["uuid"])
+            tempdir, body = self.collect_attachments(args, cr["uuid"])
 
             workflow_engine_parameters = cast(
                 dict[str, Any], body.get("workflow_engine_parameters", {})
