@@ -246,7 +246,6 @@ class CwltoolTest(IntegrationTest):
                 "--opt",
                 "runner=cwltool",
                 "--port=8080",
-                "--debug",
             ]
         )
         time.sleep(5)
@@ -304,7 +303,6 @@ class ArvadosTest(IntegrationTest):
                 os.path.abspath("wes_service/wes_service_main.py"),
                 "--backend=wes_service.arvados_wes",
                 "--port=8080",
-                "--debug",
             ]
         )
         self.client.auth = {

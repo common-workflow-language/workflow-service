@@ -3,3 +3,4 @@ types-PyYAML
 types-requests
 types-setuptools
 arvados-cwl-runner
+flask
