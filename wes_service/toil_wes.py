@@ -322,7 +322,12 @@ class ToilWorkflow:
                     # Process is no longer running, could be completed
                     completed = True
                     # Reap zombie child processes in a non-blocking manner
-                    os.waitpid(pid, os.WNOHANG)
+                    # os.WNOHANG still raises an error if no child processes exist
+                    try:
+                        os.waitpid(pid, os.WNOHANG)
+                    except OSError as e:
+                        if e.errno != errno.ECHILD:
+                            raise
                 else:
                     raise
             # If no exception, process is still running
