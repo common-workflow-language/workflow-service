@@ -11,6 +11,9 @@ interface: <http://www.commonwl.org/v1.0/CommandLineTool.html#Executing_CWL_docu
 
 ```
 pip install wes-service
+pip install werkzeug
+pip install werkzeug --upgrade
+pip install connexion --upgrade
 ```
 
 ## Usage
