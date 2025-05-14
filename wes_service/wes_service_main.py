@@ -63,7 +63,6 @@ def get_parser() -> argparse.ArgumentParser:
         help="Example: '--opt runner=cwltoil --opt extra=--logLevel=CRITICAL' "
         "or '--opt extra=--workDir=/'.  Accepts multiple values.",
     )
-    parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--version", action="store_true", default=False)
     return parser
 
@@ -78,7 +77,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
 
     app = setup(args)
 
-    app.run(port=args.port, debug=args.debug)
+    app.run(port=args.port)
 
 
 if __name__ == "__main__":

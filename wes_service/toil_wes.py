@@ -1,3 +1,6 @@
+"""Toil backed for the WES service."""
+
+import errno
 import json
 import logging
 import os
@@ -294,18 +297,41 @@ class ToilWorkflow:
                     logging.info("Workflow " + self.run_id + ": EXECUTOR_ERROR")
                     open(self.staterrorfile, "a").close()
                     return "EXECUTOR_ERROR", 255
+
+        # get the jobstore
+        with open(self.jobstorefile, "r") as f:
+            jobstore = f.read().rstrip()
         if (
             subprocess.run(  # nosec B603
                 [
                     shutil.which("toil") or "toil",
                     "status",
                     "--failIfNotComplete",
-                    self.jobstorefile,
+                    jobstore,
                 ]
             ).returncode
             == 0
         ):
-            completed = True
+            # Get the PID of the running process
+            with open(self.pidfile, "r") as f:
+                pid = int(f.read())
+            try:
+                os.kill(pid, 0)
+            except OSError as e:
+                if e.errno == errno.ESRCH:
+                    # Process is no longer running, could be completed
+                    completed = True
+                    # Reap zombie child processes in a non-blocking manner
+                    # os.WNOHANG still raises an error if no child processes exist
+                    try:
+                        os.waitpid(pid, os.WNOHANG)
+                    except OSError as e:
+                        if e.errno != errno.ECHILD:
+                            raise
+                else:
+                    raise
+            # If no exception, process is still running
+            # We can't rely on toil status as the process may not have created the jobstore yet
         if completed:
             logging.info("Workflow " + self.run_id + ": COMPLETE")
             open(self.statcompletefile, "a").close()
@@ -354,9 +380,9 @@ class ToilBackend(WESBackend):
         workflows = [{"run_id": w.run_id, "state": w.getstate()[0]} for w in wf]  # NOQA
         return {"workflows": workflows, "next_page_token": ""}
 
-    def RunWorkflow(self) -> dict[str, str]:
+    def RunWorkflow(self, **args: str) -> dict[str, str]:
         """Submit the workflow run request."""
-        tempdir, body = self.collect_attachments()
+        tempdir, body = self.collect_attachments(args)
 
         run_id = uuid.uuid4().hex
         job = ToilWorkflow(run_id)

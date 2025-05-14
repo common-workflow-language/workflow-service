@@ -128,7 +128,7 @@ def modify_jsonyaml_paths(jsonyaml_file: str) -> str:
 
 def build_wes_request(
     workflow_file: str, json_path: str, attachments: Optional[list[str]] = None
-) -> list[tuple[str, Any]]:
+) -> tuple[list[tuple[str, Any]], list[tuple[str, Any]]]:
     """
     :param workflow_file: Path to cwl/wdl file.  Can be http/https/file.
     :param json_path: Path to accompanying json file.
@@ -157,10 +157,12 @@ def build_wes_request(
         ("workflow_type_version", wf_version),
     ]
 
+    workflow_attachments = []
+
     if workflow_file.startswith("file://"):
         if wfbase is None:
             wfbase = os.path.dirname(workflow_file[7:])
-        parts.append(
+        workflow_attachments.append(
             (
                 "workflow_attachment",
                 (os.path.basename(workflow_file[7:]), open(workflow_file[7:], "rb")),
@@ -182,9 +184,9 @@ def build_wes_request(
                 attach_f = urlopen(attachment)  # nosec B310
                 relpath = os.path.basename(attach_f)
 
-            parts.append(("workflow_attachment", (relpath, attach_f)))
+            workflow_attachments.append(("workflow_attachment", (relpath, attach_f)))
 
-    return parts
+    return parts, workflow_attachments
 
 
 def expand_globs(attachments: Optional[Union[list[str], str]]) -> set[str]:
@@ -275,11 +277,12 @@ class WESClient:
         :return: The body of the post result as a dictionary.
         """
         attachments = list(expand_globs(attachments))
-        parts = build_wes_request(wf, jsonyaml, attachments)
+        parts, files = build_wes_request(wf, jsonyaml, attachments)
         postresult = requests.post(  # nosec B113
             f"{self.proto}://{self.host}/ga4gh/wes/v1/runs",
-            files=parts,
-            headers=self.auth,
+            data=parts,
+            files=files,
+            # headers=self.auth,
         )
         return wes_response(postresult)
 

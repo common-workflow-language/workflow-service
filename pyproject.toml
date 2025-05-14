@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wes-service"
-version = "4.0"
+version = "5.0"
 authors = [{name = "GA4GH Containers and Workflows task team", email = "common-workflow-language@googlegroups.com"}]
 description = "GA4GH Workflow Execution Service reference implementation"
 classifiers = [
@@ -23,7 +23,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "connexion[swagger-ui] >= 2.0.2, < 3",
+    "connexion[swagger-ui,flask,uvicorn] >= 3, < 4",
     "ruamel.yaml >= 0.15.78",
     "schema-salad",
 ]
