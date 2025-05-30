@@ -1,4 +1,4 @@
-mypy==1.15
+mypy==1.16.0
 types-PyYAML
 types-requests
 types-setuptools
