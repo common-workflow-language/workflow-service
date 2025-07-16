@@ -40,7 +40,7 @@ Download = "https://github.com/common-workflow-language/cwltool-service/releases
 [project.optional-dependencies]
 cwltool = ["cwlref-runner"]
 arvados = ["arvados-cwl-runner"]
-toil = ["toil[cwl]==8.2.0"]
+toil = ["toil[cwl]==9.0.0"]
 
 [project.scripts]
 wes-server = "wes_service.wes_service_main:main"
