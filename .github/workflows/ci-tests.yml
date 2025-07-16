@@ -54,7 +54,7 @@ jobs:
 
       - name: Install libcurl-dev for pycurl (needed by arvados)
         if: ${{ matrix.step == 'mypy' }}
-        run: sudo apt-get install -y --no-install-recommends libcurl4-gnutls-dev gnutls-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libcurl4-gnutls-dev gnutls-dev
 
       - name: Upgrade setuptools and install tox
         run: |
