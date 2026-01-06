@@ -97,22 +97,25 @@ class ToilWorkflow:
         self.input_json = os.path.join(cwd, "wes_input.json")
 
         extra_options = self.sort_toil_options(opts.getoptlist("extra"))
-        if wftype == "cwl":
-            command_args = (
-                ["toil-cwl-runner"] + extra_options + [workflow_url, self.input_json]
-            )
-        elif wftype == "wdl":
-            command_args = (
-                ["toil-wdl-runner"] + extra_options + [workflow_url, self.input_json]
-            )
-        elif wftype == "py":
-            command_args = ["python"] + extra_options + [workflow_url]
-        else:
-            raise RuntimeError(
-                'workflow_type is not "cwl", "wdl", or "py": ' + str(wftype)
-            )
-
-        return command_args
+        match wftype:
+            case "cwl":
+                return (
+                    ["toil-cwl-runner"]
+                    + extra_options
+                    + [workflow_url, self.input_json]
+                )
+            case "wdl":
+                return (
+                    ["toil-wdl-runner"]
+                    + extra_options
+                    + [workflow_url, self.input_json]
+                )
+            case "py":
+                return ["python"] + extra_options + [workflow_url]
+            case _:
+                raise RuntimeError(
+                    'workflow_type is not "cwl", "wdl", or "py": ' + str(wftype)
+                )
 
     def write_json(self, request_dict: dict[str, Any]) -> str:
         """Save the workflow_params to the input.json file and also return it."""

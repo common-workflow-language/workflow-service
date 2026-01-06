@@ -442,7 +442,7 @@ class ArvadosBackend(WESBackend):
 
             return r
 
-        r = {
+        return {
             "run_id": request["uuid"],
             "request": {
                 "workflow_url": "",
@@ -455,8 +455,6 @@ class ArvadosBackend(WESBackend):
             "task_logs": [log_object(t) for t in task_reqs],
             "outputs": outputobj,
         }
-
-        return r
 
     @catch_exceptions
     def CancelRun(self, run_id: str) -> dict[str, Any]:  # NOQA
