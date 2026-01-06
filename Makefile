@@ -29,7 +29,7 @@ EXTRAS=[toil]
 # `[[` conditional expressions.
 PYSOURCES=$(shell find $(MODULE1) -name "*.py") $(shell find $(MODULE2) -name "*.py")\
 	  $(wildcard test/*.py) $(wildcard *.py)
-DEVPKGS=build diff_cover pylint pep257 pydocstyle 'tox<4' tox-pyenv \
+DEVPKGS=build diff_cover pylint pep257 pydocstyle 'tox>=4' \
 	wheel autoflake pyupgrade bandit auto-walrus \
 	-rlint-requirements.txt -rtest-requirements.txt -rmypy-requirements.txt
 DEBDEVPKGS=pep8 python-autopep8 pylint python-coverage pydocstyle sloccount \
@@ -171,7 +171,7 @@ shellcheck: FORCE
 	shellcheck release-test.sh
 
 pyupgrade: $(PYSOURCES)
-	pyupgrade --exit-zero-even-if-changed --py39-plus $^
+	pyupgrade --exit-zero-even-if-changed --py310-plus $^
 	auto-walrus $^
 
 release-test: FORCE
