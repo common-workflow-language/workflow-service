@@ -5,7 +5,6 @@ import logging
 import sys
 import tempfile
 from io import StringIO
-from typing import Union
 
 import cwltool.main
 
@@ -22,7 +21,7 @@ def main(args: list[str] = sys.argv[1:]) -> int:
     parser = cwltool.argparser.arg_parser()
     parsedargs = parser.parse_args(args)
 
-    a: Union[bool, str] = True
+    a: bool | str = True
     while a:
         msg = ""
         while a and a != "\n":
