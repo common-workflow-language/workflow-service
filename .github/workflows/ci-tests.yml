@@ -28,12 +28,12 @@ jobs:
 
   tox:
     name: Tox
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         py-ver-major: [3]
-        py-ver-minor: [9, 10, 11, 12]
+        py-ver-minor: [10, 11, 12, 13, 14]
         step: [lint, unit, bandit, mypy]
 
     env:
@@ -59,7 +59,7 @@ jobs:
       - name: Upgrade setuptools and install tox
         run: |
           pip install -U pip setuptools wheel
-          pip install "tox<4" "tox-gh-actions<3"
+          pip install "tox>=4" "tox-gh-actions"
 
       - name: MyPy cache
         if: ${{ matrix.step == 'mypy' }}
@@ -82,15 +82,15 @@ jobs:
   tox-style:
     name: CI linters via Tox
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
         step: [lintreadme, pydocstyle]
 
     env:
-      py-semver: "3.12"
-      TOXENV: ${{ format('py312-{0}', matrix.step) }}
+      py-semver: "3.14"
+      TOXENV: ${{ format('py314-{0}', matrix.step) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -106,7 +106,7 @@ jobs:
       - name: Upgrade setuptools and install tox
         run: |
           pip install -U pip setuptools wheel
-          pip install "tox<4" "tox-gh-actions<3"
+          pip install "tox>=4" "tox-gh-actions"
 
       - if: ${{ matrix.step == 'pydocstyle' && github.event_name == 'pull_request'}}
         name: Create local branch for diff-quality for PRs
