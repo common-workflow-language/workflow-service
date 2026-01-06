@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from importlib.metadata import version
-from typing import Optional, cast
+from typing import cast
 
 import connexion  # type: ignore[import-untyped]
 import connexion.utils as utils  # type: ignore[import-untyped]
@@ -14,7 +14,7 @@ from connexion.resolver import Resolver  # type: ignore[import-untyped]
 logging.basicConfig(level=logging.INFO)
 
 
-def setup(args: Optional[argparse.Namespace] = None) -> connexion.App:
+def setup(args: argparse.Namespace | None = None) -> connexion.App:
     """Config a Connexion App using the provided arguments."""
     if args is None:
         args = get_parser().parse_args([])  # grab the defaults

@@ -2,7 +2,8 @@ import json
 import logging
 import os
 import tempfile
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from werkzeug.utils import secure_filename
 
@@ -28,7 +29,7 @@ class WESBackend:
             k, v = o.split("=", 1)
             self.pairs.append((k, v))
 
-    def getopt(self, p: str, default: Optional[str] = None) -> Optional[str]:
+    def getopt(self, p: str, default: str | None = None) -> str | None:
         """Returns the first option value stored that matches p or default."""
         for k, v in self.pairs:
             if k == p:
@@ -43,12 +44,12 @@ class WESBackend:
                 optlist.append(v)
         return optlist
 
-    def log_for_run(self, run_id: Optional[str], message: str) -> None:
+    def log_for_run(self, run_id: str | None, message: str) -> None:
         """Report the log for a given run."""
         logging.info("Workflow %s: %s", run_id, message)
 
     def collect_attachments(
-        self, args: dict[str, Any], run_id: Optional[str] = None
+        self, args: dict[str, Any], run_id: str | None = None
     ) -> tuple[str, dict[str, str]]:
         """Stage all attachments to a temporary directory."""
         tempdir = tempfile.mkdtemp()

@@ -8,7 +8,8 @@ import shutil
 import subprocess  # nosec B404
 import tempfile
 import threading
-from typing import Any, Callable, Optional, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import arvados  # type: ignore[import-untyped]
 import arvados.collection  # type: ignore[import-untyped]
@@ -23,7 +24,7 @@ class MissingAuthorization(Exception):
     pass
 
 
-def get_api(authtoken: Optional[str] = None) -> arvados.api.api:
+def get_api(authtoken: str | None = None) -> arvados.api.api:
     """Retrieve an Arvados API object."""
     if authtoken is None:
         if not connexion.request.headers.get("Authorization"):
@@ -110,7 +111,7 @@ class ArvadosBackend(WESBackend):
     def ListRuns(
         self,
         page_size: Any = None,
-        page_token: Optional[str] = None,
+        page_token: str | None = None,
         state_search: Any = None,
     ) -> dict[str, Any]:
         """List the known workflow runs."""
@@ -156,7 +157,7 @@ class ArvadosBackend(WESBackend):
         }
 
     def log_for_run(
-        self, run_id: Optional[str], message: str, authtoken: Optional[str] = None
+        self, run_id: str | None, message: str, authtoken: str | None = None
     ) -> None:
         """Report the log for a given run."""
         get_api(authtoken).logs().create(
@@ -259,9 +260,7 @@ class ArvadosBackend(WESBackend):
             ).execute()
 
     @catch_exceptions
-    def RunWorkflow(
-        self, **args: str
-    ) -> Union[tuple[dict[str, Any], int], dict[str, Any]]:
+    def RunWorkflow(self, **args: str) -> tuple[dict[str, Any], int] | dict[str, Any]:
         """Submit the workflow run request."""
         if not connexion.request.headers.get("Authorization"):
             raise MissingAuthorization()

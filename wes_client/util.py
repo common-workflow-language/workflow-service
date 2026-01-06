@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from subprocess import DEVNULL, CalledProcessError, check_call  # nosec B404
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 from urllib.request import pathname2url, urlopen
 
 import requests
@@ -127,7 +127,7 @@ def modify_jsonyaml_paths(jsonyaml_file: str) -> str:
 
 
 def build_wes_request(
-    workflow_file: str, json_path: str, attachments: Optional[list[str]] = None
+    workflow_file: str, json_path: str, attachments: list[str] | None = None
 ) -> tuple[list[tuple[str, Any]], list[tuple[str, Any]]]:
     """
     :param workflow_file: Path to cwl/wdl file.  Can be http/https/file.
@@ -189,7 +189,7 @@ def build_wes_request(
     return parts, workflow_attachments
 
 
-def expand_globs(attachments: Optional[Union[list[str], str]]) -> set[str]:
+def expand_globs(attachments: list[str] | str | None) -> set[str]:
     """Expand any globs present in the attachment list."""
     expanded_list = []
     if attachments is None:
@@ -262,7 +262,7 @@ class WESClient:
         return wes_response(postresult)
 
     def run(
-        self, wf: str, jsonyaml: str, attachments: Optional[list[str]]
+        self, wf: str, jsonyaml: str, attachments: list[str] | None
     ) -> dict[str, Any]:
         """
         Composes and sends a post request that signals the wes server to run a workflow.

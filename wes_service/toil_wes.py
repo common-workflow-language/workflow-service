@@ -9,7 +9,7 @@ import subprocess  # nosec B404
 import time
 import uuid
 from multiprocessing import Process
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from wes_service.util import WESBackend
 
@@ -44,7 +44,7 @@ class ToilWorkflow:
         self.request_json = os.path.join(self.workdir, "request.json")
         self.input_json = os.path.join(self.workdir, "wes_input.json")
         self.jobstore_default = "file:" + os.path.join(self.workdir, "toiljobstore")
-        self.jobstore: Optional[str] = None
+        self.jobstore: str | None = None
 
     def sort_toil_options(self, extra: list[str]) -> list[str]:
         """
@@ -121,7 +121,7 @@ class ToilWorkflow:
             json.dump(request_dict["workflow_params"], f)
         return input_json
 
-    def call_cmd(self, cmd: Union[list[str], str], cwd: str) -> int:
+    def call_cmd(self, cmd: list[str] | str, cwd: str) -> int:
         """
         Calls a command with Popen.
         Writes stdout, stderr, and the command to separate files.
@@ -299,7 +299,7 @@ class ToilWorkflow:
                     return "EXECUTOR_ERROR", 255
 
         # get the jobstore
-        with open(self.jobstorefile, "r") as f:
+        with open(self.jobstorefile) as f:
             jobstore = f.read().rstrip()
         if (
             subprocess.run(  # nosec B603
@@ -313,7 +313,7 @@ class ToilWorkflow:
             == 0
         ):
             # Get the PID of the running process
-            with open(self.pidfile, "r") as f:
+            with open(self.pidfile) as f:
                 pid = int(f.read())
             try:
                 os.kill(pid, 0)

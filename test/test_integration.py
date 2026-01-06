@@ -5,7 +5,7 @@ import signal
 import subprocess
 import time
 import unittest
-from typing import Optional, cast
+from typing import cast
 
 import pytest
 import requests
@@ -168,7 +168,7 @@ class IntegrationTest(unittest.TestCase):
         self,
         wf_input: str,
         json_input: str,
-        workflow_attachment: Optional[list[str]] = None,
+        workflow_attachment: list[str] | None = None,
     ) -> tuple[str, str]:
         """
         Pass a local md5sum cwl to the wes-service server.
@@ -182,7 +182,7 @@ class IntegrationTest(unittest.TestCase):
         )
         return os.path.join(output_dir, "md5sum.txt"), response["run_id"]
 
-    def wait_for_finish(self, run_id: str, seconds: int = 120) -> Optional[str]:
+    def wait_for_finish(self, run_id: str, seconds: int = 120) -> str | None:
         """Return True if a file exists within a certain amount of time."""
         wait_counter = 0
         r = self.client.get_run_status(run_id)
@@ -216,7 +216,7 @@ class IntegrationTest(unittest.TestCase):
         return True
 
 
-def get_server_pids() -> Optional[list[bytes]]:
+def get_server_pids() -> list[bytes] | None:
     try:
         pids = (
             subprocess.check_output(["pgrep", "-f", "wes_service_main.py"])
